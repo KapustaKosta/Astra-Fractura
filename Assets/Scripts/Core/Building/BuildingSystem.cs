@@ -4,26 +4,28 @@ using UnityEngine;
 
 public class BuildingSystem : MonoBehaviour
 {
-    public GameObject buildingPreviewPrefab;
-    private GameObject currentPreview;
-    private Item currentBuildingItem;
+    public GameObject buildingPreviewPrefab; // Префаб для предпоказа
+    private GameObject currentPreview; // Текущий объект предпоказа
+    private Item currentBuildingItem; // Текущий выбранный предмет для строительства
 
     public void StartBuildingWithItem(Item buildingItem)
     {
         currentBuildingItem = buildingItem;
-        currentPreview = Instantiate(buildingPreviewPrefab);
-        // Здесь можно загрузить префаб здания из buildingItem
+
+        // Создаем объект предпоказа
+        currentPreview = Instantiate(buildingItem.buildingPrefab);
+        currentPreview.transform.position = Vector3.zero; // Устанавливаем начальную позицию
     }
 
     void Update()
     {
         if (currentPreview != null)
         {
-            // Двигаем превью по курсору
+            // Двигаем предпоказ за курсором
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, 100f))
             {
-                currentPreview.transform.position = hit.point;
+                currentPreview.transform.position = hit.point; // Обновляем позицию предпоказа
             }
 
             // ЛКМ - поставить здание
@@ -32,7 +34,7 @@ public class BuildingSystem : MonoBehaviour
                 PlaceBuilding();
             }
 
-            // ПКМ - отменить
+            // ПКМ - отменить строительство
             if (Input.GetMouseButtonDown(1))
             {
                 CancelBuilding();
@@ -42,13 +44,28 @@ public class BuildingSystem : MonoBehaviour
 
     private void PlaceBuilding()
     {
+        if (currentBuildingItem == null || currentPreview == null)
+        {
+            Debug.LogError("Невозможно построить здание: отсутствует текущий предмет или предпоказ.");
+            return;
+        }
+
+        // Создаем здание на позиции предпоказа
         Instantiate(currentBuildingItem.buildingPrefab, currentPreview.transform.position, Quaternion.identity);
+
+        // Удаляем объект предпоказа
         Destroy(currentPreview);
+
+        // Удаляем предмет из инвентаря
         FindObjectOfType<Inventory>().Remove(currentBuildingItem);
     }
 
     private void CancelBuilding()
     {
-        Destroy(currentPreview);
+        // Отменяем строительство и удаляем предпоказ
+        if (currentPreview != null)
+        {
+            Destroy(currentPreview);
+        }
     }
 }

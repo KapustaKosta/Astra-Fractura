@@ -13,8 +13,8 @@ class ResourceNodeAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            var resourceLayer = 1 << LayerMask.NameToLayer("Resources");
-            authoring.gameObject.layer = resourceLayer;
+            //var resourceLayer = 1 << LayerMask.NameToLayer("Resources");
+            //authoring.gameObject.layer = resourceLayer;
 
             AddComponent(entity, new ResourceNode
             {

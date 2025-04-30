@@ -3,15 +3,39 @@
   "WorkspaceRootPath": "E:\\Important documents\\Astra-Fractura\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\thirdparty\\starterassets\\firstpersoncontroller\\scripts\\firstpersoncontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\thirdparty\\starterassets\\firstpersoncontroller\\scripts\\firstpersoncontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\resources\\resourcenodeauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\resources\\resourcenodeauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\core\\building\\buildingmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\building\\buildingmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\core\\inventory\\inventoryui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\inventory\\inventoryui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\core\\inventory\\inventoryslot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\inventory\\inventoryslot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\core\\inventory\\inventory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\inventory\\inventory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\game\\gamemodemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\game\\gamemodemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\player\\playertoolcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\player\\playertoolcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\npc\\rotationpositionfixingsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\rotationpositionfixingsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\resources\\resourceitemmapping.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\resources\\resourceitemmapping.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\resources\\resourceitemmapping.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -30,11 +54,102 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FirstPersonController.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\ThirdParty\\StarterAssets\\FirstPersonController\\Scripts\\FirstPersonController.cs",
+              "RelativeDocumentMoniker": "Assets\\ThirdParty\\StarterAssets\\FirstPersonController\\Scripts\\FirstPersonController.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\ThirdParty\\StarterAssets\\FirstPersonController\\Scripts\\FirstPersonController.cs",
+              "RelativeToolTip": "Assets\\ThirdParty\\StarterAssets\\FirstPersonController\\Scripts\\FirstPersonController.cs",
+              "ViewState": "AgIAAMgAAAAAAAAAAAAAwCMAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-30T01:55:17.824Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ResourceNodeAuthoring.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Resources\\ResourceNodeAuthoring.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Resources\\ResourceNodeAuthoring.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Resources\\ResourceNodeAuthoring.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Resources\\ResourceNodeAuthoring.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-30T01:29:44.591Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "InventoryUI.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
+              "ViewState": "AgIAAEQAAAAAAAAAAAAUwFwAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T23:36:28.172Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 2,
+              "Title": "BuildingManager.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
+              "ViewState": "AgIAAHEAAAAAAAAAAAAqwIsAAABvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T23:27:23.757Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "GameModeManager.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Game\\GameModeManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Game\\GameModeManager.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Game\\GameModeManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Game\\GameModeManager.cs",
+              "ViewState": "AgIAABEAAAAAAAAAAAA9wCwAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T23:21:54.137Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "InventorySlot.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
+              "ViewState": "AgIAACoAAAAAAAAAAAAowDYAAAA2AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T23:13:23.414Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Inventory.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\Inventory.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Inventory\\Inventory.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\Inventory.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Core\\Inventory\\Inventory.cs",
+              "ViewState": "AgIAAC4AAAAAAAAAAAAcwFAAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T22:38:32.097Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "ResourceItemMapping.cs",
               "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
@@ -47,33 +162,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 7,
               "Title": "PlayerToolController.cs",
               "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\PlayerToolController.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\PlayerToolController.cs",
               "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\PlayerToolController.cs",
               "RelativeToolTip": "Assets\\Scripts\\Player\\PlayerToolController.cs",
-              "ViewState": "AgIAAHEAAAAAAAAAAAAIwAcAAAA5AAAAAAAAAA==",
+              "ViewState": "AgIAADUAAAAAAAAAAAAwwEkAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-29T19:51:23.468Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "RotationPositionFixingSystem.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingSystem.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\RotationPositionFixingSystem.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingSystem.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\RotationPositionFixingSystem.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABVAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T00:12:36.502Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 10,
               "Title": "NPCAuthoring.cs",
               "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCAuthoring.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCAuthoring.cs",
@@ -85,7 +187,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 9,
               "Title": "RotationPositionFixingFixingAuthoring.cs",
               "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",

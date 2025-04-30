@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 public class InventorySlot : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class InventorySlot : MonoBehaviour
 
     private Item currentItem;
     private int currentAmount;
+
+    // Событие для уведомления об активации слота
+    public event Action<Item> OnSlotClicked;
 
     public void SetupSlot(Item item, int amount = 1)
     {
@@ -48,19 +52,20 @@ public class InventorySlot : MonoBehaviour
     {
         if (currentItem == null) return;
 
-        // Выбираем предмет в инвентаре
-        Inventory.Instance.SelectItem(currentItem);
+        Inventory.Instance.selectedItem = currentItem;
 
+        // Вызываем событие
+        OnSlotClicked?.Invoke(currentItem);
+
+        // Локальная логика для обработки типов предметов
         switch (currentItem.itemType)
         {
             case ItemType.Consumable:
-                // Для расходников сразу используем
                 Inventory.Instance.Remove(currentItem);
                 Debug.Log($"Использован: {currentItem.itemName}");
                 break;
-                
+
             case ItemType.Building:
-                // Для зданий активируем режим строительства
                 GameModeManager.Instance.SetBuildingMode(currentItem);
                 break;
         }

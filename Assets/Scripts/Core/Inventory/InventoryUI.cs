@@ -1,5 +1,5 @@
 using UnityEngine;
-using StarterAssets; // Для StarterAssetsInputs
+using StarterAssets;
 
 public class InventoryUI : MonoBehaviour
 {
@@ -9,7 +9,7 @@ public class InventoryUI : MonoBehaviour
     public GameObject inventoryPanel;
 
     [Header("Player Input")]
-    public FirstPersonController fpsController; // Контроллер из Starter Assets
+    public FirstPersonController fpsController;
     private StarterAssetsInputs _input;
 
     private Inventory inventory;
@@ -32,7 +32,11 @@ public class InventoryUI : MonoBehaviour
         for (int i = 0; i < inventory.space; i++)
         {
             GameObject slot = Instantiate(slotPrefab, slotsParent);
-            slots[i] = slot.GetComponent<InventorySlot>();
+            InventorySlot slotComponent = slot.GetComponent<InventorySlot>();
+            slots[i] = slotComponent;
+
+            // Подписываемся на событие
+            slotComponent.OnSlotClicked += HandleSlotClicked;
         }
     }
 
@@ -83,6 +87,30 @@ public class InventoryUI : MonoBehaviour
                 slots[i].SetupSlot(inventory.items[i].item, inventory.items[i].amount);
             else
                 slots[i].ClearSlot();
+        }
+    }
+
+    private void HandleSlotClicked(Item clickedItem)
+    {
+        // Скрываем инвентарь, если выбран предмет типа Building
+        if (clickedItem.itemType == ItemType.Building)
+        {
+            ToggleInventory();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Отписываемся от событий для всех слотов
+        if (slots != null)
+        {
+            foreach (var slot in slots)
+            {
+                if (slot != null)
+                {
+                    slot.OnSlotClicked -= HandleSlotClicked;
+                }
+            }
         }
     }
 }
