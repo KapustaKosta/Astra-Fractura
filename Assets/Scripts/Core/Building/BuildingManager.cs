@@ -5,23 +5,34 @@ using Unity.Physics.Systems;
 using Unity.Mathematics;
 using Unity.Physics;
 using UnityEngine;
+using Unity.Transforms;
+using Unity.Rendering;
+using Unity.Collections;
+using System;
+using UnityEngine.Rendering;
+using Unity.VisualScripting;
 
 public class BuildingManager : MonoBehaviour
 {
     public static BuildingManager Instance;
+
+    private BatchMaterialID validMaterialID;
+    private BatchMaterialID invalidMaterialID;
 
     [Header("Settings")]
     private LayerMask buildableSurface;
     public UnityEngine.Material validPlacementMaterial;
     public UnityEngine.Material invalidPlacementMaterial;
 
-    private GameObject currentBuildingPrefab;
-    private GameObject buildingPreview;
+    private EntityManager entityManager;
+    private Entity currentBuildingPrefab;
+    private Entity buildingPreview;
     private bool isInBuildingMode = false;
 
     // ECS системы
-    private BuildPhysicsWorld buildPhysicsWorld;
     private CollisionWorld collisionWorld;
+
+    private PhysicsCollider originalCollider;
 
     private void Awake()
     {
@@ -34,30 +45,41 @@ public class BuildingManager : MonoBehaviour
     private void Start()
     {
         // Инициализация ECS систем
-        var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
         PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
         collisionWorld = physicsWorld.CollisionWorld;
 
         Debug.Log($"Текущее значение buildableSurface: {buildableSurface.value}");
+
+        // Регистрируем материалы
+        validMaterialID = RegisterMaterial(validPlacementMaterial);
+        invalidMaterialID = RegisterMaterial(invalidPlacementMaterial);
+    }
+
+    private BatchMaterialID RegisterMaterial(UnityEngine.Material material)
+    {
+        var materialMeshSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<EntitiesGraphicsSystem>();
+        return materialMeshSystem.RegisterMaterial(material);
     }
 
     public void StartBuildingMode(Item buildingItem)
     {
-        currentBuildingPrefab = buildingItem.buildingPrefab;
+        currentBuildingPrefab = ItemToEntityResolver.GetEntityPrefabFromID(entityManager, buildingItem.itemID);
 
         // Создаем объект предпоказа
-        buildingPreview = Instantiate(currentBuildingPrefab);
-        buildingPreview.transform.position = Vector3.zero;
+        buildingPreview = entityManager.Instantiate(currentBuildingPrefab);
+        entityManager.SetComponentData(buildingPreview, LocalTransform.FromPosition(float3.zero));
 
-        // Отключаем коллайдеры для предпоказа
-        foreach (var collider in buildingPreview.GetComponentsInChildren<UnityEngine.Collider>())
+        // Отключаем PhysicsCollider для предпоказа
+        if (entityManager.HasComponent<PhysicsCollider>(buildingPreview))
         {
-            collider.enabled = false;
+            originalCollider = entityManager.GetComponentData<PhysicsCollider>(buildingPreview);
+            entityManager.RemoveComponent<PhysicsCollider>(buildingPreview);
         }
 
         // Устанавливаем материалы для предпоказа
-        SetPreviewMaterials(buildingPreview, validPlacementMaterial);
+        SetPreviewMaterial(buildingPreview, true);
 
         isInBuildingMode = true;
         Debug.Log("Режим строительства активирован.");
@@ -77,7 +99,7 @@ public class BuildingManager : MonoBehaviour
         {
             hitDetected = true;
             hitPoint = hit.point;
-            Debug.Log($"Raycast попал в объект: {hit.collider.gameObject.name}, слой: {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+            //Debug.Log($"Raycast попал в объект: {hit.collider.gameObject.name}, слой: {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
         }
         else
         {
@@ -99,11 +121,12 @@ public class BuildingManager : MonoBehaviour
 
         if (hitDetected)
         {
-            buildingPreview.transform.position = hitPoint; // Обновляем позицию предпоказа
+            // Обновляем позицию предпоказа
+            entityManager.SetComponentData(buildingPreview, LocalTransform.FromPosition(hitPoint));
 
             // Проверка валидности позиции
             bool isValidPosition = CheckBuildPosition(hitPoint);
-            SetPreviewMaterials(buildingPreview, isValidPosition ? validPlacementMaterial : invalidPlacementMaterial);
+            SetPreviewMaterial(buildingPreview, isValidPosition);
 
             // ЛКМ - построить
             if (Input.GetMouseButtonDown(0) && isValidPosition)
@@ -125,64 +148,86 @@ public class BuildingManager : MonoBehaviour
 
     private bool CheckBuildPosition(Vector3 position)
     {
-        if (currentBuildingPrefab == null)
+        bool result = true;
+
+        if (currentBuildingPrefab == Entity.Null)
         {
             Debug.LogError("currentBuildingPrefab не установлен!");
             return false;
         }
 
-        // Проверяем все коллайдеры в префабе
-        foreach (var collider in currentBuildingPrefab.GetComponentsInChildren<UnityEngine.Collider>())
+        if (!entityManager.HasComponent<PhysicsCollider>(currentBuildingPrefab))
         {
-            if (collider is UnityEngine.BoxCollider boxCollider)
-            {
-                // Проверка для BoxCollider
-                if (Physics.OverlapBox(position + boxCollider.center, boxCollider.size / 2, Quaternion.identity).Length > 0)
-                {
-                    return false;
-                }
-            }
-            else if (collider is UnityEngine.SphereCollider sphereCollider)
-            {
-                // Проверка для SphereCollider
-                if (Physics.OverlapSphere(position, sphereCollider.radius, buildableSurface).Length > 0)
-                {
-                    return false;
-                }
-            }
-            else if (collider is UnityEngine.CapsuleCollider capsuleCollider)
-            {
-                // Проверка для CapsuleCollider
-                Vector3 point1 = position + Vector3.up * (capsuleCollider.height / 2 - capsuleCollider.radius);
-                Vector3 point2 = position - Vector3.up * (capsuleCollider.height / 2 - capsuleCollider.radius);
-                if (Physics.OverlapCapsule(point1, point2, capsuleCollider.radius, buildableSurface).Length > 0)
-                {
-                    return false;
-                }
-            }
-            else if (collider is UnityEngine.MeshCollider meshCollider && meshCollider.convex)
-            {
-                // Проверка для MeshCollider (только если он convex)
-                if (Physics.OverlapBox(position, meshCollider.bounds.extents, Quaternion.identity, buildableSurface).Length > 0)
-                {
-                    return false;
-                }
-            }
+            Debug.LogError("Entity не содержит PhysicsCollider!");
+            return false;
         }
 
-        return true;
+        var colliderComponent = entityManager.GetComponentData<PhysicsCollider>(currentBuildingPrefab);
+        var colliderPtr = colliderComponent.Value;
+
+        if (!colliderPtr.IsCreated)
+        {
+            Debug.LogError("Collider не создан.");
+            return false;
+        }
+
+        ref var collider = ref colliderPtr.Value;
+
+        var input = new OverlapAabbInput
+        {
+            Aabb = collider.CalculateAabb(new RigidTransform
+            {
+                pos = position,
+                rot = quaternion.identity
+            }),
+            Filter = collider.GetCollisionFilter()
+        };
+
+        NativeList<int> hitResults = new NativeList<int>(Allocator.Temp);
+
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+        PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
+        collisionWorld = physicsWorld.CollisionWorld;
+
+        try
+        {
+            if (collisionWorld.OverlapAabb(input, ref hitResults))
+            {
+                Debug.Log($"Найдено пересечений: {hitResults.Length}");
+                result = false;
+            }
+        }
+        finally
+        {
+            hitResults.Dispose();
+        }
+
+        return result;
     }
+
+
 
     private void Build(Vector3 position)
     {
         if (Inventory.Instance.selectedItem != null &&
             Inventory.Instance.selectedItem.itemType == ItemType.Building)
         {
-            Instantiate(currentBuildingPrefab, position, Quaternion.identity);
-            Inventory.Instance.Remove(Inventory.Instance.selectedItem); // Удаляем предмет из инвентаря
+            // Создаём основную сущность для здания  
+            Entity building = entityManager.Instantiate(currentBuildingPrefab);
+
+            // Устанавливаем позицию и поворот  
+            entityManager.SetComponentData(building, LocalTransform.FromPositionRotation(position, quaternion.identity));
+
+            // Убираем предмет из инвентаря  
+            Inventory.Instance.Remove(Inventory.Instance.selectedItem);
+
+            // Выходим из режима строительства  
             ExitBuildingMode();
         }
     }
+
+
+
 
     public void CancelBuilding()
     {
@@ -191,24 +236,23 @@ public class BuildingManager : MonoBehaviour
 
     private void ExitBuildingMode()
     {
-        if (buildingPreview != null)
+        if (buildingPreview != Entity.Null)
         {
-            Destroy(buildingPreview);
+            entityManager.DestroyEntity(buildingPreview);
         }
         isInBuildingMode = false;
         Debug.Log("Режим строительства отменен.");
     }
 
-    private void SetPreviewMaterials(GameObject target, UnityEngine.Material material)
+    public void SetPreviewMaterial(Entity entity, bool isValid)
     {
-        foreach (var renderer in target.GetComponentsInChildren<Renderer>())
+        var materialID = isValid ? validMaterialID : invalidMaterialID;
+
+        if (entityManager.HasComponent<MaterialMeshInfo>(entity))
         {
-            var materials = new UnityEngine.Material[renderer.sharedMaterials.Length];
-            for (int i = 0; i < materials.Length; i++)
-            {
-                materials[i] = material;
-            }
-            renderer.sharedMaterials = materials;
+            var materialMeshInfo = entityManager.GetComponentData<MaterialMeshInfo>(entity);
+            materialMeshInfo.MaterialID = materialID;
+            entityManager.SetComponentData(entity, materialMeshInfo);
         }
     }
 }

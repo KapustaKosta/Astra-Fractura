@@ -23,3 +23,4 @@ MonoBehaviour:
   maxDurability: 100
   buildingPrefab: {fileID: 123924, guid: 4cbd13ce3c35357488d85a111775e0a0, type: 3}
   footprintSize: {x: 1, y: 1}
+  itemID: 1

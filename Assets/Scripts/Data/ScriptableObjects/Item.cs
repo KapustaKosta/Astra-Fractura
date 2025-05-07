@@ -1,3 +1,4 @@
+using Unity.Entities;
 using UnityEngine;  
 
 public enum ItemType
@@ -44,4 +45,7 @@ public class Item : ScriptableObject
     [Header("Building Settings")]
     public GameObject buildingPrefab;
     public Vector2 footprintSize = new Vector2(1, 1); // Размер основания в метрах
+    [Header("System Info")]
+    [Tooltip("Уникальный ID для связи с ECS")]
+    public int itemID;
 }
