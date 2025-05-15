@@ -16,6 +16,8 @@ public class Inventory : MonoBehaviour
     public delegate void OnItemChanged();
     public OnItemChanged onItemChanged;
 
+    public InventoryUI inventoryUI;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -29,7 +31,7 @@ public class Inventory : MonoBehaviour
     public void SelectItem(Item item)
     {
         selectedItem = item;
-        
+
         if (item.itemType == ItemType.Tool)
         {
             EquipTool(item);
@@ -66,9 +68,10 @@ public class Inventory : MonoBehaviour
             Debug.Log("Инвентарь полон!");
             return false;
         }
-
+        
         items.Add(new InventoryItem(item, amount));
         onItemChanged?.Invoke();
+        inventoryUI.UpdateUI();
         return true;
     }
 
@@ -88,5 +91,11 @@ public class Inventory : MonoBehaviour
     {
         InventoryItem invItem = items.Find(i => i.item == item);
         return invItem != null && invItem.amount >= amount;
+    }
+
+    public void CraftItem(CraftingRecipe recipe)
+    {
+        recipe.Craft(this);
+        inventoryUI.UpdateUI();
     }
 }

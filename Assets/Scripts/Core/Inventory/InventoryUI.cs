@@ -79,7 +79,7 @@ public class InventoryUI : MonoBehaviour
         if (state) UpdateUI();
     }
 
-    void UpdateUI()
+    public void UpdateUI()
     {
         for (int i = 0; i < slots.Length; i++)
         {
