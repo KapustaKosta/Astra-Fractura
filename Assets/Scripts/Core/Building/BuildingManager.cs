@@ -10,7 +10,6 @@ using Unity.Rendering;
 using Unity.Collections;
 using System;
 using UnityEngine.Rendering;
-using Unity.VisualScripting;
 
 public class BuildingManager : MonoBehaviour
 {
@@ -26,6 +25,7 @@ public class BuildingManager : MonoBehaviour
 
     private EntityManager entityManager;
     private Entity currentBuildingPrefab;
+    private GameObject prefabGO;
     private Entity buildingPreview;
     private bool isInBuildingMode = false;
 
@@ -45,10 +45,6 @@ public class BuildingManager : MonoBehaviour
     private void Start()
     {
         // Инициализация ECS систем
-        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
-        PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
-        collisionWorld = physicsWorld.CollisionWorld;
 
         Debug.Log($"Текущее значение buildableSurface: {buildableSurface.value}");
 
@@ -65,6 +61,13 @@ public class BuildingManager : MonoBehaviour
 
     public void StartBuildingMode(Item buildingItem)
     {
+        prefabGO = buildingItem.buildingPrefab;
+
+        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+        PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
+        collisionWorld = physicsWorld.CollisionWorld;
+
         currentBuildingPrefab = ItemToEntityResolver.GetEntityPrefabFromID(entityManager, buildingItem.itemID);
 
         // Создаем объект предпоказа
@@ -93,6 +96,11 @@ public class BuildingManager : MonoBehaviour
         UnityEngine.Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         bool hitDetected = false;
         Vector3 hitPoint = Vector3.zero;
+
+        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+        PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
+        collisionWorld = physicsWorld.CollisionWorld;
 
         // Классический Raycast
         if (Physics.Raycast(ray, out UnityEngine.RaycastHit hit, 100f, buildableSurface))
@@ -212,9 +220,15 @@ public class BuildingManager : MonoBehaviour
         if (Inventory.Instance.selectedItem != null &&
             Inventory.Instance.selectedItem.itemType == ItemType.Building)
         {
+            entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            EntityQuery query = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+            PhysicsWorldSingleton physicsWorld = query.GetSingleton<PhysicsWorldSingleton>();
+            collisionWorld = physicsWorld.CollisionWorld;
+
             // Создаём основную сущность для здания  
             Entity building = entityManager.Instantiate(currentBuildingPrefab);
-
+            
+            // No other changes are needed in the file.
             // Устанавливаем позицию и поворот  
             entityManager.SetComponentData(building, LocalTransform.FromPositionRotation(position, quaternion.identity));
 

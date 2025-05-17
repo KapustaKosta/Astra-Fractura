@@ -52,10 +52,22 @@ namespace StarterAssets
 		{
 			SprintInput(value.isPressed);
 		}
+
+        public void OnRightClick(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                Debug.Log("Right-click detected!");
+
+                SettlementClickHandler.Instance.HandleRightClick();
+
+                NPCClickHandler.Instance.HandleRightClick();
+            }
+        }
 #endif
 
 
-		public void MoveInput(Vector2 newMoveDirection)
+        public void MoveInput(Vector2 newMoveDirection)
 		{
 			move = newMoveDirection;
 		} 
