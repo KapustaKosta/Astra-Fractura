@@ -89,11 +89,6 @@ public class SettlementClickHandler : MonoBehaviour
                 return;
             }
         }
-
-        // ≈сли луч не попал в поселение, скрываем UI
-        SettlementUI.Instance.Hide();
-
-        LockPlayerControls(false);
     }
 
     private void LockPlayerControls(bool isLocked)

@@ -152,7 +152,7 @@ public class NPCUI : MonoBehaviour
             {
                 entityManager.AddComponentData(currentNPCEntity, new NPCMovementComponent
                 {
-                    Speed = 2.0f, 
+                    Speed = 2.0f,
                     TargetPosition = targetPosition,
                     HasTarget = true
                 });
@@ -163,6 +163,9 @@ public class NPCUI : MonoBehaviour
 
         // Скрываем меню после назначения
         Hide();
+        
+        // Разблокируем управление игроком  
+        NPCClickHandler.Instance.LockPlayerControls(false);
     }
 
 
