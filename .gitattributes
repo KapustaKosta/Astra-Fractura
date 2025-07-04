@@ -1,0 +1,16 @@
+# Установите правильные окончания строк для разных типов файлов
+*.sh text eol=lf
+*.json text eol=lf
+*.cs text eol=lf
+*.txt text eol=lf
+*.shader text eol=lf
+*.cginc text eol=lf
+
+# Бинарные файлы (не должны конвертироваться)
+*.meta binary
+*.unity binary
+*.prefab binary
+*.asset binary
+*.png binary
+*.jpg binary
+*.wav binary
