@@ -13,4 +13,5 @@ public struct InputsData : IComponentData
     public bool analogMovement;
     public bool isMouseControl;
     public bool secondaryActionDown;
+    public bool PrimaryAction; 
 }

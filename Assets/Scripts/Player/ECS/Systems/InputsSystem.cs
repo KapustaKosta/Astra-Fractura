@@ -6,8 +6,7 @@ using System;
 
 /// <summary>
 /// ECS-система, отвечающая за обработку ввода от пользователя.
-/// Преобразует события ввода из MonoBehaviour-мира (через StarterAssetsInputs)
-/// в ECS-компоненты InputsData и запросы. Реализует буферизацию прыжка.
+/// Просто записывает состояние ввода в компонент InputsData.
 /// </summary>
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateBefore(typeof(PlayerMovementSystem))]
@@ -20,27 +19,19 @@ public partial class InputsSystem : SystemBase
     private bool inventoryRequested;
     private bool rightClickRequested;
     private double lastJumpTime;
-
-    private EntityQuery playerInitializedQuery;
-
-    /// <summary>
-    /// Длительность (в секундах), в течение которой сигнал прыжка считается "свежим" для буферизации.
-    /// </summary>
-    private const double JumpBufferDuration = 0.2;
+    private bool primaryActionInput;
 
     /// <summary>
-    /// Вызывается при создании системы. Гарантирует, что синглтон GameState существует
-    /// и инициализирует запрос для проверки инициализации игрока.
+    /// Вызывается при создании системы. Гарантирует, что синглтон GameState и игрок существуют.
     /// </summary>
     protected override void OnCreate()
     {
-        RequireForUpdate<GameState>(); // Требуем, чтобы глобальная сущность существовала
-        playerInitializedQuery = GetEntityQuery(typeof(PlayerInitializedTag));
+        RequireForUpdate<GameState>();
+        RequireForUpdate<PlayerControllerData>();
     }
 
     /// <summary>
-    /// Вызывается при первом запуске системы. Подписывается на события ввода от StarterAssetsInputs
-    /// и сбрасывает все флаги запросов ввода.
+    /// Вызывается при первом запуске системы. Подписывается на события ввода.
     /// </summary>
     protected override void OnStartRunning()
     {
@@ -50,10 +41,12 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onJump += OnJump;
         StarterAssetsInputs.onInventory += OnInventory;
         StarterAssetsInputs.onRightClick += OnRightClick;
-
+        StarterAssetsInputs.onPrimaryAction += OnPrimaryAction;
+        
         inventoryRequested = false;
         rightClickRequested = false;
         jumpRequested = false;
+        primaryActionInput = false;
         lastJumpTime = double.NegativeInfinity;
     }
 
@@ -68,56 +61,52 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onJump -= OnJump;
         StarterAssetsInputs.onInventory -= OnInventory;
         StarterAssetsInputs.onRightClick -= OnRightClick;
+        StarterAssetsInputs.onPrimaryAction -= OnPrimaryAction;
     }
 
     /// <summary>
     /// Обработчик события движения.
     /// </summary>
-    /// <param name="input">Вектор движения.</param>
     private void OnMove(Vector2 input) => moveInput = input;
 
     /// <summary>
     /// Обработчик события обзора.
     /// </summary>
-    /// <param name="input">Вектор обзора.</param>
     private void OnLook(Vector2 input) => lookInput = input;
 
     /// <summary>
     /// Обработчик события спринта.
     /// </summary>
-    /// <param name="isPressed">True, если кнопка спринта нажата, false в противном случае.</param>
     private void OnSprint(bool isPressed) => sprintInput = isPressed;
 
     /// <summary>
-    /// Обработчик события прыжка. Устанавливает флаг запроса прыжка и время последнего прыжка.
+    /// Обработчик события прыжка.
     /// </summary>
     private void OnJump() { jumpRequested = true; lastJumpTime = SystemAPI.Time.ElapsedTime; }
 
     /// <summary>
-    /// Обработчик события открытия/закрытия инвентаря. Устанавливает флаг запроса инвентаря.
+    /// Обработчик события инвентаря.
     /// </summary>
     private void OnInventory() => inventoryRequested = true;
 
     /// <summary>
-    /// Обработчик события правой кнопки мыши (вторичное действие). Устанавливает флаг запроса.
+    /// Обработчик события вторичного действия.
     /// </summary>
     private void OnRightClick() => rightClickRequested = true;
 
     /// <summary>
-    /// Вызывается каждый кадр. Обновляет InputsData для сущности игрока
-    /// и создает ECS-запросы на основе флагов ввода. Блокирует ввод, если игра в режиме UI.
+    /// Обработчик для основного действия (ЛКМ).
+    /// </summary>
+    private void OnPrimaryAction(bool isPressed) => primaryActionInput = isPressed;
+
+    /// <summary>
+    /// Вызывается каждый кадр. Обновляет InputsData и создает одноразовые запросы для UI.
     /// </summary>
     protected override void OnUpdate()
     {
-        if (playerInitializedQuery.IsEmpty)
-            return;
-
-        double now = SystemAPI.Time.ElapsedTime;
-        bool jumpBuffered = (now - lastJumpTime) <= JumpBufferDuration;
-
-        var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
-            .CreateCommandBuffer(World.Unmanaged);
-
+        var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        
+        // Создаем одноразовые запросы для действий, которые должны сработать один раз по нажатию
         if (inventoryRequested)
         {
             var invE = ecb.CreateEntity();
@@ -134,24 +123,28 @@ public partial class InputsSystem : SystemBase
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
 
-        // Обнуляем ввод, если активен режим UI
+        double now = SystemAPI.Time.ElapsedTime;
+        bool jumpBuffered = (now - lastJumpTime) <= 0.2;
+        
+        // Определяем финальные значения для записи, блокируя ввод в режиме UI
         float2 currentMove = isUI ? float2.zero : new float2(moveInput.x, moveInput.y);
         float2 currentLook = isUI ? float2.zero : new float2(lookInput.x, lookInput.y);
         bool currentSprint = isUI ? false : sprintInput;
         bool currentJump = !isUI && jumpBuffered;
+        // Мы передаем сырое состояние кнопки, а другие системы решат, можно ли выполнять действие
+        bool currentPrimaryAction = primaryActionInput;
 
-        Entities
-            .ForEach((ref InputsData inputsData) =>
-            {
-                inputsData.move = currentMove;
-                inputsData.look = currentLook;
-                inputsData.sprint = currentSprint;
-                inputsData.jump = currentJump;
-                inputsData.isMouseControl = true;
-                inputsData.secondaryActionDown = false;
-            })
-            .WithoutBurst().Run();
+        // Обновляем синглтон InputsData, который служит источником правды о вводе для других систем
+        var inputs = SystemAPI.GetSingletonRW<InputsData>();
+        inputs.ValueRW.move = currentMove;
+        inputs.ValueRW.look = currentLook;
+        inputs.ValueRW.sprint = currentSprint;
+        inputs.ValueRW.jump = currentJump;
+        inputs.ValueRW.isMouseControl = true;
+        inputs.ValueRW.secondaryActionDown = false;
+        inputs.ValueRW.PrimaryAction = currentPrimaryAction;
 
+        // Сбрасываем флаг для однократного прыжка
         jumpRequested = false;
     }
 }

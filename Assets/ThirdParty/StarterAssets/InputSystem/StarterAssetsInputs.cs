@@ -42,10 +42,16 @@ namespace StarterAssets
         public static event Action onRightClick;
 
         /// <summary>
+        /// Событие, вызываемое при изменении состояния основного действия (например, ЛКМ).
+        /// </summary>
+        public static event Action<bool> onPrimaryAction; // <--- ДОБАВЛЕНО НОВОЕ СОБЫТИЕ
+
+#if ENABLE_INPUT_SYSTEM
+
+        /// <summary>
         /// Метод, вызываемый компонентом Player Input для обработки ввода движения.
         /// </summary>
         /// <param name="value">Значение ввода.</param>
-#if ENABLE_INPUT_SYSTEM
         public void OnMove(InputValue value)
         {
             onMove?.Invoke(value.Get<Vector2>());
@@ -104,6 +110,18 @@ namespace StarterAssets
                 onRightClick?.Invoke();
             }
         }
+
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки основного действия (ЛКМ).
+        /// Важно: в отличие от Jump/Inventory, он передает состояние `isPressed`, 
+        /// чтобы мы знали, когда кнопка зажата, а когда отпущена.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnFire(InputValue value) // <--- ДОБАВЛЕН НОВЫЙ МЕТОД
+        {
+            onPrimaryAction?.Invoke(value.isPressed);
+        }
+
 #endif
     }
 }

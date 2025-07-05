@@ -181,7 +181,8 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             cinemachineTargetPitch = 0f,
             jumpTimeoutDelta = authoring.JumpTimeout,
             fallTimeoutDelta = authoring.FallTimeout,
-            isGrounded = true
+            isGrounded = true,
+            LastHarvestTime = -1f
         });
 
         AddComponent(entity, new InputsData());

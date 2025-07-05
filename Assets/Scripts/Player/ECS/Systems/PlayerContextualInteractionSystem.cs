@@ -9,7 +9,7 @@ using UnityEngine;
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(InputsSystem))]
-public partial class PlayerInteractionSystem : SystemBase
+public partial class PlayerContextualInteractionSystem : SystemBase
 {
     /// <summary>
     /// Вызывается при создании системы. Требует наличия синглтона GameState,

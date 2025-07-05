@@ -114,6 +114,8 @@ public struct PlayerStateData : IComponentData
     public float fallTimeoutDelta;
     
     public bool isGrounded;
+    
+    public float LastHarvestTime; 
 }
 
 

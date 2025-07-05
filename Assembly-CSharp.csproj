@@ -64,6 +64,9 @@
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\StateTransitionSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingFixingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementActionsSystem.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestIntentionSystem.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerContextualInteractionSystem.cs" />
+    <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryItem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCHiredTag.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerMovementSystem.cs" />
@@ -76,7 +79,6 @@
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
-    <Compile Include="Assets\Scripts\Player\PlayerToolController.cs" />
     <Compile Include="Assets\Scripts\Core\Building\ItemToEntityResolver.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourcesNode.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\RequestComponents.cs" />
@@ -87,11 +89,11 @@
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\BasicRigidBodyPush.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Inventory.cs" />
     <Compile Include="Assets\Scripts\ECS\Authoring\GameStateAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\InteractionComponents.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerTargetingSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCUI.cs" />
-    <Compile Include="Assets\Scripts\Player\InteractionHandler.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAsstesInputs2.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementCandidateTag.cs" />
-    <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\SettlementComponent.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\InputsSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingAuthoring.cs" />
@@ -106,6 +108,7 @@
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameState.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestingSystems.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
@@ -1147,6 +1150,10 @@
       <Project>{de9a4c3a-a4dd-7f5f-63eb-15be7c7c5921}</Project>
       <Name>Unity.Physics.Custom.Editor</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\Scripts\Core\Building\Components\" />
+    <Folder Include="Assets\Scripts\Core\Building\Systems\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
