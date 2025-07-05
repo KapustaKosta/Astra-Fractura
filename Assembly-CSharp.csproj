@@ -64,7 +64,6 @@
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\StateTransitionSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingFixingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementActionsSystem.cs" />
-    <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestIntentionSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerContextualInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryItem.cs" />
@@ -107,9 +106,11 @@
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\ProcessHarvestRequestSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameState.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestingSystems.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestIntentionSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\StateComponents.cs" />
@@ -1150,10 +1151,6 @@
       <Project>{de9a4c3a-a4dd-7f5f-63eb-15be7c7c5921}</Project>
       <Name>Unity.Physics.Custom.Editor</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Assets\Scripts\Core\Building\Components\" />
-    <Folder Include="Assets\Scripts\Core\Building\Systems\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
