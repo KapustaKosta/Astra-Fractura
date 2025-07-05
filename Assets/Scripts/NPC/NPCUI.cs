@@ -7,7 +7,7 @@ using Unity.Collections;
 
 /// <summary>
 /// Управляет пользовательским интерфейсом NPC, отображая информацию о NPC
-/// и предоставляя опции для взаимодействия. Читает состояние напрямую из ECS.
+/// и предоставляя опции для взаимодействия, такие как найм или назначение задач.
 /// </summary>
 public class NPCUI : MonoBehaviour
 {
@@ -69,16 +69,18 @@ public class NPCUI : MonoBehaviour
 
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
-        
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.NPC;
+        // Проверяем, должен ли наш UI быть открыт, на основе данных из ECS
+        bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
+                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.NPC;
 
         if (npcMenu.activeSelf != shouldBeOpen)
         {
             if (shouldBeOpen)
             {
-                Show(gameState.ActiveUITarget);
+                var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
+                Show(uiState.ActiveUITarget);
             }
             else
             {
@@ -176,7 +178,6 @@ public class NPCUI : MonoBehaviour
         var playerSettlementQuery = entityManager.CreateEntityQuery(typeof(PlayerSettlementTag));
         if (playerSettlementQuery.IsEmpty)
         {
-            // TODO: Показать игроку уведомление "Сначала постройте главное поселение!"
             return; 
         }
         

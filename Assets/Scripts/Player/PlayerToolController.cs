@@ -45,7 +45,10 @@ public class PlayerToolController : MonoBehaviour
     /// <summary>
     /// Вызывается в первом кадре. Пытается инициализировать необходимые компоненты и ссылки.
     /// </summary>
-    void Start() => TryInitialize();
+    void Start()
+    {
+        TryInitialize();
+    }
 
     /// <summary>
     /// Вызывается, когда объект становится неактивным или выключается.
@@ -53,7 +56,10 @@ public class PlayerToolController : MonoBehaviour
     /// </summary>
     void OnDisable()
     {
-        if (isHarvesting) ResetHarvestState();
+        if (isHarvesting)
+        {
+            ResetHarvestState();
+        }
     }
     
     /// <summary>
@@ -84,7 +90,7 @@ public class PlayerToolController : MonoBehaviour
 
     /// <summary>
     /// Вызывается один раз за кадр. Обрабатывает логику сбора ресурсов,
-    /// реагируя на ввод игрока и текущее состояние игры.
+    /// реагируя на ввод игрока и проверяя, что игра находится в режиме InDefaultMode.
     /// </summary>
     void Update()
     {
@@ -96,9 +102,10 @@ public class PlayerToolController : MonoBehaviour
 
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        bool canPerformActions = gameState.CurrentMode == GameMode.Default;
+        // Проверяем возможность действий через наличие тега InDefaultMode.
+        bool canPerformActions = entityManager.HasComponent<InDefaultMode>(gameStateEntity);
 
         if (!canPerformActions)
         {
@@ -173,6 +180,8 @@ public class PlayerToolController : MonoBehaviour
     private void Harvest(ResourceNode resourceNode)
     {
         if (resourceItemMapping == null || inventory == null) return;
+        // NOTE: This assumes ResourceItemMapping exists and works correctly.
+        // If that file has errors, they need to be addressed separately.
         Item itemToGive = resourceItemMapping.GetItemByResourceType(resourceNode.resourceType);
         if (itemToGive != null)
         {

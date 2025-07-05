@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.Entities;
 
 /// <summary>
-/// Управляет пользовательским интерфейсом инвентаря. Теперь он полностью независим и читает состояние напрямую из ECS.
+/// Управляет пользовательским интерфейсом инвентаря, отображая слоты и обрабатывая взаимодействие с ними.
 /// Является Singleton-классом.
 /// </summary>
 public class InventoryUI : MonoBehaviour
@@ -44,7 +44,7 @@ public class InventoryUI : MonoBehaviour
 
     /// <summary>
     /// Вызывается в первом кадре. Получает ссылки на Inventory, EntityManager,
-    /// инициализирует слоты и подписывается на события инвентаря.
+    /// инициализирует слоты и подписывается на события.
     /// </summary>
     void Start()
     {
@@ -53,7 +53,7 @@ public class InventoryUI : MonoBehaviour
         {
             inventory.onItemChanged += UpdateUI;
             InitializeSlots();
-            SetInventoryState(false); // Изначально инвентарь закрыт
+            SetInventoryState(false);
         }
     }
 
@@ -76,7 +76,7 @@ public class InventoryUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Каждый кадр проверяет глобальное состояние игры и синхронизирует с ним видимость своей панели.
+    /// Каждый кадр проверяет глобальное состояние в ECS и синхронизирует видимость панели инвентаря.
     /// </summary>
     void Update()
     {
@@ -88,13 +88,12 @@ public class InventoryUI : MonoBehaviour
 
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
-
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
         
-        // Наше единственное условие для отображения: текущий режим UI и тип UI - инвентарь.
-        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.Inventory;
+        // Проверяем, находимся ли мы в режиме UI и является ли наш тип UI активным
+        bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
+                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory;
         
-        // Если фактическое состояние панели не соответствует данным из ECS, исправляем это.
         if (inventoryPanel.activeSelf != shouldBeOpen)
         {
             SetInventoryState(shouldBeOpen);
@@ -102,7 +101,7 @@ public class InventoryUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Пытается инициализировать все необходимые ссылки.
+    /// Пытается инициализировать необходимые компоненты и ссылки.
     /// </summary>
     private void TryInitialize()
     {
@@ -121,14 +120,13 @@ public class InventoryUI : MonoBehaviour
 
         isInitialized = true;
     }
-
+    
     /// <summary>
     /// Запрашивает переключение состояния инвентаря путем создания ECS-запроса.
     /// </summary>
     public void RequestToggleInventory()
     {
         if (!isInitialized) return;
-        
         var toggleEntity = entityManager.CreateEntity();
         entityManager.AddComponentData(toggleEntity, new ToggleInventoryRequest());
     }
@@ -175,11 +173,9 @@ public class InventoryUI : MonoBehaviour
     public void UpdateUI()
     {
         if (inventory == null || slots == null) return;
-
         for (int i = 0; i < slots.Length; i++)
         {
             if (slots[i] == null) continue;
-
             if (i < inventory.items.Count)
             {
                 slots[i].SetupSlot(inventory.items[i].item, inventory.items[i].amount);
@@ -199,7 +195,6 @@ public class InventoryUI : MonoBehaviour
     private void HandleSlotClicked(Item clickedItem)
     {
         if (clickedItem == null || !isInitialized) return;
-
         Inventory.Instance.SelectItem(clickedItem);
 
         if (clickedItem.itemType == ItemType.Building)
@@ -210,7 +205,6 @@ public class InventoryUI : MonoBehaviour
         else if (clickedItem.itemType == ItemType.Consumable)
         {
             Inventory.Instance.Remove(clickedItem, 1);
-            // Debug.Log($"Использован: {clickedItem.itemName}");
         }
     }
 }

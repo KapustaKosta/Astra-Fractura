@@ -72,12 +72,17 @@ public class BuildingManager : MonoBehaviour
 
         var gameStateQuery = _em.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        bool shouldBeInBuildingMode = gameState.CurrentMode == GameMode.Building;
+        // Проверяем состояние через наличие компонентов-тегов на глобальной сущности
+        bool shouldBeInBuildingMode = _em.HasComponent<InBuildingMode>(gameStateEntity);
 
         if (shouldBeInBuildingMode && !_isBuildingMode)
-            StartBuildingMode(gameState.BuildingPrefabToPlace, gameState.BuildingItemID);
+        {
+            // Получаем данные для строительства из нового компонента BuildingState
+            var buildingState = _em.GetComponentData<BuildingState>(gameStateEntity);
+            StartBuildingMode(buildingState.BuildingPrefabToPlace, buildingState.BuildingItemID);
+        }
         else if (!shouldBeInBuildingMode && _isBuildingMode)
         {
             ExitBuildingMode();
@@ -166,9 +171,12 @@ public class BuildingManager : MonoBehaviour
     {
         var gameStateQuery = _em.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        var ent = _em.Instantiate(gameState.BuildingPrefabToPlace);
+        if (!_em.HasComponent<BuildingState>(gameStateEntity)) return;
+        var buildingState = _em.GetComponentData<BuildingState>(gameStateEntity);
+
+        var ent = _em.Instantiate(buildingState.BuildingPrefabToPlace);
         _em.SetComponentData(ent, LocalTransform.FromPositionRotation(pos, quaternion.identity));
         _em.AddComponent<NewlyBuiltTag>(ent);
 

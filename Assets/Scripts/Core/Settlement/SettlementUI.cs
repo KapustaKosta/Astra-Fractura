@@ -6,7 +6,7 @@ using Unity.Collections;
 
 /// <summary>
 /// Управляет пользовательским интерфейсом Поселения, отображая его статистику
-/// и список нанятых NPC. Читает состояние напрямую из ECS в своем Update.
+/// и список нанятых NPC с их текущим статусом.
 /// </summary>
 public class SettlementUI : MonoBehaviour
 {
@@ -71,19 +71,21 @@ public class SettlementUI : MonoBehaviour
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
         
-        var gameState = gameStateQuery.GetSingleton<GameState>();
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
         
-        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.Settlement;
+        // Проверяем, должен ли наш UI быть открыт, на основе данных из ECS
+        bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
+                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Settlement;
         
         // Синхронизируем состояние панели с состоянием из ECS
         if (uiPanel.activeSelf != shouldBeOpen)
         {
             if (shouldBeOpen)
             {
-                // Проверяем, валидна ли цель, прежде чем открывать
-                if (entityManager.Exists(gameState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(gameState.ActiveUITarget))
+                var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
+                if (entityManager.Exists(uiState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(uiState.ActiveUITarget))
                 {
-                    var settlementData = entityManager.GetComponentData<SettlementComponent>(gameState.ActiveUITarget);
+                    var settlementData = entityManager.GetComponentData<SettlementComponent>(uiState.ActiveUITarget);
                     Show(settlementData);
                 }
             }
@@ -167,10 +169,8 @@ public class SettlementUI : MonoBehaviour
                 string npcName = npcData.Name.ToString();
                 string statusText = " - Простаивает"; // Статус по умолчанию
 
-                // Если у NPC есть цель, определяем его статус
                 if (npcData.Target != Entity.Null)
                 {
-                    // Проверяем, является ли цель ресурсным узлом
                     if (entityManager.HasComponent<ResourceNode>(npcData.Target))
                     {
                         var resourceNode = entityManager.GetComponentData<ResourceNode>(npcData.Target);
@@ -178,12 +178,10 @@ public class SettlementUI : MonoBehaviour
                     }
                     else
                     {
-                        // Общий статус для других типов задач
                         statusText = " - Занят";
                     }
                 }
                 
-                // Формируем итоговую строку для отображения
                 nameText.text = $"{npcName}{statusText}";
                 
             }

@@ -2,28 +2,21 @@
 using UnityEngine;
 
 /// <summary>
-/// Простой Authoring-компонент, единственная задача которого -
-/// добавить в ECS-мир сущность с компонентом GameState,
-/// чтобы она стала доступна как синглтон.
+/// Authoring-компонент для создания глобальной сущности-синглтона.
 /// </summary>
 public class GameStateAuthoring : MonoBehaviour
 {
     class Baker : Baker<GameStateAuthoring>
     {
-        /// <summary>
-        /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
-        /// Создает сущность GameState и инициализирует ее значения по умолчанию.
-        /// </summary>
-        /// <param name="authoring">Экземпляр GameStateAuthoring.</param>
         public override void Bake(GameStateAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.None);
-            AddComponent(entity, new GameState
-            {
-                CurrentMode = GameMode.Default,
-                BuildingPrefabToPlace = Entity.Null,
-                BuildingItemID = 0
-            });
+            
+            // Добавляем маркер, чтобы легко находить эту сущность
+            AddComponent<GameState>(entity);
+            
+            // Устанавливаем начальное состояние игры
+            AddComponent<InDefaultMode>(entity);
         }
     }
 }

@@ -61,6 +61,7 @@
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingUI.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\CameraTargetInitializationSystem.cs" />
+    <Compile Include="Assets\Scripts\ECS\CORE\Systems\StateTransitionSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingFixingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementActionsSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryItem.cs" />
@@ -108,12 +109,12 @@
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
+    <Compile Include="Assets\Scripts\ECS\CORE\Components\StateComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventorySlot.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementInitializationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\RecipeSlot.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCAuthoring.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
-    <Compile Include="Assets\Scripts\ECS\CORE\Systems\GameStateSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />
     <None Include="Assets\ThirdParty\PolygonNatureBiomes\PNB_Core\Shaders\SyntyStudios_CrystalShader.shader" />

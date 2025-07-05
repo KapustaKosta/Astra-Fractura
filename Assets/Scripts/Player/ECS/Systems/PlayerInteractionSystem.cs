@@ -5,8 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// ECS-система, обрабатывающая взаимодействие игрока с объектами в мире.
-/// Отвечает за определение сущностей, на которые смотрит игрок, и создание
-/// соответствующих запросов на открытие UI (NPC, поселение).
+/// Работает только тогда, когда игра находится в режиме по умолчанию.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(InputsSystem))]
@@ -24,13 +23,19 @@ public partial class PlayerInteractionSystem : SystemBase
     }
 
     /// <summary>
-    /// Вызывается каждый кадр. Проверяет, был ли запрос на взаимодействие,
-    /// выполняет трассировку луча от камеры и создает запросы UI
-    /// в зависимости от того, с какой сущностью было взаимодействие.
+    /// Вызывается каждый кадр. Проверяет, что игра в режиме InDefaultMode.
+    /// Если был запрос на взаимодействие, выполняет трассировку луча от камеры
+    /// и создает запросы UI в зависимости от того, с какой сущностью было взаимодействие.
     /// </summary>
     protected override void OnUpdate()
     {
-        if (SystemAPI.GetSingleton<GameState>().CurrentMode != GameMode.Default) return;
+        // Проверяем, что игра находится в нужном режиме. Если нет - выходим.
+        // Это заменяет невалидное использование атрибута [WithAll] для SystemBase.
+        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        if (!SystemAPI.HasComponent<InDefaultMode>(gameStateEntity))
+        {
+            return;
+        }
         
         var interactionRequestQuery = SystemAPI.QueryBuilder().WithAll<InteractionRequest>().Build();
         if (interactionRequestQuery.IsEmpty) return;
@@ -62,13 +67,11 @@ public partial class PlayerInteractionSystem : SystemBase
             {
                 var requestEntity = ecb.CreateEntity();
                 ecb.AddComponent(requestEntity, new OpenNPCUIRequest { Target = interactedEntity });
-                // Debug.Log($"[PlayerInteractionSystem] Создан запрос OpenNPCUIRequest для {interactedEntity}");
             }
             else if (em.HasComponent<SettlementComponent>(interactedEntity))
             {
                 var requestEntity = ecb.CreateEntity();
                 ecb.AddComponent(requestEntity, new OpenSettlementUIRequest { Target = interactedEntity });
-                // Debug.Log($"[PlayerInteractionSystem] Создан запрос OpenSettlementUIRequest для {interactedEntity}");
             }
         }
     }

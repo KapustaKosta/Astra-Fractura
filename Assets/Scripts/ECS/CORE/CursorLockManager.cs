@@ -4,7 +4,7 @@ using Unity.Entities;
 /// <summary>
 /// Специализированный MonoBehaviour, отвечающий только за одну задачу:
 /// управление состоянием блокировки и видимости курсора мыши.
-/// Он напрямую читает GameState из мира ECS и принудительно синхронизирует
+/// Он напрямую читает состояние из мира ECS и принудительно синхронизирует 
 /// состояние курсора каждый кадр для максимальной надежности.
 /// </summary>
 public class CursorLockManager : MonoBehaviour
@@ -29,12 +29,11 @@ public class CursorLockManager : MonoBehaviour
 
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
+        
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        // Получаем единственный источник правды о состоянии игры
-        var gameState = gameStateQuery.GetSingleton<GameState>();
-
-        // Определяем, должен ли быть активен режим UI
-        bool isUiModeActive = gameState.CurrentMode == GameMode.UI;
+        // Определяем, должен ли быть активен режим UI, по наличию тега
+        bool isUiModeActive = entityManager.HasComponent<InUIMode>(gameStateEntity);
 
         // Применяем нужное состояние к курсору
         ForceSetCursorState(isUiModeActive);
@@ -51,8 +50,6 @@ public class CursorLockManager : MonoBehaviour
 
     /// <summary>
     /// Принудительно устанавливает состояние блокировки и видимости курсора.
-    /// Этот метод не проверяет текущее состояние, а напрямую задает его,
-    /// что делает его более устойчивым к внешним изменениям.
     /// </summary>
     private void ForceSetCursorState(bool isUiMode)
     {

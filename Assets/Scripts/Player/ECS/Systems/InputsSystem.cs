@@ -34,7 +34,7 @@ public partial class InputsSystem : SystemBase
     /// </summary>
     protected override void OnCreate()
     {
-        RequireForUpdate<GameState>();
+        RequireForUpdate<GameState>(); // Требуем, чтобы глобальная сущность существовала
         playerInitializedQuery = GetEntityQuery(typeof(PlayerInitializedTag));
     }
 
@@ -50,7 +50,6 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onJump += OnJump;
         StarterAssetsInputs.onInventory += OnInventory;
         StarterAssetsInputs.onRightClick += OnRightClick;
-        // Debug.Log("InputsSystem: Input initialized");
 
         inventoryRequested = false;
         rightClickRequested = false;
@@ -106,7 +105,7 @@ public partial class InputsSystem : SystemBase
 
     /// <summary>
     /// Вызывается каждый кадр. Обновляет InputsData для сущности игрока
-    /// и создает ECS-запросы на основе флагов ввода.
+    /// и создает ECS-запросы на основе флагов ввода. Блокирует ввод, если игра в режиме UI.
     /// </summary>
     protected override void OnUpdate()
     {
@@ -121,7 +120,6 @@ public partial class InputsSystem : SystemBase
 
         if (inventoryRequested)
         {
-            // Debug.Log("<color=yellow>[InputsSystem]</color> ToggleInventoryRequest");
             var invE = ecb.CreateEntity();
             ecb.AddComponent(invE, new ToggleInventoryRequest());
             inventoryRequested = false;
@@ -132,8 +130,11 @@ public partial class InputsSystem : SystemBase
             ecb.AddComponent(rcE, new InteractionRequest());
             rightClickRequested = false;
         }
+        
+        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
 
-        bool isUI = SystemAPI.GetSingleton<GameState>().CurrentMode == GameMode.UI;
+        // Обнуляем ввод, если активен режим UI
         float2 currentMove = isUI ? float2.zero : new float2(moveInput.x, moveInput.y);
         float2 currentLook = isUI ? float2.zero : new float2(lookInput.x, lookInput.y);
         bool currentSprint = isUI ? false : sprintInput;
