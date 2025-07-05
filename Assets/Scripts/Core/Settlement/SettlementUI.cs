@@ -6,7 +6,7 @@ using Unity.Collections;
 
 /// <summary>
 /// Управляет пользовательским интерфейсом Поселения, отображая его статистику
-/// и список нанятых NPC с их текущим статусом.
+/// и список нанятых NPC. Читает состояние напрямую из ECS в своем Update.
 /// </summary>
 public class SettlementUI : MonoBehaviour
 {
@@ -45,29 +45,52 @@ public class SettlementUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Инициализирует EntityManager и подписывается на события.
+    /// Инициализирует EntityManager и подписывается на события кнопок.
     /// </summary>
     private void Start()
     {
-        if (!enabled) return;
-
         TryInitialize();
         if (isInitialized)
         {
-            GameStateEvents.OnUIStateChanged += HandleUIStateChange;
             closeButton.onClick.AddListener(OnCloseButtonPressed);
             uiPanel.SetActive(false);
         }
     }
-
+    
     /// <summary>
-    /// Отписывается от событий при уничтожении объекта.
+    /// Каждый кадр проверяет глобальное состояние и решает, должно ли быть открыто окно поселения.
     /// </summary>
-    private void OnDestroy()
+    void Update()
     {
-        if (isInitialized && Instance == this)
+        if (!isInitialized)
         {
-            GameStateEvents.OnUIStateChanged -= HandleUIStateChange;
+            TryInitialize();
+            return;
+        }
+        
+        var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
+        if (gameStateQuery.IsEmpty) return;
+        
+        var gameState = gameStateQuery.GetSingleton<GameState>();
+        
+        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.Settlement;
+        
+        // Синхронизируем состояние панели с состоянием из ECS
+        if (uiPanel.activeSelf != shouldBeOpen)
+        {
+            if (shouldBeOpen)
+            {
+                // Проверяем, валидна ли цель, прежде чем открывать
+                if (entityManager.Exists(gameState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(gameState.ActiveUITarget))
+                {
+                    var settlementData = entityManager.GetComponentData<SettlementComponent>(gameState.ActiveUITarget);
+                    Show(settlementData);
+                }
+            }
+            else
+            {
+                Hide();
+            }
         }
     }
 
@@ -81,27 +104,6 @@ public class SettlementUI : MonoBehaviour
         {
             entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             isInitialized = true;
-        }
-    }
-
-    /// <summary>
-    /// Обрабатывает события изменения состояния UI, открывая или закрывая окно поселения.
-    /// </summary>
-    private void HandleUIStateChange(UIStateEvent uiEvent, bool shouldBeOpen, Entity target)
-    {
-        if (!isInitialized) return;
-
-        if (uiEvent == UIStateEvent.SettlementOpened && shouldBeOpen)
-        {
-            if (entityManager.Exists(target) && entityManager.HasComponent<SettlementComponent>(target))
-            {
-                var settlementData = entityManager.GetComponentData<SettlementComponent>(target);
-                Show(settlementData);
-            }
-        }
-        else if (uiEvent == UIStateEvent.AllUIClosed)
-        {
-            Hide();
         }
     }
 

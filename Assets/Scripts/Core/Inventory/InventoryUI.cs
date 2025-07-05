@@ -1,9 +1,8 @@
 using UnityEngine;
 using Unity.Entities;
-using System;
 
 /// <summary>
-/// Управляет пользовательским интерфейсом инвентаря, отображая слоты и обрабатывая взаимодействие с ними.
+/// Управляет пользовательским интерфейсом инвентаря. Теперь он полностью независим и читает состояние напрямую из ECS.
 /// Является Singleton-классом.
 /// </summary>
 public class InventoryUI : MonoBehaviour
@@ -31,13 +30,8 @@ public class InventoryUI : MonoBehaviour
 
     private Inventory inventory;
     private InventorySlot[] slots;
-    private bool isOpen = false;
     private EntityManager entityManager;
-
-    /// <summary>
-    /// Возвращает текущее состояние открытия/закрытия инвентаря.
-    /// </summary>
-    public bool IsOpen => isOpen;
+    private bool isInitialized = false;
 
     /// <summary>
     /// Вызывается при загрузке скрипта. Инициализирует Singleton-экземпляр.
@@ -50,79 +44,17 @@ public class InventoryUI : MonoBehaviour
 
     /// <summary>
     /// Вызывается в первом кадре. Получает ссылки на Inventory, EntityManager,
-    /// инициализирует слоты и подписывается на события.
+    /// инициализирует слоты и подписывается на события инвентаря.
     /// </summary>
     void Start()
     {
-        inventory = Inventory.Instance;
-        if (inventory == null) { enabled = false; return; }
-        
-        if (World.DefaultGameObjectInjectionWorld != null && World.DefaultGameObjectInjectionWorld.IsCreated)
+        TryInitialize();
+        if (isInitialized)
         {
-            entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            inventory.onItemChanged += UpdateUI;
+            InitializeSlots();
+            SetInventoryState(false); // Изначально инвентарь закрыт
         }
-
-        inventory.onItemChanged += UpdateUI;
-
-        if (inventoryPanel == null || slotsParent == null || slotPrefab == null) { enabled = false; return; }
-
-        InitializeSlots();
-        SetInventoryState(false);
-        
-        GameStateEvents.OnUIStateChanged += HandleUIStateChange;
-    }
-
-    /// <summary>
-    /// Обрабатывает изменение состояния UI, полученное от GameStateEvents.
-    /// </summary>
-    /// <param name="uiEvent">Тип события UI.</param>
-    /// <param name="shouldBeOpen">True, если UI должен быть открыт, false, если закрыт.</param>
-    /// <param name="target">Целевая сущность, если применимо (например, для UI NPC/Поселения).</param>
-    private void HandleUIStateChange(UIStateEvent uiEvent, bool shouldBeOpen, Entity target)
-    {
-        if (uiEvent == UIStateEvent.InventoryToggled)
-        {
-            SetInventoryState(shouldBeOpen);
-        }
-        else if (uiEvent == UIStateEvent.AllUIClosed)
-        {
-            SetInventoryState(false);
-        }
-    }
-    
-    /// <summary>
-    /// Запрашивает переключение состояния инвентаря путем создания ECS-запроса.
-    /// </summary>
-    public void RequestToggleInventory()
-    {
-        if (!entityManager.World.IsCreated) return;
-        
-        var toggleEntity = entityManager.CreateEntity();
-        entityManager.AddComponentData(toggleEntity, new ToggleInventoryRequest());
-    }
-
-    /// <summary>
-    /// Устанавливает состояние отображения инвентаря (открыт/закрыт).
-    /// </summary>
-    /// <param name="state">True для открытия, false для закрытия.</param>
-    private void SetInventoryState(bool state)
-    {
-        if (isOpen == state) return;
-        isOpen = state;
-        inventoryPanel.SetActive(state);
-        
-        if (isOpen)
-        {
-            UpdateUI();
-        }
-    }
-
-    /// <summary>
-    /// Закрывает инвентарь.
-    /// </summary>
-    public void CloseInventory()
-    {
-        SetInventoryState(false);
     }
 
     /// <summary>
@@ -141,7 +73,77 @@ public class InventoryUI : MonoBehaviour
                 if (slot != null) slot.OnSlotClicked -= HandleSlotClicked;
             }
         }
-        GameStateEvents.OnUIStateChanged -= HandleUIStateChange;
+    }
+
+    /// <summary>
+    /// Каждый кадр проверяет глобальное состояние игры и синхронизирует с ним видимость своей панели.
+    /// </summary>
+    void Update()
+    {
+        if (!isInitialized)
+        {
+            TryInitialize();
+            return;
+        }
+
+        var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
+        if (gameStateQuery.IsEmpty) return;
+
+        var gameState = gameStateQuery.GetSingleton<GameState>();
+        
+        // Наше единственное условие для отображения: текущий режим UI и тип UI - инвентарь.
+        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.Inventory;
+        
+        // Если фактическое состояние панели не соответствует данным из ECS, исправляем это.
+        if (inventoryPanel.activeSelf != shouldBeOpen)
+        {
+            SetInventoryState(shouldBeOpen);
+        }
+    }
+
+    /// <summary>
+    /// Пытается инициализировать все необходимые ссылки.
+    /// </summary>
+    private void TryInitialize()
+    {
+        if (isInitialized) return;
+
+        inventory = Inventory.Instance;
+        if (inventory == null) { return; }
+
+        if (World.DefaultGameObjectInjectionWorld != null && World.DefaultGameObjectInjectionWorld.IsCreated)
+        {
+            entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        }
+        else { return; }
+
+        if (inventoryPanel == null || slotsParent == null || slotPrefab == null) { return; }
+
+        isInitialized = true;
+    }
+
+    /// <summary>
+    /// Запрашивает переключение состояния инвентаря путем создания ECS-запроса.
+    /// </summary>
+    public void RequestToggleInventory()
+    {
+        if (!isInitialized) return;
+        
+        var toggleEntity = entityManager.CreateEntity();
+        entityManager.AddComponentData(toggleEntity, new ToggleInventoryRequest());
+    }
+
+    /// <summary>
+    /// Устанавливает состояние отображения инвентаря (открыт/закрыт).
+    /// </summary>
+    /// <param name="state">True для открытия, false для закрытия.</param>
+    private void SetInventoryState(bool state)
+    {
+        inventoryPanel.SetActive(state);
+        if (state)
+        {
+            UpdateUI();
+        }
     }
 
     /// <summary>
@@ -196,7 +198,7 @@ public class InventoryUI : MonoBehaviour
     /// <param name="clickedItem">Предмет, по которому был произведен клик.</param>
     private void HandleSlotClicked(Item clickedItem)
     {
-        if (clickedItem == null || !entityManager.World.IsCreated) return;
+        if (clickedItem == null || !isInitialized) return;
 
         Inventory.Instance.SelectItem(clickedItem);
 

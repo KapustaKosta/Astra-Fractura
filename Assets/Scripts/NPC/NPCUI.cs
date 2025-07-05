@@ -2,12 +2,12 @@ using UnityEngine;
 using TMPro;
 using Unity.Entities;
 using UnityEngine.UI;
-using Unity.Transforms; // <-- Добавлено для LocalTransform
-using Unity.Collections; // <-- Добавлено для Allocator
+using Unity.Transforms;
+using Unity.Collections;
 
 /// <summary>
 /// Управляет пользовательским интерфейсом NPC, отображая информацию о NPC
-/// и предоставляя опции для взаимодействия, такие как найм или назначение задач.
+/// и предоставляя опции для взаимодействия. Читает состояние напрямую из ECS.
 /// </summary>
 public class NPCUI : MonoBehaviour
 {
@@ -43,14 +43,13 @@ public class NPCUI : MonoBehaviour
     }
     
     /// <summary>
-    /// Инициализирует EntityManager и подписывается на события.
+    /// Инициализирует EntityManager и подписывается на события кнопок.
     /// </summary>
     private void Start()
     {
         TryInitialize();
         if(isInitialized)
         {
-            GameStateEvents.OnUIStateChanged += HandleUIStateChange;
             closeButton.onClick.AddListener(OnCloseButtonPressed);
             hireButton.onClick.AddListener(OnHireButtonPressed);
             npcMenu.SetActive(false);
@@ -58,11 +57,34 @@ public class NPCUI : MonoBehaviour
     }
     
     /// <summary>
-    /// Отписывается от событий при уничтожении объекта.
+    /// Каждый кадр проверяет глобальное состояние и решает, должно ли быть открыто окно NPC.
     /// </summary>
-    private void OnDestroy()
+    void Update()
     {
-        if(isInitialized && Instance == this) { GameStateEvents.OnUIStateChanged -= HandleUIStateChange; }
+        if (!isInitialized)
+        {
+            TryInitialize();
+            return;
+        }
+
+        var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
+        if (gameStateQuery.IsEmpty) return;
+        
+        var gameState = gameStateQuery.GetSingleton<GameState>();
+
+        bool shouldBeOpen = gameState.CurrentMode == GameMode.UI && gameState.ActiveUIType == UIType.NPC;
+
+        if (npcMenu.activeSelf != shouldBeOpen)
+        {
+            if (shouldBeOpen)
+            {
+                Show(gameState.ActiveUITarget);
+            }
+            else
+            {
+                Hide();
+            }
+        }
     }
 
     /// <summary>
@@ -76,19 +98,6 @@ public class NPCUI : MonoBehaviour
             entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             isInitialized = true;
         }
-    }
-
-    /// <summary>
-    /// Обрабатывает события изменения состояния UI, открывая или закрывая окно NPC.
-    /// </summary>
-    /// <param name="uiEvent">Тип события.</param>
-    /// <param name="shouldBeOpen">Должно ли окно быть открыто.</param>
-    /// <param name="target">Целевая сущность NPC.</param>
-    private void HandleUIStateChange(UIStateEvent uiEvent, bool shouldBeOpen, Entity target)
-    {
-        if (!isInitialized) return;
-        if (uiEvent == UIStateEvent.NPCOpened && shouldBeOpen) { Show(target); }
-        else if (uiEvent == UIStateEvent.AllUIClosed && !shouldBeOpen) { Hide(); }
     }
 
     /// <summary>

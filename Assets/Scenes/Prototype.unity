@@ -914,6 +914,7 @@ GameObject:
   - component: {fileID: 611499023}
   - component: {fileID: 611499022}
   - component: {fileID: 611499021}
+  - component: {fileID: 611499024}
   m_Layer: 0
   m_Name: UIComponentsHandler
   m_TagString: Untagged
@@ -973,6 +974,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 771552711}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &611499024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 611499020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d273a814ce664d5e82ff645d5cafaf65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &635449548
 GameObject:
   m_ObjectHideFlags: 0
