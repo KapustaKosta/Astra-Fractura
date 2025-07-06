@@ -39,7 +39,7 @@ public class ResourcesNode : MonoBehaviour
     private void Harvest()
     {
         // Выдаём предметы из drops
-        Inventory inventory = FindObjectOfType<Inventory>();
+        Inventory inventory = Object.FindFirstObjectByType<Inventory>();
         foreach (var drop in drops)
         {
             int amount = Random.Range(drop.minAmount, drop.maxAmount + 1);

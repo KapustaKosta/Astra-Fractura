@@ -34,7 +34,7 @@ public partial class PreviewMaterialSystem : SystemBase
         // Инициализация материалов при первом запуске или если EntitiesGraphicsSystem еще не готов.
         if (!initialized && gfx != null)
         {
-            var authoring = Object.FindObjectOfType<BuildingSettingsAuthoring>();
+            var authoring = Object.FindFirstObjectByType<BuildingSettingsAuthoring>();
             if (authoring != null)
             {
                 // Регистрируем материалы из Authoring-компонента и сохраняем их ID.

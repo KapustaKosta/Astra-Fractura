@@ -54,6 +54,6 @@ public partial class HarvestingSystem : SystemBase
 
         // Очищаем UI-тег, если намерения добывать больше нет.
         var query = SystemAPI.QueryBuilder().WithAll<IsHarvestingTag>().WithNone<WantsToHarvestTag>().Build();
-        ecb.RemoveComponent<IsHarvestingTag>(query);
+        ecb.RemoveComponent<IsHarvestingTag>(query, EntityQueryCaptureMode.AtPlayback);
     }
 }
