@@ -54,7 +54,7 @@ public partial class PlayerContextualInteractionSystem : SystemBase
             Filter = new CollisionFilter
             {
                 BelongsTo = ~0u,
-                CollidesWith = (uint)(1 << LayerMask.NameToLayer("NPC") | 1 << LayerMask.NameToLayer("Settlement")),
+                CollidesWith = (uint)(1 << LayerMask.NameToLayer("NPC") | 1 << LayerMask.NameToLayer("Building")),
                 GroupIndex = 0
             }
         };

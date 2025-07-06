@@ -113,16 +113,28 @@ public partial class InputsSystem : SystemBase
             ecb.AddComponent(invE, new ToggleInventoryRequest());
             inventoryRequested = false;
         }
-        if (rightClickRequested)
-        {
-            var rcE = ecb.CreateEntity();
-            ecb.AddComponent(rcE, new InteractionRequest());
-            rightClickRequested = false;
-        }
         
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
+        bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity); // Добавлено
 
+        // Обработка правой кнопки мыши: если в режиме строительства, то это запрос на выход,
+        // иначе - запрос на взаимодействие.
+        if (rightClickRequested)
+        {
+            if (isInBuildingMode) 
+            {
+                var exitE = ecb.CreateEntity();
+                ecb.AddComponent(exitE, new ExitBuildingModeRequest());
+            }
+            else // Иначе, это обычное взаимодействие.
+            {
+                var rcE = ecb.CreateEntity();
+                ecb.AddComponent(rcE, new InteractionRequest());
+            }
+            rightClickRequested = false;
+        }
+        
         double now = SystemAPI.Time.ElapsedTime;
         bool jumpBuffered = (now - lastJumpTime) <= 0.2;
         
@@ -144,7 +156,7 @@ public partial class InputsSystem : SystemBase
         inputs.ValueRW.secondaryActionDown = false;
         inputs.ValueRW.PrimaryAction = currentPrimaryAction;
 
-        // Сбрасываем флаг для однократного прыжка
+        
         jumpRequested = false;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using UnityEngine;
 
 /// <summary>
 /// Система, которая обрабатывает запрос на вход в режим строительства.
@@ -9,31 +10,42 @@ public partial class EnterBuildingModeSystem : SystemBase
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameStateEntity)) return;
 
-        Entities
-            .ForEach((in EnterBuildingModeRequest request) =>
+        // Используем WithEntityAccess, чтобы получить Entity для логирования
+        foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<EnterBuildingModeRequest>>().WithEntityAccess())
+        {
+            
+            Debug.Log($"[EnterBuildingModeSystem] Обнаружен запрос EnterBuildingModeRequest (Entity: {requestEntity.Index}, ItemID: {request.ValueRO.ItemID}).");
+
+            if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
             {
-                // Игнорируем запрос, если мы уже в режиме строительства
-                if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity)) return;
+                Debug.LogWarning("[EnterBuildingModeSystem] Запрос проигнорирован, так как игра уже находится в режиме строительства.");
+                continue; // Используем continue, чтобы не прерывать цикл для других запросов
+            }
 
-                Entity prefab = ItemToEntityResolver.GetEntityPrefabFromID(EntityManager, request.ItemID);
-                if (prefab != Entity.Null)
+            Entity prefab = ItemToEntityResolver.GetEntityPrefabFromID(EntityManager, request.ValueRO.ItemID);
+            
+            if (prefab != Entity.Null)
+            {
+                Debug.Log($"[EnterBuildingModeSystem] Префаб для ItemID {request.ValueRO.ItemID} успешно найден. Применяю смену состояния на InBuildingMode.");
+                
+                // Удаляем старые теги и данные
+                ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
+                ecb.RemoveComponent<InUIMode>(gameStateEntity);
+                ecb.RemoveComponent<UIState>(gameStateEntity);
+
+                // Добавляем новые
+                ecb.AddComponent<InBuildingMode>(gameStateEntity);
+                ecb.AddComponent(gameStateEntity, new BuildingState
                 {
-                    // Удаляем старые теги режимов
-                    ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-                    ecb.RemoveComponent<InUIMode>(gameStateEntity);
-                    ecb.RemoveComponent<UIState>(gameStateEntity); // и данные UI
-
-                    // Добавляем новые
-                    ecb.AddComponent<InBuildingMode>(gameStateEntity);
-                    ecb.AddComponent(gameStateEntity, new BuildingState
-                    {
-                        BuildingPrefabToPlace = prefab,
-                        BuildingItemID = request.ItemID
-                    });
-                }
-            }).WithoutBurst().Run();
+                    BuildingPrefabToPlace = prefab,
+                    BuildingItemID = request.ValueRO.ItemID
+                });
+            }
+            // Ошибка об отсутствующем префабе теперь выводится из ItemToEntityResolver
+        }
     }
 }
 
@@ -45,19 +57,20 @@ public partial class ExitBuildingModeSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        // Этот запрос создается как при отмене (RMB), так и при успешном размещении здания
         var exitRequestQuery = SystemAPI.QueryBuilder().WithAny<ExitBuildingModeRequest, PlaceBuildingRequest>().Build();
         if (exitRequestQuery.IsEmpty) return;
         
+        // --- ДИАГНОСТИКА ---
+        //Debug.Log("[ExitBuildingModeSystem] Обнаружен запрос на выход из режима строительства. Возврат в режим по умолчанию.");
+
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
-        // Если мы действительно были в режиме строительства
         if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
         {
             ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity); // Удаляем специфичные данные
-            ecb.AddComponent<InDefaultMode>(gameStateEntity);    // Возвращаемся в режим по умолчанию
+            ecb.RemoveComponent<BuildingState>(gameStateEntity); 
+            ecb.AddComponent<InDefaultMode>(gameStateEntity);
         }
     }
 }
@@ -73,24 +86,24 @@ public partial class ToggleInventorySystem : SystemBase
         var requestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
         if (requestQuery.IsEmpty) return;
 
+        
+        //Debug.LogError("[!!!] ToggleInventorySystem сработала для смены состояния.");
+
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         
-        // Если мы уже в режиме UI и это инвентарь - закрываем его
         if (SystemAPI.HasComponent<InUIMode>(gameStateEntity) && SystemAPI.GetComponent<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory)
         {
             ecb.RemoveComponent<InUIMode>(gameStateEntity);
             ecb.RemoveComponent<UIState>(gameStateEntity);
             ecb.AddComponent<InDefaultMode>(gameStateEntity);
         }
-        else // Иначе (мы в Default или Building) - открываем инвентарь
+        else 
         {
-            // Удаляем старые теги и данные
             ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
             ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
             ecb.RemoveComponent<BuildingState>(gameStateEntity);
             
-            // Добавляем новые
             ecb.AddComponent<InUIMode>(gameStateEntity);
             ecb.AddComponent(gameStateEntity, new UIState
             {
@@ -113,29 +126,29 @@ public partial class OpenTargetedUISystem : SystemBase
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
-        // Обработка открытия UI для NPC
         Entities.ForEach((in OpenNPCUIRequest request) =>
         {
-            // Удаляем старые теги и данные
+            
+            //Debug.LogWarning($"[OpenTargetedUISystem] Обнаружен запрос OpenNPCUIRequest для цели {request.Target}.");
+
             ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
             ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
             ecb.RemoveComponent<BuildingState>(gameStateEntity);
             
-            // Добавляем новые
             ecb.AddComponent<InUIMode>(gameStateEntity);
             ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.NPC, ActiveUITarget = request.Target });
 
         }).Run();
 
-        // Обработка открытия UI для Поселения
         Entities.ForEach((in OpenSettlementUIRequest request) =>
         {
-            // Удаляем старые теги и данные
+             
+            //Debug.LogWarning($"[OpenTargetedUISystem] Обнаружен запрос OpenSettlementUIRequest для цели {request.Target}.");
+
             ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
             ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
             ecb.RemoveComponent<BuildingState>(gameStateEntity);
 
-            // Добавляем новые
             ecb.AddComponent<InUIMode>(gameStateEntity);
             ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.Settlement, ActiveUITarget = request.Target });
         }).Run();
@@ -154,10 +167,12 @@ public partial class CloseAllUISystem : SystemBase
         var requestQuery = SystemAPI.QueryBuilder().WithAll<CloseAllUIRequest>().Build();
         if (requestQuery.IsEmpty) return;
         
+        
+        //Debug.LogError("[!!!] CloseAllUISystem сработала для смены состояния.");
+
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
-        // Если мы были в режиме UI
         if (SystemAPI.HasComponent<InUIMode>(gameStateEntity))
         {
             ecb.RemoveComponent<InUIMode>(gameStateEntity);

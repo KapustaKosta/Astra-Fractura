@@ -58,6 +58,7 @@
     <Analyzer Include="C:\Users\79505\Desktop\ASTR2.O\ASTR-master\Library\PackageCache\com.unity.entities@e581b903be8e\Unity.Entities\SourceGenerators\Unity.Entities.Analyzer.CodeFixes.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\Core\Building\Systems\PreviewMaterialSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingUI.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\CameraTargetInitializationSystem.cs" />
@@ -66,12 +67,13 @@
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementActionsSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerContextualInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\BuildingSettingsAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryItem.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewLifecycleSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCHiredTag.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerMovementSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\CursorLockManager.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceItemMapping.cs" />
-    <Compile Include="Assets\Scripts\Core\Building\BuildingManager.cs" />
     <Compile Include="Assets\Scripts\Core\Building\NewlyBuiltTag.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementSystem.cs" />
@@ -82,9 +84,12 @@
     <Compile Include="Assets\Scripts\Resources\ResourcesNode.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\RequestComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\PlayerAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InventoryInputData.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewSetupSystem.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceNodeAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\ConfirmPlacementSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\BasicRigidBodyPush.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Inventory.cs" />
     <Compile Include="Assets\Scripts\ECS\Authoring\GameStateAuthoring.cs" />
@@ -117,9 +122,12 @@
     <Compile Include="Assets\Scripts\Core\Inventory\InventorySlot.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementInitializationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\RecipeSlot.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\BuildingSettings.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Components\BuildingComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />
     <None Include="Assets\ThirdParty\PolygonNatureBiomes\PNB_Core\Shaders\SyntyStudios_CrystalShader.shader" />
     <None Include="Assets\ThirdParty\TextMesh Pro\Shaders\TMPro.cginc" />

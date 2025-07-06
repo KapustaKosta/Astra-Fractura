@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Mathematics;
 
 /// <summary>
 /// Интерфейс-маркер для всех компонентов-запросов,
@@ -23,9 +24,16 @@ public struct EnterBuildingModeRequest : IRequestCleanup
 public struct ExitBuildingModeRequest : IRequestCleanup { }
 
 /// <summary>
-/// Запрос на размещение здания.
+/// Запрос на размещение здания в конкретной точке мира.
+/// Теперь содержит позицию и вращение для точного размещения.
 /// </summary>
-public struct PlaceBuildingRequest : IRequestCleanup { }
+public struct PlaceBuildingRequest : IRequestCleanup
+{
+    public float3 Position;
+    public quaternion Rotation;
+    public Entity BuildingPrefabToPlace; // <-- ДОБАВЛЕНО
+    public int ItemIDToConsume;          // <-- ДОБАВЛЕНО
+}
 
 
 /// <summary>
