@@ -9,7 +9,6 @@ using UnityEngine.EventSystems;
 /// и записывает эту информацию в компонент InteractionTarget.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(InputsSystem))]
 public partial class TargetDetectorSystem : SystemBase
 {
     /// <summary>

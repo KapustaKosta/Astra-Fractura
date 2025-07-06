@@ -6,7 +6,7 @@ using UnityEngine;
 /// Система, которая динамически назначает материалы превью зданий в зависимости от того,
 /// можно ли их разместить в текущей позиции.
 /// </summary>
-[UpdateInGroup(typeof(PresentationSystemGroup))]
+[UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(BuildingPlacementSystem))]
 public partial class PreviewMaterialSystem : SystemBase
 {

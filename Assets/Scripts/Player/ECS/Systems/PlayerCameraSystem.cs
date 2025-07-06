@@ -8,7 +8,6 @@ using UnityEngine;
 /// Обновляет вращение игрока по горизонтали (рыскание) и питч (наклон) CinemachineProxyTarget.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(InputsSystem))]
 public partial class PlayerCameraSystem : SystemBase
 {
     /// <summary>

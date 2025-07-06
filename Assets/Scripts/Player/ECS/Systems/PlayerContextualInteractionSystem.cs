@@ -8,7 +8,6 @@ using UnityEngine;
 /// Работает только тогда, когда игра находится в режиме по умолчанию.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(InputsSystem))]
 public partial class PlayerContextualInteractionSystem : SystemBase
 {
     /// <summary>
