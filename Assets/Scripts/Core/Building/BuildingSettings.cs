@@ -23,6 +23,16 @@ public struct BuildingSettings : IComponentData
     public float MaxPlacementSlopeAngle;
 
     /// <summary>
+    /// Максимальная дистанция от камеры для размещения здания.
+    /// </summary>
+    public float MaxPlacementDistance;
+
+    /// <summary>
+    /// Слой, на который помещается превью здания.
+    /// </summary>
+    public int PreviewLayer;
+
+    /// <summary>
     /// ID валидного материала для превью (для рендера).
     /// </summary>
     public UnityEngine.Rendering.BatchMaterialID ValidPlacementMaterialID;

@@ -1,5 +1,4 @@
-﻿
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 using Unity.Physics;
@@ -85,6 +84,18 @@ public struct PlayerControllerData : IComponentData
     /// Ссылка на BlobAssetReference Collider для коллайдера сферы проверки земли.
     /// </summary>
     public BlobAssetReference<Unity.Physics.Collider> GroundCheckSphereCollider;
+
+    // --- НОВЫЕ ПОЛЯ ---
+    public float MaxSlopeCosine;
+    public float AirControlMultiplier;
+    public float JumpBufferDuration;
+    public float InteractionDistance;
+    public int InteractableLayers;
+    public float TargetingDistance;
+    public float HarvestInterval;
+    public float GroundedVerticalVelocity;
+    public float LookInputDeadzone;
+    public float SpeedSnapThreshold;
 }
 
 /// <summary>

@@ -42,6 +42,7 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var em = EntityManager;
+        var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
 
         if (Camera.main == null) return;
         
@@ -49,11 +50,11 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         var rayInput = new RaycastInput
         {
             Start = ray.origin,
-            End = ray.origin + ray.direction * 5f,
+            End = ray.origin + ray.direction * controllerData.InteractionDistance,
             Filter = new CollisionFilter
             {
                 BelongsTo = ~0u,
-                CollidesWith = (uint)(1 << LayerMask.NameToLayer("NPC") | 1 << LayerMask.NameToLayer("Building")),
+                CollidesWith = (uint)controllerData.InteractableLayers,
                 GroupIndex = 0
             }
         };

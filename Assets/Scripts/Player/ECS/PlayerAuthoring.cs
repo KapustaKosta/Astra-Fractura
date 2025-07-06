@@ -29,6 +29,8 @@ public class PlayerAuthoring : MonoBehaviour
     /// Скорость изменения скорости движения.
     /// </summary>
     public float SpeedChangeRate = 10.0f;
+    [Tooltip("Насколько хорошо игрок управляется в воздухе (0 = нет, 1 = как на земле).")]
+    [Range(0f, 1f)] public float AirControlMultiplier = 0.5f;
 
     /// <summary>
     /// Высота прыжка игрока.
@@ -50,6 +52,8 @@ public class PlayerAuthoring : MonoBehaviour
     /// Время задержки перед началом падения после прыжка.
     /// </summary>
     public float FallTimeout = 0.15f;
+    [Tooltip("Время, в течение которого нажатие прыжка до приземления будет засчитано ('jump buffer').")]
+    public float JumpBufferDuration = 0.2f;
 
     /// <summary>
     /// Максимальная скорость падения игрока.
@@ -72,17 +76,34 @@ public class PlayerAuthoring : MonoBehaviour
     /// Маска слоев, которые считаются землей для проверки заземления.
     /// </summary>
     public LayerMask GroundLayers;
+    [Tooltip("Максимальный угол склона, на котором может стоять игрок.")]
+    [Range(0f, 90f)] public float MaxSlopeAngle = 45.0f;
+    [Tooltip("Небольшая вертикальная скорость, чтобы игрок 'прилипал' к земле.")]
+    public float GroundedVerticalVelocity = -0.5f;
 
     /// <summary>
     /// Маска слоев, которые нужно игнорировать при проверке заземления.
     /// </summary>
     public LayerMask IgnoreLayers;
+    
+    [Header("Interaction & Harvesting")]
+    [Tooltip("Максимальная дистанция для взаимодействия (ПКМ).")]
+    public float InteractionDistance = 5.0f;
+    [Tooltip("Максимальная дистанция для обнаружения цели (для подсветки).")]
+    public float TargetingDistance = 10.0f;
+    [Tooltip("Слои, с которыми можно взаимодействовать.")]
+    public LayerMask InteractableLayers;
+    [Tooltip("Интервал между 'тиками' добычи ресурсов в секундах.")]
+    public float HarvestInterval = 0.5f;
 
     /// <summary>
     /// Скорость вращения игрока/камеры.
     /// </summary>
     [Header("Cinemachine Proxy")]
     public float RotationSpeed = 1.0f;
+
+    [Tooltip("Минимальное значение ввода для обзора (мёртвая зона).")]
+    public float LookInputDeadzone = 0.01f;
 
     /// <summary>
     /// Максимальный угол наклона камеры вверх (по питчу).
@@ -99,6 +120,7 @@ public class PlayerAuthoring : MonoBehaviour
     /// </summary>
     public float CameraHeightOffset = 1.6f;
 
+    [Header("Movement Tweaks")]
     /// <summary>
     /// Коэффициент демпфирования линейной скорости при движении по земле.
     /// </summary>
@@ -108,6 +130,10 @@ public class PlayerAuthoring : MonoBehaviour
     /// Коэффициент демпфирования линейной скорости при движении в воздухе.
     /// </summary>
     public float AirDamping = 0.01f;
+    
+    [Tooltip("Пороговое значение для 'прилипания' к целевой скорости.")]
+    public float SpeedSnapThreshold = 0.1f;
+
 
     /// <summary>
     /// Отображает Gizmo в редакторе Unity для визуализации сферы проверки заземления.
@@ -169,7 +195,17 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             CameraHeightOffset = authoring.CameraHeightOffset,
             GroundDamping = authoring.GroundDamping,
             AirDamping = authoring.AirDamping,
-            GroundCheckSphereCollider = bakedCollider
+            GroundCheckSphereCollider = bakedCollider,
+            MaxSlopeCosine = math.cos(math.radians(authoring.MaxSlopeAngle)),
+            AirControlMultiplier = authoring.AirControlMultiplier,
+            JumpBufferDuration = authoring.JumpBufferDuration,
+            InteractionDistance = authoring.InteractionDistance,
+            InteractableLayers = authoring.InteractableLayers.value,
+            TargetingDistance = authoring.TargetingDistance,
+            HarvestInterval = authoring.HarvestInterval,
+            GroundedVerticalVelocity = authoring.GroundedVerticalVelocity,
+            LookInputDeadzone = authoring.LookInputDeadzone,
+            SpeedSnapThreshold = authoring.SpeedSnapThreshold
         });
 
         AddComponent(entity, new PlayerGroundCheckColliderCleanup { Collider = bakedCollider }); 

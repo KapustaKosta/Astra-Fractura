@@ -6,6 +6,9 @@ public class CraftingUI : MonoBehaviour
     [SerializeField] private Transform recipesParent;
     [SerializeField] private GameObject recipePrefab;
     [SerializeField] private Inventory inventory;
+    [Header("Data Settings")]
+    [Tooltip("Путь к папке с рецептами внутри папки Resources")]
+    [SerializeField] private string recipesPath = "CraftingRecipes";
 
     void Start()
     {
@@ -19,7 +22,7 @@ public class CraftingUI : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        CraftingRecipe[] recipes = Resources.LoadAll<CraftingRecipe>("CraftingRecipes");
+        CraftingRecipe[] recipes = Resources.LoadAll<CraftingRecipe>(recipesPath);
         
         foreach (var recipe in recipes)
         {

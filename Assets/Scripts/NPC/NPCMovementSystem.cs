@@ -32,13 +32,13 @@ public partial class NPCMovementSystem : SystemBase
                     float3 currentPositionXZ = new float3(localTransform.Position.x, 0, localTransform.Position.z);
                     float3 targetPositionXZ = new float3(movement.TargetPosition.x, 0, movement.TargetPosition.z);
                     
-                    if (math.distance(currentPositionXZ, targetPositionXZ) > 0.5f)
+                    if (math.distance(currentPositionXZ, targetPositionXZ) > movement.StoppingDistance)
                     {
                         float3 direction = math.normalize(targetPositionXZ - currentPositionXZ);
 
                         float targetAngle = math.atan2(direction.x, direction.z);
                         quaternion targetRotation = quaternion.Euler(0, targetAngle, 0);
-                        localTransform.Rotation = math.slerp(localTransform.Rotation, targetRotation, 5.0f * deltaTime);
+                        localTransform.Rotation = math.slerp(localTransform.Rotation, targetRotation, movement.RotationSpeed * deltaTime);
 
                         physicsVelocity.Linear = direction * movement.Speed;
                         physicsVelocity.Angular = float3.zero;
@@ -52,7 +52,7 @@ public partial class NPCMovementSystem : SystemBase
                 }
                 else
                 {
-                    if (math.lengthsq(physicsVelocity.Linear) > 0.001f)
+                    if (math.lengthsq(physicsVelocity.Linear) > movement.VelocityZeroingThresholdSq)
                     {
                          physicsVelocity.Linear = float3.zero;
                     }

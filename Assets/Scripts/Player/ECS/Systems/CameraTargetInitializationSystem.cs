@@ -9,6 +9,11 @@ using UnityEngine;
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 public partial class CameraTargetInitializationSystem : SystemBase
 {
+    protected override void OnCreate()
+    {
+        RequireForUpdate<CameraProxyData>(); // Требуем синглтон с настройками
+    }
+
     /// <summary>
     /// Вызывается каждый кадр в группе инициализации.
     /// Система ищет GameObject с тегом "CinemachineProxyTarget",
@@ -17,7 +22,12 @@ public partial class CameraTargetInitializationSystem : SystemBase
     /// </summary>
     protected override void OnUpdate()
     {
-        GameObject proxyTarget = GameObject.FindWithTag("CinemachineProxyTarget");
+        if (!SystemAPI.TryGetSingleton<CameraProxyData>(out var proxyData)) return;
+        
+        string tagToFind = proxyData.CinemachineProxyTag.ToString();
+        if (string.IsNullOrEmpty(tagToFind)) return;
+
+        GameObject proxyTarget = GameObject.FindWithTag(tagToFind);
         if (proxyTarget == null) return;
 
         var ecb = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);

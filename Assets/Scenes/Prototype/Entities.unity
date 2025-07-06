@@ -128,7 +128,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 36630719}
-  - component: {fileID: 36630721}
   - component: {fileID: 36630720}
   m_Layer: 3
   m_Name: _TerrainColliderProxy_4
@@ -295,14 +294,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!33 &36630721
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 36630717}
-  m_Mesh: {fileID: 4300000, guid: 3dd682365ead04c43bc97aece27294f8, type: 2}
 --- !u!1001 &277882382
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -550,6 +541,10 @@ PrefabInstance:
     - target: {fileID: 5133882332170827246, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
       propertyPath: m_AngularDamping
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631267094362663696, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: StoppingDistance
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -900,6 +895,7 @@ GameObject:
   - component: {fileID: 1313986266}
   - component: {fileID: 1313986271}
   - component: {fileID: 1313986270}
+  - component: {fileID: 1313986272}
   m_Layer: 8
   m_Name: PlayerECS
   m_TagString: Player
@@ -922,25 +918,37 @@ MonoBehaviour:
   MoveSpeed: 6
   SprintSpeed: 8
   SpeedChangeRate: 10
+  AirControlMultiplier: 0.5
   JumpHeight: 1.2
   Gravity: -9
   JumpTimeout: 0.1
   FallTimeout: 0.15
+  JumpBufferDuration: 0.2
   TerminalVelocity: -1
   GroundedOffset: -0.54
   GroundedRadius: 0.53
   GroundLayers:
     serializedVersion: 2
     m_Bits: 585
+  MaxSlopeAngle: 45
+  GroundedVerticalVelocity: -0.5
   IgnoreLayers:
     serializedVersion: 2
     m_Bits: 256
+  InteractionDistance: 5
+  TargetingDistance: 10
+  InteractableLayers:
+    serializedVersion: 2
+    m_Bits: 640
+  HarvestInterval: 0.5
   RotationSpeed: 1
+  LookInputDeadzone: 0.01
   TopClamp: 90
   BottomClamp: -90
   CameraHeightOffset: 1.6
   GroundDamping: 0
   AirDamping: 0
+  SpeedSnapThreshold: 0.1
 --- !u!4 &1313986269
 Transform:
   m_ObjectHideFlags: 0
@@ -1151,6 +1159,19 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!114 &1313986272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313986264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fa43ad494ac4900b0512c01ed8e2f99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CinemachineProxyTag: CinemachineProxyTarget
 --- !u!1 &1476490278
 GameObject:
   m_ObjectHideFlags: 0
@@ -1160,7 +1181,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1476490280}
-  - component: {fileID: 1476490282}
   - component: {fileID: 1476490281}
   m_Layer: 3
   m_Name: _TerrainColliderProxy_2
@@ -1327,14 +1347,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!33 &1476490282
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1476490278}
-  m_Mesh: {fileID: 4300000, guid: 480041d425f076646bf153de2c6514f6, type: 2}
 --- !u!1 &1540165063
 GameObject:
   m_ObjectHideFlags: 0
@@ -1444,7 +1456,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1908418067}
-  - component: {fileID: 1908418069}
   - component: {fileID: 1908418068}
   m_Layer: 3
   m_Name: _TerrainColliderProxy_3
@@ -1611,14 +1622,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!33 &1908418069
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1908418065}
-  m_Mesh: {fileID: 4300000, guid: c870a6006ae66174c802c13dbdea2a88, type: 2}
 --- !u!1 &1914254393
 GameObject:
   m_ObjectHideFlags: 0
@@ -2212,7 +2215,11 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 960
+  previewLayer:
+    serializedVersion: 2
+    m_Bits: 1024
   maxPlacementSlopeAngle: 25
+  maxPlacementDistance: 100
   validPlacementMaterial: {fileID: 2100000, guid: b8a37d75c5f440c479e924dbb604230d, type: 2}
   invalidPlacementMaterial: {fileID: 2100000, guid: 0f87ddf8c9c2a9a4f91a4472d8418a0b, type: 2}
 --- !u!4 &2067346497 stripped

@@ -135,8 +135,9 @@ public partial class InputsSystem : SystemBase
             rightClickRequested = false;
         }
         
+        var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         double now = SystemAPI.Time.ElapsedTime;
-        bool jumpBuffered = (now - lastJumpTime) <= 0.2;
+        bool jumpBuffered = (now - lastJumpTime) <= controllerData.JumpBufferDuration;
         
         // Определяем финальные значения для записи, блокируя ввод в режиме UI
         float2 currentMove = isUI ? float2.zero : new float2(moveInput.x, moveInput.y);

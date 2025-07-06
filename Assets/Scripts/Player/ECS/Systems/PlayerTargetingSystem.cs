@@ -38,6 +38,7 @@ public partial class TargetDetectorSystem : SystemBase
         }
         
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+        var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         if (Camera.main == null) return;
         
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -47,7 +48,7 @@ public partial class TargetDetectorSystem : SystemBase
         var rayInput = new RaycastInput
         {
             Start = ray.origin,
-            End = ray.origin + ray.direction * 10f, // Дальность обнаружения цели
+            End = ray.origin + ray.direction * controllerData.TargetingDistance, // Дальность обнаружения цели
             Filter = CollisionFilter.Default
         };
 
@@ -58,4 +59,3 @@ public partial class TargetDetectorSystem : SystemBase
         }
     }
 }
-

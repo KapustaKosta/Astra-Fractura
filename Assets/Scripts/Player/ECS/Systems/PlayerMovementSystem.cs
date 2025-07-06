@@ -96,7 +96,7 @@ public partial class PlayerMovementSystem : SystemBase
                 for (int i = 0; i < hits.Length; i++)
                 {
                     var hit = hits[i];
-                    if (hit.Entity != entity && math.dot(hit.SurfaceNormal, math.up()) > 0.7f)
+                    if (hit.Entity != entity && math.dot(hit.SurfaceNormal, math.up()) > controllerData.MaxSlopeCosine)
                     {
                         isGrounded = true;
                         break;
@@ -117,7 +117,7 @@ public partial class PlayerMovementSystem : SystemBase
                 stateData.fallTimeoutDelta = controllerData.FallTimeout;
 
                 if (stateData.verticalVelocity < 0.0f)
-                    stateData.verticalVelocity = -0.5f;
+                    stateData.verticalVelocity = controllerData.GroundedVerticalVelocity;
 
                 if (inputs.jump && stateData.jumpTimeoutDelta <= 0.0f)
                 {
@@ -145,9 +145,9 @@ public partial class PlayerMovementSystem : SystemBase
             float inputMagnitude = inputs.analogMovement ? math.length(inputs.move) : 1f;
             targetSpeed *= inputMagnitude;
 
-            float speedChangeRate = controllerData.SpeedChangeRate * (isGrounded ? 1f : 0.5f);
+            float speedChangeRate = controllerData.SpeedChangeRate * (isGrounded ? 1f : controllerData.AirControlMultiplier);
             stateData.currentSpeed = math.lerp(stateData.currentSpeed, targetSpeed, DeltaTime * speedChangeRate);
-            if (math.abs(stateData.currentSpeed - targetSpeed) < 0.1f)
+            if (math.abs(stateData.currentSpeed - targetSpeed) < controllerData.SpeedSnapThreshold)
                 stateData.currentSpeed = targetSpeed;
 
             float3 moveDirection = float3.zero;

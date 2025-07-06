@@ -14,10 +14,16 @@ public class BuildingSettingsAuthoring : MonoBehaviour
     
     [Tooltip("Слои, объекты на которых считаются препятствиями для строительства.")]
     public LayerMask obstacleLayer;
+
+    [Tooltip("Слой, на который будет временно помещено превью здания.")]
+    public LayerMask previewLayer;
     
     [Range(0f, 90f)]
     [Tooltip("Максимальный угол наклона поверхности, на которой можно строить.")]
     public float maxPlacementSlopeAngle = 25f;
+
+    [Tooltip("Максимальная дистанция от камеры для размещения здания.")]
+    public float maxPlacementDistance = 100f;
 
     [Header("Preview Materials")]
     [Tooltip("Материал для превью, когда размещение валидно.")]
@@ -25,30 +31,36 @@ public class BuildingSettingsAuthoring : MonoBehaviour
     [Tooltip("Материал для превью, когда размещение невалидно.")]
     public Material invalidPlacementMaterial;
 
-    /// <summary>
-    /// Вложенный класс Baker, который преобразует данные из Authoring-компонента
-    /// в ECS-компоненты во время запекания.
-    /// </summary>
     private class Baker : Baker<BuildingSettingsAuthoring>
     {
         public override void Bake(BuildingSettingsAuthoring authoring)
         {
-            // Создаем синглтон-сущность. Использование TransformUsageFlags.None указывает,
-            // что эта сущность не привязана к Transform в сцене.
             var entity = GetEntity(TransformUsageFlags.None); 
-            
-            // Добавляем компонент BuildingSettings к созданной сущности.
-            // Этот компонент будет синглтоном в ECS.
+
             AddComponent(entity, new BuildingSettings
             {
-                // Передаем значения LayerMask из Authoring-компонента.
                 BuildableSurfaceLayerMask = authoring.buildableSurfaceLayer.value,
                 ObstacleLayerMask = authoring.obstacleLayer.value,
                 MaxPlacementSlopeAngle = authoring.maxPlacementSlopeAngle,
-                // MaterialID для превью будут инициализированы в рантайме в PreviewMaterialSystem.
+                MaxPlacementDistance = authoring.maxPlacementDistance,
+                PreviewLayer = GetFirstLayer(authoring.previewLayer),
                 ValidPlacementMaterialID = default, 
                 InvalidPlacementMaterialID = default
             });
+        }
+
+        /// <summary>
+        /// Получает индекс первого включенного слоя из LayerMask.
+        /// </summary>
+        private static int GetFirstLayer(LayerMask mask)
+        {
+            int value = mask.value;
+            if (value == 0) return -1;
+            for (int i = 0; i < 32; i++)
+            {
+                if ((value & (1 << i)) != 0) return i;
+            }
+            return -1;
         }
     }
 }

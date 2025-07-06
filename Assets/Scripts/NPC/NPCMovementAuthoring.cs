@@ -14,6 +14,12 @@ public class NPCMovementAuthoring : MonoBehaviour
     /// </summary>
     [Header("Movement Settings")]
     public float Speed = 2.0f;
+    [Tooltip("Как быстро NPC поворачивается к своей цели.")]
+    public float RotationSpeed = 5.0f;
+    [Tooltip("На каком расстоянии от цели NPC остановится.")]
+    public float StoppingDistance = 0.5f;
+    [Tooltip("Пороговое значение скорости, ниже которого скорость обнуляется.")]
+    public float VelocityZeroingThreshold = 0.001f;
 
     /// <summary>
     /// Baker-класс для преобразования NPCMovementAuthoring в ECS-компоненты.
@@ -31,6 +37,9 @@ public class NPCMovementAuthoring : MonoBehaviour
             AddComponent(entity, new NPCMovementComponent
             {
                 Speed = authoring.Speed,
+                RotationSpeed = authoring.RotationSpeed,
+                StoppingDistance = authoring.StoppingDistance,
+                VelocityZeroingThresholdSq = authoring.VelocityZeroingThreshold * authoring.VelocityZeroingThreshold,
                 TargetPosition = float3.zero,
                 HasTarget = false
             });
@@ -47,6 +56,21 @@ public struct NPCMovementComponent : IComponentData
     /// Скорость перемещения NPC.
     /// </summary>
     public float Speed;
+    
+    /// <summary>
+    /// Скорость поворота NPC.
+    /// </summary>
+    public float RotationSpeed;
+    
+    /// <summary>
+    /// Дистанция остановки от цели.
+    /// </summary>
+    public float StoppingDistance;
+
+    /// <summary>
+    /// Квадрат порогового значения скорости для обнуления.
+    /// </summary>
+    public float VelocityZeroingThresholdSq;
 
     /// <summary>
     /// Целевая позиция, к которой движется NPC.

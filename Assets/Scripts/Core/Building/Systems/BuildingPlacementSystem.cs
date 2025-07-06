@@ -52,7 +52,7 @@ public partial class BuildingPlacementSystem : SystemBase
             var rayInput = new RaycastInput
             {
                 Start = ray.origin,
-                End = ray.origin + ray.direction * 100f,
+                End = ray.origin + ray.direction * settings.MaxPlacementDistance,
                 Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = buildableSurfaceLayerMask, GroupIndex = 0 }
             };
 

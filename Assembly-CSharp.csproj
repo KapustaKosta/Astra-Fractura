@@ -113,6 +113,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\ProcessHarvestRequestSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameState.cs" />
+    <Compile Include="Assets\Scripts\Player\CameraProxyAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestingSystems.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestIntentionSystem.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="Assets\Scripts\NPC\NPCAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\BuildingComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />

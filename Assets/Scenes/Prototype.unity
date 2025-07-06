@@ -4377,6 +4377,7 @@ MonoBehaviour:
   recipesParent: {fileID: 1544510200}
   recipePrefab: {fileID: 5176360207555168168, guid: b96e7ff19bd08c2428921d456b134660, type: 3}
   inventory: {fileID: 764036386}
+  recipesPath: CraftingRecipes
 --- !u!1 &2114754050
 GameObject:
   m_ObjectHideFlags: 0

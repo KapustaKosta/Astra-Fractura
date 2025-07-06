@@ -8,12 +8,11 @@ using UnityEngine;
 [UpdateAfter(typeof(HarvestIntentionSystem))] // Работает после системы по намерениям
 public partial class HarvestingSystem : SystemBase
 {
-    private float harvestInterval = 0.5f;
-
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         float currentTime = (float)SystemAPI.Time.ElapsedTime;
+        var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         
         // Ищем игрока с готовым намерением добывать.
         foreach (var (intention, playerState, interactionTarget, entity) in 
@@ -21,7 +20,7 @@ public partial class HarvestingSystem : SystemBase
                      .WithEntityAccess())
         {
             // Проверяем персональный таймер
-            if (currentTime < playerState.ValueRO.LastHarvestTime + harvestInterval)
+            if (currentTime < playerState.ValueRO.LastHarvestTime + controllerData.HarvestInterval)
             {
                 continue;
             }

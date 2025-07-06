@@ -21,6 +21,10 @@ public partial struct BuildingPreviewSetupSystem : ISystem
             .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(state.WorldUnmanaged);
 
+        var settings = SystemAPI.GetSingleton<BuildingSettings>();
+        int layer = settings.PreviewLayer;
+        if (layer < 0 || layer > 31) return; // Если слой не настроен, выходим
+
         // Запрос только тех сущностей превью, которые помечены NeedsPreviewSetupTag.
         foreach (var (pc, entity) in
                  SystemAPI.Query<RefRW<PhysicsCollider>>()
@@ -37,8 +41,6 @@ public partial struct BuildingPreviewSetupSystem : ISystem
 
             // 3. Устанавливаем фильтр столкновений: коллайдер будет принадлежать слою "BuildingPreview"
             // и не будет сталкиваться ни с чем (CollidesWith = 0u).
-            int layer = LayerMask.NameToLayer("BuildingPreview");
-            if (layer == -1) layer = 31; // Если слой не найден, используем запасной.
             pc.ValueRW.Value.Value.SetCollisionFilter(new CollisionFilter
             {
                 BelongsTo    = (uint)(1 << layer),

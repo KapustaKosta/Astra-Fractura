@@ -27,7 +27,7 @@ public partial class PlayerCameraSystem : SystemBase
                 if (proxy == null) return;
 
                 // Горизонтальное вращение (Рыскание)
-                if (math.abs(inputs.look.x) > 0.01f)
+                if (math.abs(inputs.look.x) > controllerData.LookInputDeadzone)
                 {
                     float rotationVelocity = inputs.look.x * controllerData.RotationSpeed;
                     if (!inputs.isMouseControl)
@@ -39,7 +39,7 @@ public partial class PlayerCameraSystem : SystemBase
                 }
 
                 // Вертикальное вращение (Питч)
-                if (math.abs(inputs.look.y) > 0.01f)
+                if (math.abs(inputs.look.y) > controllerData.LookInputDeadzone)
                 {
                     float pitchDelta = inputs.look.y * controllerData.RotationSpeed;
                     if (!inputs.isMouseControl)
