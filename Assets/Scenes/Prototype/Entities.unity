@@ -910,8 +910,8 @@ GameObject:
   - component: {fileID: 1313986269}
   - component: {fileID: 1313986266}
   - component: {fileID: 1313986271}
-  - component: {fileID: 1313986272}
   - component: {fileID: 1313986273}
+  - component: {fileID: 1313986274}
   m_Layer: 8
   m_Name: PlayerECS
   m_TagString: Player
@@ -1124,19 +1124,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!114 &1313986272
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1313986264}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb2cc7743c517c141be1769a15f9b105, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  CinemachineProxyTag: CinemachineProxyTarget
 --- !u!114 &1313986273
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1188,6 +1175,19 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
+--- !u!114 &1313986274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313986264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea6e456de97d5704aac51cad0c1702d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CinemachineProxyTag: CinemachineProxyTarget
 --- !u!1 &1476490278
 GameObject:
   m_ObjectHideFlags: 0
