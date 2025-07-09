@@ -64,6 +64,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Systems\CameraTargetInitializationSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\StateTransitionSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingFixingAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Trade\DragAndDrop\SplitStackSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementActionsSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerContextualInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
     <Compile Include="Assets\Scripts\Core\Building\ItemToEntityResolver.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Trade\TradeUI.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourcesNode.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\RequestComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\PlayerAuthoring.cs" />
@@ -99,6 +101,7 @@
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementCandidateTag.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\SettlementComponent.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\InputsSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Trade\DragAndDrop\MoveItemSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementUI.cs" />
     <Compile Include="Assets\CraftingTable.cs" />
@@ -107,11 +110,13 @@
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerTag.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\ProcessHarvestRequestSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Trade\DragAndDrop\DragAndDropHandler.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameState.cs" />
     <Compile Include="Assets\Scripts\Player\CameraProxyAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\HarvestingSystems.cs" />

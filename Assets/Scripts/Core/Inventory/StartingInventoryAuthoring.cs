@@ -3,31 +3,34 @@ using Unity.Entities;
 using System.Collections.Generic;
 
 /// <summary>
-/// Authoring-компонент для определения стартового набора предметов для любой сущности.
-/// Позволяет удобно настроить начальный инвентарь в инспекторе.
+/// Authoring-компонент для определения начального инвентаря сущности.
+/// Позволяет задать вместимость инвентаря и список стартовых предметов через инспектор Unity.
 /// </summary>
 public class StartingInventoryAuthoring : MonoBehaviour
 {
     /// <summary>
-    /// Вложенный класс для удобной настройки пар "предмет-количество" в инспекторе.
+    /// Внутренний класс для удобного задания стартовых предметов в инспекторе.
     /// </summary>
     [System.Serializable]
     public class StartingItem
     {
-        [Tooltip("Ассет предмета")]
+        /// <summary>
+        /// ScriptableObject предмета.
+        /// </summary>
         public Item item;
-        
-        [Tooltip("Количество этого предмета")]
+        /// <summary>
+        /// Количество этого предмета в стартовом наборе.
+        /// </summary>
         [Range(1, 9999)]
         public int amount = 1;
     }
 
     [Header("Inventory Properties")]
-    [Tooltip("Общая вместимость инвентаря (количество слотов).")]
+    [Tooltip("Общая вместимость инвентаря в слотах.")]
     public int capacity = 20;
 
     [Header("Starting Content")]
-    [Tooltip("Список стартовых предметов и их количество.")]
+    [Tooltip("Список предметов, которые будут находиться в инвентаре при создании сущности.")]
     public List<StartingItem> startingItems;
 
     /// <summary>
@@ -36,7 +39,9 @@ public class StartingInventoryAuthoring : MonoBehaviour
     private class Baker : Baker<StartingInventoryAuthoring>
     {
         /// <summary>
-        /// Выполняет процесс "запекания", добавляя компоненты инвентаря и наполняя его стартовыми предметами.
+        /// Выполняет процесс "запекания". Добавляет к сущности тег HasInventoryTag,
+        /// компонент InventoryProperties и буфер InventoryItemElement, заполненный
+        /// стартовыми предметами и пустыми слотами.
         /// </summary>
         /// <param name="authoring">Экземпляр StartingInventoryAuthoring.</param>
         public override void Bake(StartingInventoryAuthoring authoring)
@@ -48,29 +53,42 @@ public class StartingInventoryAuthoring : MonoBehaviour
             AddComponent(entity, new InventoryProperties { Capacity = authoring.capacity });
             
             var inventoryBuffer = AddBuffer<InventoryItemElement>(entity);
+            
+            // Резервируем место в буфере под полную вместимость инвентаря.
+            inventoryBuffer.ResizeUninitialized(authoring.capacity);
 
-            // Итерируемся по списку стартовых предметов и добавляем их в буфер.
+            // Заполняем все слоты "пустыми" предметами (с ItemID = 0) по умолчанию.
+            for (int i = 0; i < authoring.capacity; i++)
+            {
+                inventoryBuffer[i] = new InventoryItemElement { ItemID = 0, Amount = 0 };
+            }
+
+            // Размещаем стартовые предметы в начальные слоты инвентаря.
+            int currentSlot = 0;
             foreach (var startingItem in authoring.startingItems)
             {
-                if (startingItem == null || startingItem.item == null || startingItem.amount <= 0)
+                if (currentSlot >= authoring.capacity)
                 {
-                    continue;
+                    Debug.LogWarning($"[StartingInventoryAuthoring] Недостаточно места в инвентаре для всех стартовых предметов на '{authoring.name}'.", authoring.gameObject);
+                    break;
                 }
+                
+                if (startingItem == null || startingItem.item == null || startingItem.amount <= 0) continue;
                 
                 Item item = startingItem.item;
-                int amount = startingItem.amount;
-
                 if (item.itemID == 0)
                 {
-                    Debug.LogError($"[StartingInventoryAuthoring] У стартового предмета '{item.name}' на объекте '{authoring.name}' невалидный ItemID (0). Предмет не будет добавлен.", authoring.gameObject);
+                    Debug.LogError($"[StartingInventoryAuthoring] У стартового предмета '{item.name}' невалидный ItemID (0).", authoring.gameObject);
                     continue;
                 }
-                
-                inventoryBuffer.Add(new InventoryItemElement
+
+                // Записываем данные о стартовом предмете в соответствующий слот буфера.
+                inventoryBuffer[currentSlot] = new InventoryItemElement
                 {
                     ItemID = item.itemID,
-                    Amount = amount
-                });
+                    Amount = startingItem.amount
+                };
+                currentSlot++;
             }
         }
     }

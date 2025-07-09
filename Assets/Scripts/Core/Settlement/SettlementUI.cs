@@ -17,6 +17,8 @@ public class SettlementUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI settlementNameText;
     [SerializeField] private TextMeshProUGUI statsText;
     [SerializeField] private Button closeButton;
+    [Tooltip("Кнопка для открытия окна торговли с инвентарем поселения.")]
+    [SerializeField] private Button tradeButton;
 
     [Header("NPC List Elements")]
     [Tooltip("Контейнер (объект Content из ScrollView), куда будут добавляться элементы списка NPC.")]
@@ -27,6 +29,7 @@ public class SettlementUI : MonoBehaviour
     
     private bool isInitialized = false;
     private EntityManager entityManager;
+    private Entity currentSettlementEntity;
 
     /// <summary>
     /// Инициализирует Singleton-экземпляр и проверяет наличие UI-элементов.
@@ -37,6 +40,7 @@ public class SettlementUI : MonoBehaviour
         else { Destroy(gameObject); return; }
 
         if (uiPanel == null || settlementNameText == null || statsText == null || closeButton == null ||
+            tradeButton == null || 
             npcListContainer == null || npcListItemPrefab == null)
         {
             Debug.LogError("[SettlementUI] Не все UI элементы назначены в инспекторе! Компонент будет отключен.", this);
@@ -53,6 +57,7 @@ public class SettlementUI : MonoBehaviour
         if (isInitialized)
         {
             closeButton.onClick.AddListener(OnCloseButtonPressed);
+            tradeButton.onClick.AddListener(OnTradeButtonPressed);
             uiPanel.SetActive(false);
         }
     }
@@ -85,7 +90,8 @@ public class SettlementUI : MonoBehaviour
                 var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
                 if (entityManager.Exists(uiState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(uiState.ActiveUITarget))
                 {
-                    var settlementData = entityManager.GetComponentData<SettlementComponent>(uiState.ActiveUITarget);
+                    currentSettlementEntity = uiState.ActiveUITarget;
+                    var settlementData = entityManager.GetComponentData<SettlementComponent>(currentSettlementEntity);
                     Show(settlementData);
                 }
             }
@@ -117,9 +123,12 @@ public class SettlementUI : MonoBehaviour
         if (!enabled) return;
         settlementNameText.text = settlement.Name.ToString();
         statsText.text = $"Уровень: {settlement.Level}\nНаселение: {settlement.Population}";
-        
+    
         UpdateNPCList(in settlement.NPCs);
         uiPanel.SetActive(true);
+
+        bool hasInventory = entityManager.HasComponent<HasInventoryTag>(currentSettlementEntity);
+        tradeButton.gameObject.SetActive(hasInventory);
     }
 
     /// <summary>
@@ -129,6 +138,7 @@ public class SettlementUI : MonoBehaviour
     {
         if (!enabled || uiPanel == null) return;
         uiPanel.SetActive(false);
+        currentSettlementEntity = Entity.Null;
     }
 
     /// <summary>
@@ -137,6 +147,17 @@ public class SettlementUI : MonoBehaviour
     private void OnCloseButtonPressed()
     {
         GameBridge.Instance?.HandleUICloseAction();
+    }
+
+    /// <summary>
+    /// Обрабатывает нажатие кнопки "Обмен", создавая ECS-запрос.
+    /// </summary>
+    private void OnTradeButtonPressed()
+    {
+        if (!isInitialized || currentSettlementEntity == Entity.Null) return;
+
+        var requestEntity = entityManager.CreateEntity();
+        entityManager.AddComponentData(requestEntity, new OpenTradeUIRequest { Target = currentSettlementEntity });
     }
 
     /// <summary>
@@ -167,7 +188,7 @@ public class SettlementUI : MonoBehaviour
             {
                 
                 string npcName = npcData.Name.ToString();
-                string statusText = " - Простаивает"; // Статус по умолчанию
+                string statusText = " - Простаивает";
 
                 if (npcData.Target != Entity.Null)
                 {

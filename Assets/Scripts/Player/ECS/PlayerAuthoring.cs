@@ -160,6 +160,8 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
     {
         var entity = GetEntity(TransformUsageFlags.Dynamic);
 
+        AddComponent<PlayerTag>(entity);
+        
         AddComponent(entity, new PlayerGroundCheckData
         {
             IgnoreLayers = authoring.IgnoreLayers.value

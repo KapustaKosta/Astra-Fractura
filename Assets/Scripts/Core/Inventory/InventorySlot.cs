@@ -2,12 +2,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using UnityEngine.EventSystems;
+using Unity.Entities;
 
 /// <summary>
 /// Управляет отображением и функциональностью отдельного слота инвентаря в UI.
-/// Добавлены "параноидальные" проверки для отладки скрытых NullReferenceException.
+/// Реализует интерфейсы для обработки событий Drag-and-Drop и кликов.
 /// </summary>
-public class InventorySlot : MonoBehaviour
+public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerDownHandler
 {
     [Tooltip("Изображение иконки предмета в слоте.")]
     public Image icon;
@@ -15,12 +17,34 @@ public class InventorySlot : MonoBehaviour
     [Tooltip("Текстовое поле для отображения количества предметов.")]
     public TextMeshProUGUI amountText;
 
-    [Tooltip("Кнопка, представляющая сам слот.")]
+    [Tooltip("Кнопка, представляющая сам слот. Используется для визуальных состояний.")]
     public Button slotButton;
 
-    private Item currentItem;
-    
+    /// <summary>
+    /// Ссылка на ScriptableObject предмета, который в данный момент находится в слоте.
+    /// </summary>
+    public Item CurrentItem => currentItem;
+    /// <summary>
+    /// Текущее количество предметов в слоте.
+    /// </summary>
+    public int CurrentAmount => currentAmount;
+
+    /// <summary>
+    /// Сущность-владелец инвентаря, к которому относится этот слот.
+    /// </summary>
+    internal Entity ownerEntity;
+    /// <summary>
+    /// Индекс этого слота в буфере инвентаря.
+    /// </summary>
+    internal int slotIndex;
+
+    /// <summary>
+    /// Событие, вызываемое при клике левой кнопкой мыши по слоту.
+    /// </summary>
     public event Action<Item> OnSlotClicked;
+    
+    private Item currentItem;
+    private int currentAmount;
 
     private void Awake()
     {
@@ -30,51 +54,48 @@ public class InventorySlot : MonoBehaviour
             Debug.LogError($"[InventorySlot AWAKE CHECK] Одна или несколько ссылок (Icon, AmountText, SlotButton) не установлены для слота '{this.gameObject.name}'!", this.gameObject);
         }
     }
-    
+
     /// <summary>
-    /// Настраивает внешний вид слота на основе предоставленного предмета и его количества.
+    /// Инициализирует слот данными о предмете, его количестве и владельце.
+    /// Если предмет null или количество 0, слот очищается.
     /// </summary>
-    public void SetupSlot(Item item, int amount = 1)
+    /// <param name="newItem">ScriptableObject предмета для отображения.</param>
+    /// <param name="amount">Количество предмета.</param>
+    /// <param name="owner">Сущность-владелец инвентаря.</param>
+    /// <param name="index">Индекс слота.</param>
+    public void InitializeSlot(Item newItem, int amount, Entity owner, int index)
     {
-        currentItem = item;
-        
-        // 1. Проверяем, передан ли нам вообще предмет.
-        if (item == null)
+        ownerEntity = owner;
+        slotIndex = index;
+
+        if (newItem == null || amount <= 0)
         {
             ClearSlot();
             return;
         }
 
-        // 2. САМАЯ ВАЖНАЯ ПРОВЕРКА: проверяем ссылки на компоненты UI.
-        if (icon == null) 
+        currentItem = newItem;
+        currentAmount = amount;
+
+        if (icon == null || amountText == null)
         {
-            Debug.LogError($"[InventorySlot SETUP CHECK] FATAL: Ссылка на 'Icon' (Image) равна NULL на слоте '{this.gameObject.name}'. Не могу установить спрайт.", this.gameObject);
-            return; // Прекращаем выполнение, чтобы избежать ошибки
+            Debug.LogError($"[InventorySlot SETUP CHECK] FATAL: Ссылки на UI элементы (Icon, AmountText) равны NULL на слоте '{this.gameObject.name}'.", this.gameObject);
+            return;
         }
-        if (amountText == null)
+
+        if (currentItem.icon == null)
         {
-            Debug.LogError($"[InventorySlot SETUP CHECK] FATAL: Ссылка на 'Amount Text' равна NULL на слоте '{this.gameObject.name}'. Не могу установить текст.", this.gameObject);
-        }
-        
-        // 3. Проверяем, есть ли у самого предмета иконка.
-        if (item.icon == null)
-        {
-            Debug.LogWarning($"[InventorySlot] У предмета '{item.itemName}' (ID: {item.itemID}) в ассете не назначен спрайт (Icon is null). Иконка будет скрыта.");
-            icon.enabled = false; // Скрываем Image, если нет спрайта
+            Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID}) в ассете не назначен спрайт. Иконка будет скрыта.");
+            icon.enabled = false;
         }
         else
         {
-            icon.sprite = item.icon;
+            icon.sprite = currentItem.icon;
             icon.enabled = true;
         }
 
-        // Обновляем текст количества
-        if (amountText != null)
-        {
-            amountText.text = (amount > 1 && item.maxStack > 1) ? amount.ToString() : "";
-        }
-        
-        // Включаем кнопку
+        amountText.text = (currentAmount > 1 && currentItem.maxStack > 1) ? currentAmount.ToString() : string.Empty;
+
         if (slotButton != null)
         {
             slotButton.interactable = true;
@@ -82,11 +103,13 @@ public class InventorySlot : MonoBehaviour
     }
 
     /// <summary>
-    /// Очищает слот инвентаря.
+    /// Очищает слот, сбрасывая данные о предмете и обновляя UI.
+    /// Делает слот неинтерактивным.
     /// </summary>
     public void ClearSlot()
     {
         currentItem = null;
+        currentAmount = 0;
 
         if (icon != null)
         {
@@ -96,7 +119,7 @@ public class InventorySlot : MonoBehaviour
 
         if (amountText != null)
         {
-            amountText.text = "";
+            amountText.text = string.Empty;
         }
 
         if (slotButton != null)
@@ -104,14 +127,104 @@ public class InventorySlot : MonoBehaviour
             slotButton.interactable = false;
         }
     }
-    
+
     /// <summary>
-    /// Вызывается Unity при нажатии на кнопку слота.
+    /// Обрабатывает клик по слоту (реализация IPointerClickHandler).
+    /// Вызывает событие OnSlotClicked при клике левой кнопкой мыши.
     /// </summary>
-    public void OnSlotClick()
+    public void OnPointerClick(PointerEventData eventData)
     {
-        if (currentItem == null) return;
+        if (eventData.button == PointerEventData.InputButton.Left && !eventData.dragging)
+        {
+            if (currentItem != null)
+            {
+                OnSlotClicked?.Invoke(currentItem);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Обрабатывает нажатие кнопки мыши на слоте (реализация IPointerDownHandler).
+    /// Используется для инициализации операции Drag-and-Drop.
+    /// </summary>
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (currentItem != null)
+        {
+            DragAndDropHandler.Instance?.SetSourceSlot(this);
+        }
+    }
+
+    /// <summary>
+    /// Вызывается в начале операции перетаскивания (реализация IBeginDragHandler).
+    /// Определяет, какой кнопкой мыши начато перетаскивание, и передает эту информацию.
+    /// </summary>
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (currentItem != null)
+        {
+            bool isSplitDrag = eventData.button == PointerEventData.InputButton.Right;
+            DragAndDropHandler.Instance?.OnBeginDrag(eventData, isSplitDrag);
+        }
+    }
+
+    /// <summary>
+    /// Вызывается каждый кадр во время перетаскивания (реализация IDragHandler).
+    /// </summary>
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (currentItem != null)
+        {
+            DragAndDropHandler.Instance?.OnDrag(eventData);
+        }
+    }
+
+    /// <summary>
+    /// Вызывается при завершении операции перетаскивания (реализация IEndDragHandler).
+    /// </summary>
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        DragAndDropHandler.Instance?.OnEndDrag(eventData);
+    }
+
+    /// <summary>
+    /// Вызывается, когда другой объект "брошен" на этот слот (реализация IDropHandler).
+    /// Создает ECS-запрос на перемещение или разделение стака.
+    /// </summary>
+    public void OnDrop(PointerEventData eventData)
+    {
+        var handler = DragAndDropHandler.Instance;
+        if (handler == null) return;
         
-        OnSlotClicked?.Invoke(currentItem);
+        InventorySlot source = handler.GetSourceSlot();
+        if (source != null && source != this && source.CurrentItem != null)
+        {
+            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var requestEntity = entityManager.CreateEntity();
+
+            if (handler.IsSplitting())
+            {
+                entityManager.AddComponentData(requestEntity, new SplitStackRequest
+                {
+                    SourceInventoryOwner = source.ownerEntity,
+                    SourceSlotIndex = source.slotIndex,
+                    DestinationInventoryOwner = this.ownerEntity,
+                    DestinationSlotIndex = this.slotIndex,
+                    AmountToMove = handler.GetDraggedAmount()
+                });
+            }
+            else
+            {
+                entityManager.AddComponentData(requestEntity, new MoveItemRequest
+                {
+                    SourceInventoryOwner = source.ownerEntity,
+                    SourceSlotIndex = source.slotIndex,
+                    DestinationInventoryOwner = this.ownerEntity,
+                    DestinationSlotIndex = this.slotIndex,
+                    ItemID = source.CurrentItem.itemID,
+                    Amount = source.CurrentAmount
+                });
+            }
+        }
     }
 }

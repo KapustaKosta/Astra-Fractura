@@ -1,34 +1,42 @@
 using UnityEngine;
 using Unity.Entities;
-using System.Text;
+using System.Collections.Generic;
 
+/// <summary>
+/// Управляет пользовательским интерфейсом инвентаря игрока.
+/// Отвечает за отображение и скрытие панели инвентаря, а также за обновление содержимого слотов.
+/// </summary>
 public class InventoryUI : MonoBehaviour
 {
     [Header("UI References")]
-    public Transform slotsParent;
-    public GameObject slotPrefab;
-    public GameObject inventoryPanel;
+    [Tooltip("Родительский объект для всех элементов UI инвентаря.")]
+    [SerializeField] private GameObject inventoryPanel;
+    [Tooltip("Контейнер, в который будут добавляться префабы слотов.")]
+    [SerializeField] private RectTransform slotsParent;
+    [Tooltip("Префаб для одного слота инвентаря.")]
+    [SerializeField] private GameObject slotPrefab;
 
-    private InventorySlot[] slots;
+    private List<InventorySlot> slots = new List<InventorySlot>();
     private EntityManager entityManager;
-    private EntityQuery playerQuery;
-    private Entity currentTargetEntity;
+    private Entity playerEntity;
     private bool isInitialized = false;
 
+    /// <summary>
+    /// Инициализация EntityManager и поиск сущности игрока. Скрываем панель при старте.
+    /// </summary>
     void Start()
     {
         TryInitialize();
-    }
-    
-    private void OnDestroy()
-    {
-        if (slots == null) return;
-        foreach (var slot in slots)
+        if (isInitialized && inventoryPanel != null)
         {
-            if (slot != null) slot.OnSlotClicked -= HandleSlotClicked;
+            inventoryPanel.SetActive(false);
         }
     }
 
+    /// <summary>
+    /// Каждый кадр проверяет, должен ли UI инвентаря быть открыт.
+    /// При открытии выполняется одноразовое построение слотов.
+    /// </summary>
     void Update()
     {
         if (!isInitialized)
@@ -43,163 +51,147 @@ public class InventoryUI : MonoBehaviour
 
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory;
-        
+
         if (inventoryPanel.activeSelf != shouldBeOpen)
         {
+            inventoryPanel.SetActive(shouldBeOpen);
             if (shouldBeOpen)
             {
-                if (!playerQuery.IsEmpty)
-                {
-                    Show(playerQuery.GetSingletonEntity());
-                }
+                RebuildSlots();    
             }
-            else
-            {
-                Hide();
-            }
-        }
-        else if (inventoryPanel.activeSelf)
-        {
-            UpdateUI();
         }
     }
 
+    /// <summary>
+    /// Каждый кадр после обновлений UI обновляем данные в существующих слотах.
+    /// </summary>
+    void LateUpdate()
+    {
+        if (inventoryPanel != null && inventoryPanel.activeSelf)
+        {
+            RefreshSlotData();    
+        }
+    }
+
+    /// <summary>
+    /// Пытается инициализировать EntityManager и найти сущность игрока по тегу.
+    /// </summary>
     private void TryInitialize()
     {
         if (isInitialized) return;
-        if (World.DefaultGameObjectInjectionWorld == null || !World.DefaultGameObjectInjectionWorld.IsCreated) return;
-
-        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        playerQuery = entityManager.CreateEntityQuery(typeof(PlayerControllerData));
-        
-        if (inventoryPanel == null || slotsParent == null || slotPrefab == null)
+        if (World.DefaultGameObjectInjectionWorld != null && World.DefaultGameObjectInjectionWorld.IsCreated)
         {
-            return;
+            entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var playerQuery = entityManager.CreateEntityQuery(typeof(PlayerTag));
+            if (!playerQuery.IsEmpty)
+            {
+                playerEntity = playerQuery.GetSingletonEntity();
+                isInitialized = true;
+            }
         }
-
-        isInitialized = true;
-        Hide();
-    }
-    
-    public void RequestToggleInventory()
-    {
-        if (!isInitialized) return;
-        var toggleEntity = entityManager.CreateEntity();
-        entityManager.AddComponentData(toggleEntity, new ToggleInventoryRequest());
     }
 
-    public void Show(Entity targetEntity)
+    /// <summary>
+    /// Строит слоты инвентаря один раз при открытии UI.
+    /// </summary>
+    private void RebuildSlots()
     {
-        if (!isInitialized || targetEntity == Entity.Null || !entityManager.Exists(targetEntity) || !entityManager.HasComponent<HasInventoryTag>(targetEntity))
-        {
-            Hide();
-            return;
-        }
-        
-        inventoryPanel.SetActive(true);
-        currentTargetEntity = targetEntity;
-        
-        CreateOrVerifySlots(targetEntity);
-        UpdateUI();
-    }
-
-    public void Hide()
-    {
-        if (inventoryPanel != null)
-        {
-            inventoryPanel.SetActive(false);
-        }
-        currentTargetEntity = Entity.Null;
-    }
-    
-    private void CreateOrVerifySlots(Entity targetEntity)
-    {
-        if (!entityManager.HasComponent<InventoryProperties>(targetEntity))
-        {
-             return;
-        }
-        
-        int requiredCapacity = entityManager.GetComponentData<InventoryProperties>(targetEntity).Capacity;
-
-        if (slots != null && slots.Length == requiredCapacity)
-        {
-            return;
-        }
-        
         foreach (Transform child in slotsParent)
         {
             Destroy(child.gameObject);
         }
-        if (slots != null)
-        {
-             foreach (var slot in slots)
-             {
-                 if (slot != null) slot.OnSlotClicked -= HandleSlotClicked;
-             }
-        }
-        
-        slots = new InventorySlot[requiredCapacity];
-        for (int i = 0; i < requiredCapacity; i++)
+        slots.Clear();
+
+        if (!entityManager.HasBuffer<InventoryItemElement>(playerEntity)) return;
+        var properties = entityManager.GetComponentData<InventoryProperties>(playerEntity);
+        int capacity = properties.Capacity;
+
+        for (int i = 0; i < capacity; i++)
         {
             GameObject slotGO = Instantiate(slotPrefab, slotsParent);
-            if (slotGO == null) { return; }
-            
-            InventorySlot slotComponent = slotGO.GetComponent<InventorySlot>();
-            if (slotComponent != null)
-            {
-                slots[i] = slotComponent;
-                slotComponent.OnSlotClicked += HandleSlotClicked;
-            }
+            InventorySlot slot = slotGO.GetComponent<InventorySlot>();
+
+            if (slot == null) continue;
+            slot.OnSlotClicked += OnInventorySlotClicked;
+            slots.Add(slot);
         }
     }
 
-    public void UpdateUI()
+    /// <summary>
+    /// Обновляет содержимое уже существующих слотов по данным буфера.
+    /// </summary>
+    private void RefreshSlotData()
     {
-        if (!isInitialized || currentTargetEntity == Entity.Null || slots == null)
-        {
-            return;
-        }
-        
-        var itemBuffer = entityManager.GetBuffer<InventoryItemElement>(currentTargetEntity);
+        if (!entityManager.HasBuffer<InventoryItemElement>(playerEntity)) return;
 
-        for (int i = 0; i < slots.Length; i++)
+        var inventoryBuffer = entityManager.GetBuffer<InventoryItemElement>(playerEntity);
+        var itemRegistry = ItemRegistry.Instance;
+
+        for (int i = 0; i < slots.Count; i++)
         {
-            // Эта проверка больше не нужна, но она не мешает.
-            if (slots[i] == null) continue;
-            
-            if (i < itemBuffer.Length)
+            if (i >= inventoryBuffer.Length)
             {
-                var itemElement = itemBuffer[i];
-                // Этот вызов теперь полностью безопасен.
-                var itemData = ItemRegistry.Instance.GetItemData(itemElement.ItemID);
-                
-                slots[i].SetupSlot(itemData, itemElement.Amount);
+                slots[i].InitializeSlot(null, 0, playerEntity, i);
+                continue;
+            }
+
+            var itemElement = inventoryBuffer[i];
+        
+            if (itemElement.ItemID != 0)
+            {
+                var itemData = itemRegistry != null ? itemRegistry.GetItemData(itemElement.ItemID) : null;
+                slots[i].InitializeSlot(itemData, itemElement.Amount, playerEntity, i);
             }
             else
             {
-                slots[i].ClearSlot();
+                slots[i].InitializeSlot(null, 0, playerEntity, i);
             }
         }
     }
-    
-    private void HandleSlotClicked(Item clickedItem)
-    {
-        if (clickedItem == null || !isInitialized) return;
 
-        if (clickedItem.itemType == ItemType.Building)
+    /// <summary>
+    /// Обработчик события, который вызывается при клике на любой слот в инвентаре.
+    /// Определяет действие в зависимости от типа предмета.
+    /// </summary>
+    /// <param name="item">Предмет, который находится в кликнутом слоте.</param>
+    private void OnInventorySlotClicked(Item item)
+    {
+        if (item == null) return;
+
+        switch (item.itemType)
         {
-            var requestEntity = entityManager.CreateEntity();
-            entityManager.AddComponentData(requestEntity, new EnterBuildingModeRequest { ItemID = clickedItem.itemID });
+            case ItemType.Building:
+                var buildRequest = entityManager.CreateEntity();
+                entityManager.AddComponentData(buildRequest, new EnterBuildingModeRequest
+                {
+                    ItemID = item.itemID
+                });
+                break;
+
+            case ItemType.Tool:
+            case ItemType.Consumable: 
+            case ItemType.Resource:
+            case ItemType.Weapon:
+            case ItemType.Miscellaneous:
+                break;
+                
+            default:
+                Debug.LogWarning($"[InventoryUI] Неизвестный тип предмета: {item.itemType}");
+                break;
         }
-        else if (clickedItem.itemType == ItemType.Consumable)
+    }
+
+    /// <summary>
+    /// Отписываемся от всех событий при уничтожении объекта, чтобы избежать ошибок.
+    /// </summary>
+    private void OnDestroy()
+    {
+        foreach (var slot in slots)
         {
-            var requestEntity = entityManager.CreateEntity();
-            entityManager.AddComponentData(requestEntity, new RemoveItemRequest
+            if (slot != null)
             {
-                TargetInventoryOwner = currentTargetEntity,
-                ItemID = clickedItem.itemID,
-                Amount = 1
-            });
+                slot.OnSlotClicked -= OnInventorySlotClicked;
+            }
         }
     }
 }

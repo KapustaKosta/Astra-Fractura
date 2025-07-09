@@ -17,7 +17,11 @@ public class NPCUI : MonoBehaviour
     [SerializeField] private GameObject npcMenu;
     [SerializeField] private TextMeshProUGUI npcText;
     [SerializeField] private Button closeButton;
+
+    [Header("Interaction Buttons")]
     [SerializeField] private Button hireButton;
+    [Tooltip("Кнопка для открытия окна торговли с этим NPC.")]
+    [SerializeField] private Button tradeButton;
     
     [Header("Task Elements")]
     [SerializeField] private Transform resourceNodeListContainer;
@@ -36,6 +40,7 @@ public class NPCUI : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         if (npcMenu == null || npcText == null || closeButton == null || hireButton == null || 
+            tradeButton == null || // Добавлена проверка для новой кнопки
             resourceNodeListContainer == null || resourceNodeButtonPrefab == null || taskStatusText == null) 
         { 
             enabled = false; 
@@ -52,6 +57,7 @@ public class NPCUI : MonoBehaviour
         {
             closeButton.onClick.AddListener(OnCloseButtonPressed);
             hireButton.onClick.AddListener(OnHireButtonPressed);
+            tradeButton.onClick.AddListener(OnTradeButtonPressed); // Добавлена подписка на событие
             npcMenu.SetActive(false);
         }
     }
@@ -121,7 +127,14 @@ public class NPCUI : MonoBehaviour
         taskStatusText.gameObject.SetActive(false);
         ClearResourceNodeOptions();
 
-        if (IsHired(npcEntity))
+        bool hired = IsHired(npcEntity);
+        bool hasInventory = entityManager.HasComponent<HasInventoryTag>(npcEntity);
+
+        hireButton.gameObject.SetActive(!hired);
+        // Кнопка обмена видна только если NPC нанят и у него есть инвентарь
+        tradeButton.gameObject.SetActive(hired && hasInventory);
+
+        if (hired)
         {
             hireButton.gameObject.SetActive(false);
             if (npc.Target != Entity.Null)
@@ -183,9 +196,18 @@ public class NPCUI : MonoBehaviour
         
         var entity = entityManager.CreateEntity();
         entityManager.AddComponentData(entity, new HireNPCRequest { NPCToHire = currentNPCEntity });
+    }
 
-        hireButton.gameObject.SetActive(false);
-        ShowResourceNodeOptions();
+    /// <summary>
+    /// Обрабатывает нажатие кнопки "Обмен", создавая запрос на открытие TradeUI.
+    /// </summary>
+    private void OnTradeButtonPressed()
+    {
+        if (!isInitialized || currentNPCEntity == Entity.Null) return;
+
+        // Создаем запрос на открытие окна торговли, передавая текущего NPC как цель
+        var requestEntity = entityManager.CreateEntity();
+        entityManager.AddComponentData(requestEntity, new OpenTradeUIRequest { Target = currentNPCEntity });
     }
 
     /// <summary>

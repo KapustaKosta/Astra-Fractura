@@ -26,12 +26,15 @@ public partial class RequestCleanupSystem : SystemBase
                 ComponentType.ReadWrite<ToggleInventoryRequest>(),
                 ComponentType.ReadWrite<OpenNPCUIRequest>(),
                 ComponentType.ReadWrite<OpenSettlementUIRequest>(),
+                ComponentType.ReadWrite<OpenTradeUIRequest>(),
                 ComponentType.ReadWrite<CloseAllUIRequest>(),
                 ComponentType.ReadWrite<InteractionRequest>(),
                 ComponentType.ReadWrite<HireNPCRequest>(),
                 ComponentType.ReadWrite<AssignNPCToTaskRequest>(),
                 ComponentType.ReadWrite<AddItemRequest>(),
-                ComponentType.ReadWrite<RemoveItemRequest>()
+                ComponentType.ReadWrite<RemoveItemRequest>(),
+                ComponentType.ReadWrite<MoveItemRequest>(),
+                ComponentType.ReadWrite<SplitStackRequest>()
             }
         };
         m_RequestQuery = GetEntityQuery(queryDesc);

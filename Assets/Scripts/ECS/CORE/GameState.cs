@@ -6,7 +6,8 @@ public enum UIType
     None,
     Inventory,
     NPC,
-    Settlement
+    Settlement,
+    Trade 
 }
 
 /// <summary>

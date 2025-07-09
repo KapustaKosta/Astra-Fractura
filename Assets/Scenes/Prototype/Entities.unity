@@ -2283,9 +2283,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   capacity: 20
-  startingItems:
-  - item: {fileID: 11400000, guid: 2cc60f581569bdb42b2174a930db4cd4, type: 2}
-    amount: 0
+  startingItems: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

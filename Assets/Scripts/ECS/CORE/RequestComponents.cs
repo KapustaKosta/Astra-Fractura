@@ -57,6 +57,14 @@ public struct OpenSettlementUIRequest : IRequestCleanup
 }
 
 /// <summary>
+/// Запрос на открытие UI для торговли с целевой сущностью.
+/// </summary>
+public struct OpenTradeUIRequest : IRequestCleanup
+{
+    public Entity Target;
+}
+
+/// <summary>
 /// Запрос на закрытие всех активных пользовательских интерфейсов.
 /// </summary>
 public struct CloseAllUIRequest : IRequestCleanup { }
@@ -105,4 +113,30 @@ public struct RemoveItemRequest : IRequestCleanup
     public Entity TargetInventoryOwner; 
     public int ItemID;
     public int Amount;
+}
+
+/// <summary>
+/// Запрос на перемещение предмета из одного слота одного инвентаря в другой.
+/// </summary>
+public struct MoveItemRequest : IRequestCleanup
+{
+    public Entity SourceInventoryOwner;
+    public int SourceSlotIndex;
+    public Entity DestinationInventoryOwner;
+    public int DestinationSlotIndex;
+    public int ItemID;
+    public int Amount;
+}
+
+/// <summary>
+/// Запрос на разделение стака предмета. Перемещает указанное количество
+/// из одного слота в другой.
+/// </summary>
+public struct SplitStackRequest : IRequestCleanup
+{
+    public Entity SourceInventoryOwner;
+    public int SourceSlotIndex;
+    public Entity DestinationInventoryOwner;
+    public int DestinationSlotIndex;
+    public int AmountToMove;
 }

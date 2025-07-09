@@ -9,27 +9,30 @@ public partial class EnterBuildingModeSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
         
         if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameStateEntity)) return;
 
         // Используем WithEntityAccess, чтобы получить Entity для логирования
-        foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<EnterBuildingModeRequest>>().WithEntityAccess())
+        foreach (var (request, requestEntity) in 
+                 SystemAPI.Query<RefRO<EnterBuildingModeRequest>>().WithEntityAccess())
         {
             
-            Debug.Log($"[EnterBuildingModeSystem] Обнаружен запрос EnterBuildingModeRequest (Entity: {requestEntity.Index}, ItemID: {request.ValueRO.ItemID}).");
+            Debug.Log($"[EnterBuildingModeSystem] Обнаружен запрос EnterBuildingModeRequest (Entity: {requestEntity.Index}," +
+                      $" ItemID: {request.ValueRO.ItemID}).");
 
             if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
             {
-                Debug.LogWarning("[EnterBuildingModeSystem] Запрос проигнорирован, так как игра уже находится в режиме строительства.");
-                continue; // Используем continue, чтобы не прерывать цикл для других запросов
+                continue;
             }
 
             Entity prefab = ItemToEntityResolver.GetEntityPrefabFromID(EntityManager, request.ValueRO.ItemID);
             
             if (prefab != Entity.Null)
             {
-                Debug.Log($"[EnterBuildingModeSystem] Префаб для ItemID {request.ValueRO.ItemID} успешно найден. Применяю смену состояния на InBuildingMode.");
+                Debug.Log($"[EnterBuildingModeSystem] Префаб для ItemID {request.ValueRO.ItemID} успешно найден." +
+                          $" Применяю смену состояния на InBuildingMode.");
                 
                 // Удаляем старые теги и данные
                 ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
@@ -62,7 +65,8 @@ public partial class ExitBuildingModeSystem : SystemBase
         
         //Debug.Log("[ExitBuildingModeSystem] Обнаружен запрос на выход из режима строительства. Возврат в режим по умолчанию.");
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
@@ -88,10 +92,12 @@ public partial class ToggleInventorySystem : SystemBase
         
         //Debug.LogError("[!!!] ToggleInventorySystem сработала для смены состояния.");
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         
-        if (SystemAPI.HasComponent<InUIMode>(gameStateEntity) && SystemAPI.GetComponent<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory)
+        if (SystemAPI.HasComponent<InUIMode>(gameStateEntity) && 
+            SystemAPI.GetComponent<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory)
         {
             ecb.RemoveComponent<InUIMode>(gameStateEntity);
             ecb.RemoveComponent<UIState>(gameStateEntity);
@@ -122,7 +128,8 @@ public partial class OpenTargetedUISystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         Entities.ForEach((in OpenNPCUIRequest request) =>
@@ -156,6 +163,33 @@ public partial class OpenTargetedUISystem : SystemBase
 
 
 /// <summary>
+/// Система для обработки запроса на открытие окна торговли.
+/// </summary>
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+public partial class OpenTradeUISystem : SystemBase
+{
+    protected override void OnUpdate()
+    {
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameStateEntity)) return;
+
+        Entities.ForEach((in OpenTradeUIRequest request) =>
+        {
+            ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
+            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
+            ecb.RemoveComponent<BuildingState>(gameStateEntity);
+            ecb.RemoveComponent<UIState>(gameStateEntity); 
+
+            ecb.AddComponent<InUIMode>(gameStateEntity);
+            ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.Trade, ActiveUITarget = request.Target });
+
+        }).Run();
+    }
+}
+
+
+/// <summary>
 /// Система, которая обрабатывает универсальный запрос на закрытие всех UI.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -169,7 +203,8 @@ public partial class CloseAllUISystem : SystemBase
         
         //Debug.LogError("[!!!] CloseAllUISystem сработала для смены состояния.");
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
+            CreateCommandBuffer(World.Unmanaged);
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         if (SystemAPI.HasComponent<InUIMode>(gameStateEntity))

@@ -1,5 +1,4 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
 
 /// <summary>
@@ -19,27 +18,21 @@ public partial class InventorySystem : SystemBase
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         
         var inventoryLookup = GetBufferLookup<InventoryItemElement>(false);
-        var propertiesLookup = GetComponentLookup<InventoryProperties>(true);
         var itemRegistry = ItemRegistry.Instance;
 
-        // Если реестр предметов еще не готов, прерываем выполнение, чтобы избежать ошибок.
-        if (itemRegistry == null)
-        {
-            // Уничтожаем все необработанные запросы, чтобы они не накапливались.
-            var addRequestQuery = SystemAPI.QueryBuilder().WithAll<AddItemRequest>().Build();
-            var removeRequestQuery = SystemAPI.QueryBuilder().WithAll<RemoveItemRequest>().Build();
-            if (!addRequestQuery.IsEmpty) ecb.DestroyEntity(addRequestQuery, EntityQueryCaptureMode.AtPlayback);
-            if (!removeRequestQuery.IsEmpty) ecb.DestroyEntity(removeRequestQuery, EntityQueryCaptureMode.AtPlayback);
-            return;
-        }
+        if (itemRegistry == null) return;
 
-        // Обработка запросов на добавление 
+        // Обработка запросов на добавление
         Entities
-            .WithoutBurst() // т.к. мы обращаемся к управляемому объекту itemRegistry
+            .WithoutBurst()
             .ForEach((Entity requestEntity, in AddItemRequest request) =>
-        {
-            if (inventoryLookup.HasBuffer(request.TargetInventoryOwner) && propertiesLookup.HasComponent(request.TargetInventoryOwner))
             {
+                if (!inventoryLookup.HasBuffer(request.TargetInventoryOwner))
+                {
+                    ecb.DestroyEntity(requestEntity);
+                    return;
+                }
+
                 var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
                 var itemData = itemRegistry.GetItemData(request.ItemID);
                 
@@ -65,36 +58,41 @@ public partial class InventorySystem : SystemBase
                             int amountToMove = Mathf.Min(amountToAdd, spaceInStack);
                             
                             element.Amount += amountToMove;
-                            inventoryBuffer[i] = element; // Записываем измененную структуру обратно
+                            inventoryBuffer[i] = element;
                             amountToAdd -= amountToMove;
                         }
                     }
                 }
                 
-                // 2. Если предметы еще остались, создаем новые стаки в свободных слотах
+                // 2. Если предметы еще остались, ищем пустые слоты и создаем новые стаки
                 if (amountToAdd > 0)
                 {
-                    var properties = propertiesLookup[request.TargetInventoryOwner];
-                    while (amountToAdd > 0 && inventoryBuffer.Length < properties.Capacity)
+                    for (int i = 0; i < inventoryBuffer.Length; i++)
                     {
-                        int amountForNewStack = Mathf.Min(amountToAdd, itemData.maxStack);
-                        inventoryBuffer.Add(new InventoryItemElement { ItemID = request.ItemID, Amount = amountForNewStack });
-                        amountToAdd -= amountForNewStack;
+                        if (amountToAdd <= 0) break;
+
+                        // Ищем пустой слот (по ItemID == 0)
+                        if (inventoryBuffer[i].ItemID == 0)
+                        {
+                            int amountForNewStack = Mathf.Min(amountToAdd, itemData.maxStack);
+                            inventoryBuffer[i] = new InventoryItemElement { ItemID = request.ItemID, Amount = amountForNewStack };
+                            amountToAdd -= amountForNewStack;
+                        }
                     }
                 }
-            }
-            ecb.DestroyEntity(requestEntity);
-        }).Run();
 
-        // Обработка зпросов на удаление
-        Entities.ForEach((Entity requestEntity, in RemoveItemRequest request) =>
+                ecb.DestroyEntity(requestEntity);
+            }).Run();
+
+        // Обработка запросов на удаление
+        Entities.WithoutBurst().ForEach((Entity requestEntity, in RemoveItemRequest request) =>
         {
             if (inventoryLookup.HasBuffer(request.TargetInventoryOwner))
             {
                 var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
                 int amountToRemove = request.Amount;
 
-                // Итерируемся с конца, чтобы безопасно удалять элементы.
+                // Итерируемся с конца, чтобы при удалении полных стаков это не влияло на следующие итерации
                 for (int i = inventoryBuffer.Length - 1; i >= 0; i--)
                 {
                     if (amountToRemove <= 0) break;
@@ -107,9 +105,10 @@ public partial class InventorySystem : SystemBase
                         element.Amount -= amountToTake;
                         amountToRemove -= amountToTake;
 
+                        // Если стак опустел, мы не удаляем элемент, а "обнуляем" его
                         if (element.Amount <= 0)
                         {
-                            inventoryBuffer.RemoveAt(i);
+                            inventoryBuffer[i] = new InventoryItemElement { ItemID = 0, Amount = 0 };
                         }
                         else
                         {
@@ -119,8 +118,6 @@ public partial class InventorySystem : SystemBase
                 }
             }
             ecb.DestroyEntity(requestEntity);
-        }).Schedule();
-        
-        Dependency.Complete();
+        }).Run();
     }
 }
