@@ -85,7 +85,7 @@ public struct PlayerControllerData : IComponentData
     /// </summary>
     public BlobAssetReference<Unity.Physics.Collider> GroundCheckSphereCollider;
 
-    // --- НОВЫЕ ПОЛЯ ---
+
     public float MaxSlopeCosine;
     public float AirControlMultiplier;
     public float JumpBufferDuration;

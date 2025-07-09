@@ -1,11 +1,8 @@
 ﻿using Unity.Entities;
 using UnityEngine;
 
-/// <summary>
-/// "Исполнитель". Реагирует на готовое намерение WantsToHarvestTag и выполняет логику добычи.
-/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(HarvestIntentionSystem))] // Работает после системы по намерениям
+[UpdateAfter(typeof(HarvestIntentionSystem))]
 public partial class HarvestingSystem : SystemBase
 {
     protected override void OnUpdate()
@@ -14,12 +11,10 @@ public partial class HarvestingSystem : SystemBase
         float currentTime = (float)SystemAPI.Time.ElapsedTime;
         var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         
-        // Ищем игрока с готовым намерением добывать.
         foreach (var (intention, playerState, interactionTarget, entity) in 
                  SystemAPI.Query<RefRO<WantsToHarvestTag>, RefRW<PlayerStateData>, RefRO<InteractionTarget>>()
                      .WithEntityAccess())
         {
-            // Проверяем персональный таймер
             if (currentTime < playerState.ValueRO.LastHarvestTime + controllerData.HarvestInterval)
             {
                 continue;
@@ -27,14 +22,11 @@ public partial class HarvestingSystem : SystemBase
 
             var targetEntity = interactionTarget.ValueRO.Value;
 
-            // Проверяем, что цель все еще является ресурсным узлом, на всякий случай
             if (!SystemAPI.HasComponent<ResourceNode>(targetEntity))
             {
                 continue;
             }
             
-            
-            // Создаем запрос на фактическое добавление ресурса
             var requestEntity = ecb.CreateEntity();
             ecb.AddComponent(requestEntity, new HarvestRequest 
             { 
@@ -42,16 +34,16 @@ public partial class HarvestingSystem : SystemBase
                 TargetResourceNode = targetEntity 
             });
             
+            // --- DEBUG ---
+            Debug.Log($"<color=yellow>[HarvestingSystem]</color> Кулдаун прошел. Создаю HarvestRequest для игрока {entity} на цель {targetEntity}.");
+            // --- END DEBUG ---
 
-            // Добавляем тег для UI, чтобы показать, что процесс идет.
             var resourceNode = SystemAPI.GetComponent<ResourceNode>(targetEntity);
             ecb.AddComponent(entity, new IsHarvestingTag { ResourceType = resourceNode.resourceType });
 
-            // Обновляем персональный таймер, чтобы запустить кулдаун.
             playerState.ValueRW.LastHarvestTime = currentTime;
         }
 
-        // Очищаем UI-тег, если намерения добывать больше нет.
         var query = SystemAPI.QueryBuilder().WithAll<IsHarvestingTag>().WithNone<WantsToHarvestTag>().Build();
         ecb.RemoveComponent<IsHarvestingTag>(query, EntityQueryCaptureMode.AtPlayback);
     }

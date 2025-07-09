@@ -7,14 +7,13 @@ using Unity.Mathematics;
 /// </summary>
 public interface IRequestCleanup : IComponentData { }
 
+// Запросы строительства
+
 /// <summary>
 /// Запрос на вход в режим строительства.
 /// </summary>
 public struct EnterBuildingModeRequest : IRequestCleanup
 {
-    /// <summary>
-    /// ID предмета, который нужно построить.
-    /// </summary>
     public int ItemID;
 }
 
@@ -25,16 +24,16 @@ public struct ExitBuildingModeRequest : IRequestCleanup { }
 
 /// <summary>
 /// Запрос на размещение здания в конкретной точке мира.
-/// Теперь содержит позицию и вращение для точного размещения.
 /// </summary>
 public struct PlaceBuildingRequest : IRequestCleanup
 {
     public float3 Position;
     public quaternion Rotation;
-    public Entity BuildingPrefabToPlace; // <-- ДОБАВЛЕНО
-    public int ItemIDToConsume;          // <-- ДОБАВЛЕНО
+    public Entity BuildingPrefabToPlace; 
+    public int ItemIDToConsume;          
 }
 
+// Запросы UI и взаимодействий 
 
 /// <summary>
 /// Запрос на переключение состояния инвентаря (открыть/закрыть).
@@ -42,24 +41,18 @@ public struct PlaceBuildingRequest : IRequestCleanup
 public struct ToggleInventoryRequest : IRequestCleanup { }
 
 /// <summary>
-/// Запрос на открытие пользовательского интерфейса NPC для указанной сущности.
+/// Запрос на открытие пользовательского интерфейса NPC.
 /// </summary>
 public struct OpenNPCUIRequest : IRequestCleanup
 {
-    /// <summary>
-    /// Целевая сущность NPC.
-    /// </summary>
     public Entity Target;
 }
 
 /// <summary>
-/// Запрос на открытие пользовательского интерфейса поселения для указанной сущности.
+/// Запрос на открытие пользовательского интерфейса поселения.
 /// </summary>
 public struct OpenSettlementUIRequest : IRequestCleanup
 {
-    /// <summary>
-    /// Целевая сущность поселения.
-    /// </summary>
     public Entity Target;
 }
 
@@ -68,20 +61,18 @@ public struct OpenSettlementUIRequest : IRequestCleanup
 /// </summary>
 public struct CloseAllUIRequest : IRequestCleanup { }
 
-
 /// <summary>
 /// Запрос на выполнение взаимодействия с чем-либо в мире.
 /// </summary>
 public struct InteractionRequest : IRequestCleanup { }
+
+// запросы NPC 
 
 /// <summary>
 /// Запрос на найм NPC.
 /// </summary>
 public struct HireNPCRequest : IRequestCleanup
 {
-    /// <summary>
-    /// Сущность NPC, которую нужно нанять.
-    /// </summary>
     public Entity NPCToHire;
 }
 
@@ -90,13 +81,28 @@ public struct HireNPCRequest : IRequestCleanup
 /// </summary>
 public struct AssignNPCToTaskRequest : IRequestCleanup
 {
-    /// <summary>
-    /// Сущность NPC, которую нужно назначить.
-    /// </summary>
     public Entity NPC;
-
-    /// <summary>
-    /// Сущность целевого ресурсного узла для задачи.
-    /// </summary>
     public Entity TargetResourceNode;
+}
+
+// Запросы инвентаря
+
+/// <summary>
+/// Запрос на добавление предмета в инвентарь конкретной сущности.
+/// </summary>
+public struct AddItemRequest : IRequestCleanup
+{
+    public Entity TargetInventoryOwner; // Сущность-владелец инвентаря
+    public int ItemID;
+    public int Amount;
+}
+
+/// <summary>
+/// Запрос на удаление предмета из инвентаря конкретной сущности.
+/// </summary>
+public struct RemoveItemRequest : IRequestCleanup
+{
+    public Entity TargetInventoryOwner; 
+    public int ItemID;
+    public int Amount;
 }

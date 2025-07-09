@@ -1,84 +1,55 @@
 ﻿using Unity.Entities;
 using Unity.Transforms;
-using Unity.Mathematics;
-using UnityEngine; // Для Inventory.Instance и Debug.Log
 
 /// <summary>
 /// Финальная система, которая обрабатывает запросы PlaceBuildingRequest,
-/// инстанциирует здание и удаляет предмет из инвентаря.
+/// инстанциирует здание и создает запрос на удаление предмета из инвентаря игрока.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup), OrderLast = true)]
 public partial class FinalizeBuildingSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        // Пытаемся получить синглтон-инвентарь
-        var inventory = Inventory.Instance;
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(World.Unmanaged);
+        // Система больше не зависит от Inventory.Instance
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
-        // Если инвентарь отсутствует — уничтожаем все запросы и выходим
-        if (inventory == null)
+        // Получаем сущность игрока, чтобы знать, из чьего инвентаря удалять предмет.
+        if (!SystemAPI.TryGetSingletonEntity<PlayerControllerData>(out var playerEntity))
         {
-            Debug.LogWarning("FinalizeBuildingSystem: Inventory instance not found. Cannot finalize building.");
-            var requestsNoInv = SystemAPI.QueryBuilder()
-                .WithAll<PlaceBuildingRequest>()
-                .Build();
-
-            if (!requestsNoInv.IsEmpty)
-            {
-                // Используем тот же ECB
-                ecb.DestroyEntity(requestsNoInv, EntityQueryCaptureMode.AtPlayback);
-            }
+            // Если игрока нет, запросы на постройку не могут быть выполнены.
+            var requestsQuery = SystemAPI.QueryBuilder().WithAll<PlaceBuildingRequest>().Build();
+            ecb.DestroyEntity(requestsQuery, EntityQueryCaptureMode.AtPlayback);
             return;
         }
 
-        // Если состояние строительства отсутствует — удаляем все запросы
-        if (!SystemAPI.TryGetSingleton<BuildingState>(out var buildingState))
-        {
-            var requestsNoState = SystemAPI.QueryBuilder()
-                .WithAll<PlaceBuildingRequest>()
-                .Build();
-
-            if (!requestsNoState.IsEmpty)
-                ecb.DestroyEntity(requestsNoState, EntityQueryCaptureMode.AtPlayback);
-        }
-
         // Обрабатываем каждый запрос на постройку
-        foreach (var (requestRO, requestEntity) in SystemAPI
-                     .Query<RefRO<PlaceBuildingRequest>>()
-                     .WithEntityAccess())
+        foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<PlaceBuildingRequest>>().WithEntityAccess())
         {
-            var request = requestRO.ValueRO;
+            var reqData = request.ValueRO;
 
-            // Валидация префаба
-            if (request.BuildingPrefabToPlace == Entity.Null ||
-                !SystemAPI.Exists(request.BuildingPrefabToPlace))
+            if (reqData.BuildingPrefabToPlace == Entity.Null || !SystemAPI.Exists(reqData.BuildingPrefabToPlace))
             {
-                Debug.LogError($"FinalizeBuildingSystem: Невалидный BuildingPrefabToPlace в запросе для Entity {requestEntity}. ItemID: {request.ItemIDToConsume}");
                 ecb.DestroyEntity(requestEntity);
                 continue;
             }
 
             // Инстанцирование здания
-            var newBuilding = ecb.Instantiate(request.BuildingPrefabToPlace);
-            ecb.SetComponent(newBuilding,
-                LocalTransform.FromPositionRotation(request.Position, request.Rotation));
+            var newBuilding = ecb.Instantiate(reqData.BuildingPrefabToPlace);
+            ecb.SetComponent(newBuilding, LocalTransform.FromPositionRotation(reqData.Position, reqData.Rotation));
             ecb.AddComponent<NewlyBuiltTag>(newBuilding);
 
-            // Удаление предмета из инвентаря
-            var itemInInventory = inventory.items
-                .Find(invItem => invItem.item.itemID == request.ItemIDToConsume);
-            if (itemInInventory != null)
+            // --- ИЗМЕНЕНО: СОЗДАЕМ ЗАПРОС НА УДАЛЕНИЕ ПРЕДМЕТА ---
+            // Вместо прямого вызова inventory.Remove()
+            var removeItemRequestEntity = ecb.CreateEntity();
+            ecb.AddComponent(removeItemRequestEntity, new RemoveItemRequest
             {
-                inventory.Remove(itemInInventory.item, 1);
-            }
-            else
-            {
-                Debug.LogWarning($"FinalizeBuildingSystem: Предмет с ID {request.ItemIDToConsume} не найден в инвентаре для удаления после постройки.");
-            }
+                TargetInventoryOwner = playerEntity, // Указываем, что удалить нужно у игрока
+                ItemID = reqData.ItemIDToConsume,
+                Amount = 1
+            });
+            // ----------------------------------------------------
 
-            // Уничтожаем обработанный запрос
+            // Уничтожаем обработанный запрос на постройку
             ecb.DestroyEntity(requestEntity);
         }
     }

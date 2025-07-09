@@ -148,15 +148,12 @@ public class PlayerAuthoring : MonoBehaviour
 
 /// <summary>
 /// Baker-класс для преобразования PlayerAuthoring в ECS-компоненты.
-/// Создает и добавляет все необходимые компоненты для контроллера игрока в ECS-сущность.
 /// </summary>
 public partial class PlayerBaker : Baker<PlayerAuthoring>
 {
     /// <summary>
     /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
-    /// Добавляет PlayerGroundCheckData, PlayerGroundedState, PlayerControllerData,
-    /// PlayerStateData, InputsData, InventoryInputData, CameraTargetData и RigidBodyPushData.
-    /// Также создает коллайдер сферы для проверки земли и добавляет компонент очистки для него.
+    /// Этот Baker больше НЕ отвечает за создание инвентаря.
     /// </summary>
     /// <param name="authoring">Экземпляр PlayerAuthoring.</param>
     public override void Bake(PlayerAuthoring authoring)
@@ -221,10 +218,9 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             LastHarvestTime = -1f
         });
 
-        AddComponent(entity, new InputsData());
-        AddComponent(entity, new InventoryInputData());
+        AddComponent<InputsData>(entity);
+        AddComponent<InventoryInputData>(entity);
         AddComponentObject(entity, new CameraTargetData { ProxyTarget = null });
-        
     }
 }
 

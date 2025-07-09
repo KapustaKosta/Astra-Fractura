@@ -60,7 +60,6 @@ public partial class ExitBuildingModeSystem : SystemBase
         var exitRequestQuery = SystemAPI.QueryBuilder().WithAny<ExitBuildingModeRequest, PlaceBuildingRequest>().Build();
         if (exitRequestQuery.IsEmpty) return;
         
-        // --- ДИАГНОСТИКА ---
         //Debug.Log("[ExitBuildingModeSystem] Обнаружен запрос на выход из режима строительства. Возврат в режим по умолчанию.");
 
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);

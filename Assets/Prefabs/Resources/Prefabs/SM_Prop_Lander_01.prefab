@@ -101,7 +101,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   settlementName: "\u0414\u0435\u0441\u0442\u0438\u043D\u0438"
+  startingPopulation: 0
+  startingLevel: 1
   canBecomePlayerSettlement: 1
+  hasStorage: 1
+  storageCapacity: 100
 --- !u!114 &827330485550422585
 MonoBehaviour:
   m_ObjectHideFlags: 0

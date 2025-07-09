@@ -565,7 +565,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2067346503}
   m_SourcePrefab: {fileID: 100100000, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
 --- !u!1 &326795451
 GameObject:
@@ -631,6 +634,11 @@ Transform:
   - {fileID: 1051485454}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1020355905 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+  m_PrefabInstance: {fileID: 277882382}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1051485453
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -912,6 +920,7 @@ GameObject:
   - component: {fileID: 1313986271}
   - component: {fileID: 1313986273}
   - component: {fileID: 1313986274}
+  - component: {fileID: 1313986275}
   m_Layer: 8
   m_Name: PlayerECS
   m_TagString: Player
@@ -1188,6 +1197,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CinemachineProxyTag: CinemachineProxyTarget
+--- !u!114 &1313986275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313986264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3c6c4aea9034d4ea48ebd7aed58a884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  capacity: 20
+  startingItems:
+  - item: {fileID: 11400000, guid: 2cc60f581569bdb42b2174a930db4cd4, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 953c5c60a280c294db3b9cc4b8e1d9c4, type: 2}
+    amount: 1
 --- !u!1 &1476490278
 GameObject:
   m_ObjectHideFlags: 0
@@ -2243,6 +2270,22 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 472100, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
   m_PrefabInstance: {fileID: 277882382}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2067346503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1020355905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3c6c4aea9034d4ea48ebd7aed58a884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  capacity: 20
+  startingItems:
+  - item: {fileID: 11400000, guid: 2cc60f581569bdb42b2174a930db4cd4, type: 2}
+    amount: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

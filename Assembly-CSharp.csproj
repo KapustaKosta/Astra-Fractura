@@ -68,14 +68,12 @@
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerContextualInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingSettingsAuthoring.cs" />
-    <Compile Include="Assets\Scripts\Core\Inventory\InventoryItem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewLifecycleSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCHiredTag.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerMovementSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\CursorLockManager.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceItemMapping.cs" />
     <Compile Include="Assets\Scripts\Core\Building\NewlyBuiltTag.cs" />
-    <Compile Include="Assets\Scripts\Core\Inventory\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
@@ -87,13 +85,14 @@
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InventoryInputData.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\UI\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewSetupSystem.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceNodeAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\ConfirmPlacementSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\BasicRigidBodyPush.cs" />
-    <Compile Include="Assets\Scripts\Core\Inventory\Inventory.cs" />
     <Compile Include="Assets\Scripts\ECS\Authoring\GameStateAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InteractionComponents.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\ItemRegistry.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerTargetingSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCUI.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAsstesInputs2.cs" />
@@ -107,6 +106,7 @@
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementTag.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />
@@ -121,6 +121,7 @@
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\StateComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventorySlot.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\ECS\Components\InventoryComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementInitializationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\RecipeSlot.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingSettings.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\StartingInventoryAuthoring.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\BuildingComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />

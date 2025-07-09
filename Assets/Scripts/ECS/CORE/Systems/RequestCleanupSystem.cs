@@ -29,7 +29,9 @@ public partial class RequestCleanupSystem : SystemBase
                 ComponentType.ReadWrite<CloseAllUIRequest>(),
                 ComponentType.ReadWrite<InteractionRequest>(),
                 ComponentType.ReadWrite<HireNPCRequest>(),
-                ComponentType.ReadWrite<AssignNPCToTaskRequest>()
+                ComponentType.ReadWrite<AssignNPCToTaskRequest>(),
+                ComponentType.ReadWrite<AddItemRequest>(),
+                ComponentType.ReadWrite<RemoveItemRequest>()
             }
         };
         m_RequestQuery = GetEntityQuery(queryDesc);
