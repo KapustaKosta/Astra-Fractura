@@ -31,6 +31,12 @@ public class NPCUI : MonoBehaviour
     private Entity currentNPCEntity;
     private EntityManager entityManager;
     private bool isInitialized = false;
+    
+    /// <summary>
+    /// Хранит состояние найма NPC из предыдущего кадра обновления UI.
+    /// Используется для определения необходимости перерисовки интерфейса при изменении статуса найма.
+    /// </summary>
+    private bool wasHiredState = false; 
 
     /// <summary>
     /// Инициализирует Singleton-экземпляр и проверяет наличие UI-элементов.
@@ -40,7 +46,7 @@ public class NPCUI : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         if (npcMenu == null || npcText == null || closeButton == null || hireButton == null || 
-            tradeButton == null || // Добавлена проверка для новой кнопки
+            tradeButton == null || 
             resourceNodeListContainer == null || resourceNodeButtonPrefab == null || taskStatusText == null) 
         { 
             enabled = false; 
@@ -57,13 +63,14 @@ public class NPCUI : MonoBehaviour
         {
             closeButton.onClick.AddListener(OnCloseButtonPressed);
             hireButton.onClick.AddListener(OnHireButtonPressed);
-            tradeButton.onClick.AddListener(OnTradeButtonPressed); // Добавлена подписка на событие
+            tradeButton.onClick.AddListener(OnTradeButtonPressed);
             npcMenu.SetActive(false);
         }
     }
     
     /// <summary>
-    /// Каждый кадр проверяет глобальное состояние и решает, должно ли быть открыто окно NPC.
+    /// Каждый кадр проверяет глобальное состояние, решает, должно ли быть открыто окно NPC,
+    /// и обновляет его содержимое, если состояние целевого NPC изменилось.
     /// </summary>
     void Update()
     {
@@ -81,14 +88,29 @@ public class NPCUI : MonoBehaviour
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.NPC;
 
-        if (npcMenu.activeSelf != shouldBeOpen)
+        
+        if (shouldBeOpen)
         {
-            if (shouldBeOpen)
+            var targetEntity = entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUITarget;
+            
+            if (!entityManager.Exists(targetEntity))
             {
-                var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
-                Show(uiState.ActiveUITarget);
+                if (npcMenu.activeSelf) Hide();
+                return;
             }
-            else
+
+            bool isHiredNow = entityManager.HasComponent<NPCHiredTag>(targetEntity);
+            
+            // Обновляем UI, если он открывается впервые, сменился целевой NPC,
+            // или изменился его статус найма.
+            if (!npcMenu.activeSelf || currentNPCEntity != targetEntity || wasHiredState != isHiredNow)
+            {
+                Show(targetEntity);
+            }
+        }
+        else
+        {
+            if (npcMenu.activeSelf)
             {
                 Hide();
             }
@@ -109,25 +131,32 @@ public class NPCUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Отображает UI для указанного NPC, адаптируя его под текущее состояние NPC (нанят, занят, свободен).
+    /// Отображает и полностью перестраивает UI для указанного NPC.
+    /// Вызывается только при необходимости, а не каждый кадр, для оптимизации.
     /// </summary>
     /// <param name="npcEntity">Сущность NPC для отображения.</param>
     private void Show(Entity npcEntity)
     {
-        if (!isInitialized || !entityManager.Exists(npcEntity)) return;
+        if (!isInitialized || !entityManager.Exists(npcEntity)) 
+        {
+            Hide();
+            return;
+        }
         
         currentNPCEntity = npcEntity;
+        npcMenu.SetActive(true);
+
         NPCComponent npc = entityManager.GetComponentData<NPCComponent>(npcEntity);
 
         npcText.text = $"Имя: {npc.Name}\nВозраст: {npc.Age}\nНавыки: {npc.Skills}\n" +
                        $"Организованность: {npc.Organizedness}\nЛояльность: {npc.Loyalty}\nТрудолюбие: {npc.Diligence}";
-        npcText.gameObject.SetActive(true);
-        npcMenu.SetActive(true);
-
+        
         taskStatusText.gameObject.SetActive(false);
         ClearResourceNodeOptions();
 
-        bool hired = IsHired(npcEntity);
+        bool hired = entityManager.HasComponent<NPCHiredTag>(npcEntity);
+        wasHiredState = hired;
+        
         bool hasInventory = entityManager.HasComponent<HasInventoryTag>(npcEntity);
 
         hireButton.gameObject.SetActive(!hired);
@@ -136,7 +165,6 @@ public class NPCUI : MonoBehaviour
 
         if (hired)
         {
-            hireButton.gameObject.SetActive(false);
             if (npc.Target != Entity.Null)
             {
                 taskStatusText.gameObject.SetActive(true);
@@ -155,10 +183,6 @@ public class NPCUI : MonoBehaviour
                 ShowResourceNodeOptions();
             }
         }
-        else
-        {
-            hireButton.gameObject.SetActive(true);
-        }
     }
 
     /// <summary>
@@ -166,10 +190,11 @@ public class NPCUI : MonoBehaviour
     /// </summary>
     public void Hide()
     {
-        if (!enabled || npcMenu == null) return;
+        if (!enabled || npcMenu == null || !npcMenu.activeSelf) return;
         npcMenu.SetActive(false);
         ClearResourceNodeOptions();
         currentNPCEntity = Entity.Null;
+        wasHiredState = false;
     }
 
     /// <summary>
@@ -182,7 +207,7 @@ public class NPCUI : MonoBehaviour
     }
     
     /// <summary>
-    /// Обрабатывает нажатие кнопки "Нанять", проверяя наличие поселения у игрока.
+    /// Обрабатывает нажатие кнопки "Нанять", создавая ECS-запрос на найм.
     /// </summary>
     private void OnHireButtonPressed()
     {
@@ -266,15 +291,5 @@ public class NPCUI : MonoBehaviour
             });
             OnCloseButtonPressed();
         }
-    }
-    
-    /// <summary>
-    /// Проверяет, была ли нанята указанная сущность NPC.
-    /// </summary>
-    /// <returns>True, если у сущности есть тег NPCHiredTag.</returns>
-    private bool IsHired(Entity npcEntity)
-    {
-        if (!isInitialized || npcEntity == Entity.Null || !entityManager.Exists(npcEntity)) return false;
-        return entityManager.HasComponent<NPCHiredTag>(npcEntity);
     }
 }
