@@ -30,7 +30,6 @@ public class HarvestingUIController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("HarvestingUIController: UI Text не назначен!", this);
             enabled = false;
         }
     }
@@ -46,11 +45,11 @@ public class HarvestingUIController : MonoBehaviour
             return;
         }
 
-        // Проверяем, существует ли еще сущность игрока
+        // Проверяем, существует ли сущность игрока
         if (!entityManager.Exists(playerEntity))
         {
-            isInitialized = false; // Потеряли игрока, нужно будет найти снова
-            harvestText.gameObject.SetActive(false);
+            isInitialized = false; 
+            if (harvestText.gameObject.activeSelf) harvestText.gameObject.SetActive(false);
             return;
         }
 
@@ -63,7 +62,7 @@ public class HarvestingUIController : MonoBehaviour
             harvestText.gameObject.SetActive(isHarvesting);
         }
 
-        // Если добываем, обновляем текст
+        // Если добываем - обновляем текст
         if (isHarvesting)
         {
             var harvestingTag = entityManager.GetComponentData<IsHarvestingTag>(playerEntity);

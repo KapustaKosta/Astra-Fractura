@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Управляет пользовательским интерфейсом инвентаря игрока.
-/// Отвечает за отображение и скрытие панели инвентаря, а также за обновление содержимого слотов.
+/// Отвечает за отображение и скрытие панели инвентаря, а также за создание и
+/// своевременное обновление содержимого слотов на основе данных из мира ECS.
 /// </summary>
 public class InventoryUI : MonoBehaviour
 {
@@ -22,20 +23,22 @@ public class InventoryUI : MonoBehaviour
     private bool isInitialized = false;
 
     /// <summary>
-    /// Инициализация EntityManager и поиск сущности игрока. Скрываем панель при старте.
+    /// Вызывается при запуске сцены. Пытается инициализировать необходимые ECS-ссылки
+    /// и гарантирует, что панель инвентаря скрыта по умолчанию.
     /// </summary>
     void Start()
     {
         TryInitialize();
-        if (isInitialized && inventoryPanel != null)
+        if (inventoryPanel != null)
         {
             inventoryPanel.SetActive(false);
         }
     }
 
     /// <summary>
-    /// Каждый кадр проверяет, должен ли UI инвентаря быть открыт.
-    /// При открытии выполняется одноразовое построение слотов.
+    /// Вызывается каждый кадр. Проверяет глобальное состояние игры (GameState) в ECS,
+    /// чтобы определить, должен ли UI инвентаря быть открыт.
+    /// Синхронизирует состояние видимости панели с состоянием из ECS.
     /// </summary>
     void Update()
     {
@@ -49,32 +52,38 @@ public class InventoryUI : MonoBehaviour
         if (gameStateQuery.IsEmpty) return;
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
+        // Определяем, должно ли окно быть открыто, сравнивая текущий тип UI в GameState.
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory;
 
+        // Если состояние видимости панели не совпадает с требуемым, меняем его.
         if (inventoryPanel.activeSelf != shouldBeOpen)
         {
             inventoryPanel.SetActive(shouldBeOpen);
+            // При первом открытии окна необходимо полностью перестроить его структуру.
             if (shouldBeOpen)
             {
-                RebuildSlots();    
+                RebuildSlots();
             }
         }
     }
 
     /// <summary>
-    /// Каждый кадр после обновлений UI обновляем данные в существующих слотах.
+    /// Вызывается каждый кадр после всех обновлений, включая анимации.
+    /// Если панель инвентаря активна, обновляет данные в уже созданных слотах.
+    /// Это обеспечивает отображение актуальной информации после всех изменений в инвентаре за кадр.
     /// </summary>
     void LateUpdate()
     {
         if (inventoryPanel != null && inventoryPanel.activeSelf)
         {
-            RefreshSlotData();    
+            RefreshSlotData();
         }
     }
 
     /// <summary>
-    /// Пытается инициализировать EntityManager и найти сущность игрока по тегу.
+    /// Пытается инициализировать EntityManager и найти сущность игрока по тегу <c>PlayerTag</c>.
+    /// Выполняется до тех пор, пока инициализация не будет успешной.
     /// </summary>
     private void TryInitialize()
     {
@@ -92,66 +101,30 @@ public class InventoryUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Строит слоты инвентаря один раз при открытии UI.
+    /// Перестраивает UI-слоты инвентаря. Этот метод вызывается однократно при открытии окна.
+    /// Он делегирует всю сложную логику универсальному помощнику <c>InventoryPanelHelper</c>.
     /// </summary>
     private void RebuildSlots()
     {
-        foreach (Transform child in slotsParent)
-        {
-            Destroy(child.gameObject);
-        }
-        slots.Clear();
-
-        if (!entityManager.HasBuffer<InventoryItemElement>(playerEntity)) return;
-        var properties = entityManager.GetComponentData<InventoryProperties>(playerEntity);
-        int capacity = properties.Capacity;
-
-        for (int i = 0; i < capacity; i++)
-        {
-            GameObject slotGO = Instantiate(slotPrefab, slotsParent);
-            InventorySlot slot = slotGO.GetComponent<InventorySlot>();
-
-            if (slot == null) continue;
-            slot.OnSlotClicked += OnInventorySlotClicked;
-            slots.Add(slot);
-        }
+        if (!isInitialized) return;
+        // Передаем все необходимые данные для построения: ссылки на ECS, сущность игрока,
+        // UI-элементы и колбэк-метод, который будет вызываться при клике на слот.
+        InventoryPanelHelper.RebuildSlots(entityManager, playerEntity, slotsParent, slotPrefab, slots, OnInventorySlotClicked);
     }
 
     /// <summary>
-    /// Обновляет содержимое уже существующих слотов по данным буфера.
+    /// Обновляет визуальное представление уже существующих слотов.
+    /// Делегирует логику помощнику <c>InventoryPanelHelper</c> для консистентности.
     /// </summary>
     private void RefreshSlotData()
     {
-        if (!entityManager.HasBuffer<InventoryItemElement>(playerEntity)) return;
-
-        var inventoryBuffer = entityManager.GetBuffer<InventoryItemElement>(playerEntity);
-        var itemRegistry = ItemRegistry.Instance;
-
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (i >= inventoryBuffer.Length)
-            {
-                slots[i].InitializeSlot(null, 0, playerEntity, i);
-                continue;
-            }
-
-            var itemElement = inventoryBuffer[i];
-        
-            if (itemElement.ItemID != 0)
-            {
-                var itemData = itemRegistry != null ? itemRegistry.GetItemData(itemElement.ItemID) : null;
-                slots[i].InitializeSlot(itemData, itemElement.Amount, playerEntity, i);
-            }
-            else
-            {
-                slots[i].InitializeSlot(null, 0, playerEntity, i);
-            }
-        }
+        if (!isInitialized) return;
+        InventoryPanelHelper.RefreshSlotsData(entityManager, playerEntity, slots);
     }
 
     /// <summary>
     /// Обработчик события, который вызывается при клике на любой слот в инвентаре.
-    /// Определяет действие в зависимости от типа предмета.
+    /// Определяет действие в зависимости от типа предмета (например, вход в режим строительства).
     /// </summary>
     /// <param name="item">Предмет, который находится в кликнутом слоте.</param>
     private void OnInventorySlotClicked(Item item)
@@ -161,6 +134,7 @@ public class InventoryUI : MonoBehaviour
         switch (item.itemType)
         {
             case ItemType.Building:
+                // Если кликнули на предмет-здание, создаем ECS-запрос на вход в режим строительства.
                 var buildRequest = entityManager.CreateEntity();
                 entityManager.AddComponentData(buildRequest, new EnterBuildingModeRequest
                 {
@@ -169,12 +143,13 @@ public class InventoryUI : MonoBehaviour
                 break;
 
             case ItemType.Tool:
-            case ItemType.Consumable: 
+            case ItemType.Consumable:
             case ItemType.Resource:
             case ItemType.Weapon:
             case ItemType.Miscellaneous:
+                // Для других типов предметов пока нет действий по клику.
                 break;
-                
+
             default:
                 Debug.LogWarning($"[InventoryUI] Неизвестный тип предмета: {item.itemType}");
                 break;
@@ -182,7 +157,8 @@ public class InventoryUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Отписываемся от всех событий при уничтожении объекта, чтобы избежать ошибок.
+    /// Вызывается при уничтожении объекта. Отписывается от всех событий слотов,
+    /// чтобы избежать утечек памяти и вызовов методов на уничтоженных объектах.
     /// </summary>
     private void OnDestroy()
     {

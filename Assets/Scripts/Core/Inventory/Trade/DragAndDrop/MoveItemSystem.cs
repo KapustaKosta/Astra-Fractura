@@ -1,8 +1,6 @@
-﻿// --- ФАЙЛ: MoveItemSystem.cs (ИСПРАВЛЕН И УЛУЧШЕН) ---
-
-using Unity.Entities;
-using Unity.Mathematics; // Для math.min
-using UnityEngine; // Для доступа к ItemRegistry -> Debug.Log
+﻿using Unity.Entities;
+using Unity.Mathematics; 
+using UnityEngine; 
 
 /// <summary>
 /// Система, отвечающая за обработку запросов на перемещение предметов между слотами.
@@ -15,8 +13,8 @@ public partial class MoveItemSystem : SystemBase
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var bufferLookup = GetBufferLookup<InventoryItemElement>(false); // false = Read/Write доступ
-        var itemRegistry = ItemRegistry.Instance; // Получаем доступ к реестру для maxStack
+        var bufferLookup = GetBufferLookup<InventoryItemElement>(false); 
+        var itemRegistry = ItemRegistry.Instance; 
 
         if (itemRegistry == null)
         {
@@ -66,7 +64,7 @@ public partial class MoveItemSystem : SystemBase
                     return;
                 }
 
-                // --- 4. ГЛАВНАЯ ЛОГИКА: СТЕКИРОВАНИЕ ИЛИ ОБМЕН ---
+                // Логика стекирования и обмена 
 
                 // Случай 1: Стекирование. Происходит, если предметы одинаковые и в слоте назначения есть место.
                 if (sourceItem.ItemID == destItem.ItemID && destItem.Amount < itemData.maxStack)

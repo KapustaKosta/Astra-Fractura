@@ -87,8 +87,8 @@
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InventoryInputData.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementAuthoring.cs" />
-    <Compile Include="Assets\Scripts\Core\Inventory\UI\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewSetupSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\InventoryPanelHelper.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceNodeAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\ConfirmPlacementSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\BasicRigidBodyPush.cs" />
@@ -111,6 +111,7 @@
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerTag.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\PlayerInventoryUi\InventoryUI.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />

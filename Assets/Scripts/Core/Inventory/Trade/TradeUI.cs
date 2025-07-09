@@ -4,8 +4,9 @@ using Unity.Entities;
 using System.Collections.Generic;
 
 /// <summary>
-/// Управляет двухоконным UI для торговли/обмена предметами между игроком и другой сущностью.
-/// Использует архитектуру с однократным созданием слотов и последующим обновлением данных.
+/// Управляет двухоконным UI для торговли или обмена предметами между игроком и другой сущностью.
+/// Использует архитектуру с однократным созданием слотов при открытии и последующим
+/// покадровым обновлением данных для отображения актуального состояния инвентарей.
 /// </summary>
 public class TradeUI : MonoBehaviour
 {
@@ -23,12 +24,16 @@ public class TradeUI : MonoBehaviour
     
     private EntityManager entityManager;
     private Entity playerEntity;
-    private Entity targetEntity;
+    private Entity targetEntity; 
     private bool isInitialized = false;
 
     private List<InventorySlot> playerSlots = new List<InventorySlot>();
     private List<InventorySlot> targetSlots = new List<InventorySlot>();
 
+    /// <summary>
+    /// Вызывается при старте. Инициализирует ECS-ссылки, подписывается на событие кнопки
+    /// и скрывает панель торговли по умолчанию.
+    /// </summary>
     void Start()
     {
         TryInitialize();
@@ -39,6 +44,10 @@ public class TradeUI : MonoBehaviour
         tradePanel.SetActive(false);
     }
 
+    /// <summary>
+    /// Вызывается каждый кадр. Проверяет глобальное состояние игры, чтобы определить,
+    /// должен ли UI торговли быть открыт, и синхронизирует состояние панели.
+    /// </summary>
     void Update()
     {
         if (!isInitialized)
@@ -51,6 +60,7 @@ public class TradeUI : MonoBehaviour
         if (gameStateQuery.IsEmpty) return;
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
+        // Определяем, должно ли окно быть открыто, по данным из UIState.
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Trade;
 
@@ -58,6 +68,7 @@ public class TradeUI : MonoBehaviour
         {
             if (shouldBeOpen)
             {
+                // При открытии получаем целевую сущность из GameState и вызываем Show.
                 var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
                 Show(uiState.ActiveUITarget);
             }
@@ -68,6 +79,10 @@ public class TradeUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Вызывается каждый кадр после всех обновлений. Если панель торговли активна,
+    /// обновляет данные в слотах обоих инвентарей (игрока и цели).
+    /// </summary>
     private void LateUpdate()
     {
         if (tradePanel != null && tradePanel.activeSelf)
@@ -77,6 +92,9 @@ public class TradeUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Пытается инициализировать EntityManager и найти сущность игрока.
+    /// </summary>
     private void TryInitialize()
     {
         if (isInitialized) return;
@@ -92,6 +110,10 @@ public class TradeUI : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// Отображает окно торговли для указанной целевой сущности.
+    /// </summary>
+    /// <param name="currentTarget">Сущность, с которой игрок будет торговать.</param>
     private void Show(Entity currentTarget)
     {
         if (!isInitialized || playerEntity == Entity.Null)
@@ -102,107 +124,43 @@ public class TradeUI : MonoBehaviour
         
         targetEntity = currentTarget;
         tradePanel.SetActive(true);
-        // Перестраиваем слоты один раз при открытии
+        // При первом открытии полностью перестраиваем слоты для обоих инвентарей.
         RebuildPanels();
     }
 
+    /// <summary>
+    /// Скрывает панель торговли.
+    /// </summary>
     private void Hide()
     {
         tradePanel.SetActive(false);
     }
     
+    /// <summary>
+    /// Обрабатывает нажатие кнопки "Закрыть", создавая ECS-запрос на закрытие UI.
+    /// </summary>
     private void OnCloseButtonPressed()
     {
         GameBridge.Instance?.HandleUICloseAction();
     }
     
     /// <summary>
-    /// Перестраивает слоты для обоих инвентарей. Вызывается один раз при открытии.
+    /// Перестраивает слоты для инвентарей игрока и цели, используя универсальный помощник.
+    /// Вызывается один раз при открытии окна.
     /// </summary>
     private void RebuildPanels()
     {
-        RebuildInventoryPanel(playerEntity, playerSlotsParent, playerSlotPrefab, playerSlots);
-        RebuildInventoryPanel(targetEntity, targetSlotsParent, targetSlotPrefab, targetSlots);
+        InventoryPanelHelper.RebuildSlots(entityManager, playerEntity, playerSlotsParent, playerSlotPrefab, playerSlots);
+        InventoryPanelHelper.RebuildSlots(entityManager, targetEntity, targetSlotsParent, targetSlotPrefab, targetSlots);
     }
 
     /// <summary>
-    /// Обновляет данные в уже существующих слотах. Вызывается каждый кадр в LateUpdate.
+    /// Обновляет данные в уже существующих слотах для обоих инвентарей, используя универсальный помощник.
+    /// Вызывается каждый кадр, пока окно открыто.
     /// </summary>
     private void RefreshPanels()
     {
-        RefreshInventoryData(playerEntity, playerSlots);
-        RefreshInventoryData(targetEntity, targetSlots);
-    }
-
-    /// <summary>
-    /// Универсальный метод для создания слотов для одного инвентаря.
-    /// </summary>
-    private void RebuildInventoryPanel(Entity owner, RectTransform slotsParent, GameObject slotPrefab, List<InventorySlot> slotList)
-    {
-        foreach (Transform child in slotsParent)
-        {
-            Destroy(child.gameObject);
-        }
-        slotList.Clear();
-
-        if (!entityManager.Exists(owner) || !entityManager.HasComponent<InventoryProperties>(owner)) return;
-
-        var properties = entityManager.GetComponentData<InventoryProperties>(owner);
-
-        for (int i = 0; i < properties.Capacity; i++)
-        {
-            GameObject slotGO = Instantiate(slotPrefab, slotsParent);
-            InventorySlot slot = slotGO.GetComponent<InventorySlot>();
-            if (slot != null)
-            {
-                slotList.Add(slot);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Универсальный метод для обновления данных в слотах одного инвентаря.
-    /// **Этот метод должен быть идентичен по логике методу RefreshSlotData в InventoryUI.cs**
-    /// </summary>
-    private void RefreshInventoryData(Entity owner, List<InventorySlot> slotList)
-    {
-        if (!entityManager.Exists(owner) || !entityManager.HasBuffer<InventoryItemElement>(owner))
-        {
-            // Если инвентаря нет, очищаем все слоты
-            for (int i = 0; i < slotList.Count; i++)
-            {
-                // Все равно передаем контекст, чтобы Drop работал на пустых слотах
-                slotList[i].InitializeSlot(null, 0, owner, i);
-            }
-            return;
-        }
-
-        var inventoryBuffer = entityManager.GetBuffer<InventoryItemElement>(owner);
-        var itemRegistry = ItemRegistry.Instance;
-
-        // Итерируем по всем слотам UI
-        for (int i = 0; i < slotList.Count; i++)
-        {
-            // Проверяем, что в буфере есть элемент с таким индексом (защита от несоответствия размеров)
-            if (i >= inventoryBuffer.Length)
-            {
-                slotList[i].InitializeSlot(null, 0, owner, i);
-                continue;
-            }
-
-            var itemElement = inventoryBuffer[i];
-            
-            // Проверяем, является ли слот "пустым" (по ItemID == 0)
-            if (itemElement.ItemID != 0)
-            {
-                var itemData = itemRegistry != null ? itemRegistry.GetItemData(itemElement.ItemID) : null;
-                slotList[i].InitializeSlot(itemData, itemElement.Amount, owner, i);
-            }
-            else
-            {
-                // Это пустой слот
-                slotList[i].InitializeSlot(null, 0, owner, i);
-            }
-        }
+        InventoryPanelHelper.RefreshSlotsData(entityManager, playerEntity, playerSlots);
+        InventoryPanelHelper.RefreshSlotsData(entityManager, targetEntity, targetSlots);
     }
 }

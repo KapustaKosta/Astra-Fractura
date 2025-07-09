@@ -1,18 +1,17 @@
 ﻿using Unity.Entities;
 using Unity.Physics;
-using Unity.Physics.Systems;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 /// <summary>
-/// Система каждый кадр определяет, на какую сущность смотрит игрок,
+/// Система, которая каждый кадр определяет, на какую сущность смотрит игрок,
 /// и записывает эту информацию в компонент InteractionTarget.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class TargetDetectorSystem : SystemBase
 {
     /// <summary>
-    /// Вызывается при создании системы.
+    /// Вызывается при создании системы. Гарантирует, что система будет активна,
+    /// только когда в мире существуют необходимые синглтоны.
     /// </summary>
     protected override void OnCreate()
     {
@@ -21,40 +20,44 @@ public partial class TargetDetectorSystem : SystemBase
     }
 
     /// <summary>
-    /// Вызывается каждый кадр. Делает рейкаст и обновляет InteractionTarget у игрока.
+    /// Вызывается каждый кадр. Выполняет трассировку луча от камеры для обнаружения цели.
+    /// Если цель найдена, к сущности игрока добавляется компонент <c>InteractionTarget</c>.
+    /// Работает только тогда, когда игра не находится в режиме UI.
     /// </summary>
     protected override void OnUpdate()
     {
         var playerEntity = SystemAPI.GetSingletonEntity<PlayerControllerData>();
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        
-        // Сначала удаляем старую цель, если она была, чтобы избежать устаревших данных.
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
+        // В начале каждого кадра удаляем старую цель, чтобы избежать устаревших данных.
         ecb.RemoveComponent<InteractionTarget>(playerEntity);
 
-        // Если мы в UI, не нужно определять цель в игровом мире.
+        // Если игра находится в режиме UI, прекращаем выполнение, чтобы не обнаруживать цели в мире.
         if (SystemAPI.HasComponent<InUIMode>(SystemAPI.GetSingletonEntity<GameState>()))
         {
             return;
         }
-        
+
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         if (Camera.main == null) return;
-        
+
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        
+
         // Используем универсальный фильтр, так как эта система не знает, что именно она ищет.
         // Она просто сообщает, во что попал луч.
         var rayInput = new RaycastInput
         {
             Start = ray.origin,
-            End = ray.origin + ray.direction * controllerData.TargetingDistance, // Дальность обнаружения цели
+            End = ray.origin + ray.direction * controllerData.TargetingDistance,
             Filter = CollisionFilter.Default
         };
 
         if (physicsWorld.CollisionWorld.CastRay(rayInput, out var hit))
         {
-            // Если попали, добавляем/обновляем компонент с целью.
+            // Если луч попал в сущность, добавляем компонент InteractionTarget к игроку,
+            // содержащий ссылку на эту сущность.
             ecb.AddComponent(playerEntity, new InteractionTarget { Value = hit.Entity });
         }
     }

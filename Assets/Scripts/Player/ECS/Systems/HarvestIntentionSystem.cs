@@ -1,34 +1,52 @@
 ﻿using Unity.Entities;
-using UnityEngine;
-using UnityEngine.EventSystems;
 
+/// <summary>
+/// Система, отвечающая за определение намерения игрока начать добычу ресурсов.
+/// Она проверяет условия, такие как нажатие кнопки действия и наличие цели-ресурса,
+/// и добавляет игроку тег <c>WantsToHarvestTag</c>, если все условия выполнены.
+/// Работает только в стандартном игровом режиме.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(TargetDetectorSystem))]
+[UpdateAfter(typeof(InputsSystem))]
 public partial class HarvestIntentionSystem : SystemBase
 {
+    /// <summary>
+    /// Вызывается при создании системы. Гарантирует, что система будет обновляться,
+    /// только когда игра находится в режиме по умолчанию (<c>InDefaultMode</c>).
+    /// </summary>
+    protected override void OnCreate()
+    {
+        RequireForUpdate<InDefaultMode>();
+    }
+    
+    /// <summary>
+    /// Вызывается каждый кадр для проверки и установки намерения добычи.
+    /// Управляет жизненным циклом тега <c>WantsToHarvestTag</c> на сущности игрока.
+    /// </summary>
     protected override void OnUpdate()
     {
-        var inputs = SystemAPI.GetSingleton<InputsData>();
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         if (!SystemAPI.TryGetSingletonEntity<PlayerControllerData>(out var playerEntity)) return;
 
-        ecb.RemoveComponent<WantsToHarvestTag>(playerEntity);
+        var inputs = SystemAPI.GetSingleton<InputsData>();
         
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-
-        if (inputs.PrimaryAction &&
-            SystemAPI.HasComponent<InteractionTarget>(playerEntity) &&
-            SystemAPI.HasComponent<ResourceNode>(SystemAPI.GetComponent<InteractionTarget>(playerEntity).Value) &&
-            (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()) &&
-            !SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
+        // Если основная кнопка действия отпущена, а у игрока все еще есть тег намерения, удаляем его.
+        if (!inputs.PrimaryAction && SystemAPI.HasComponent<WantsToHarvestTag>(playerEntity))
         {
-            var targetEntity = SystemAPI.GetComponent<InteractionTarget>(playerEntity).Value;
-            
-            // --- DEBUG ---
-            Debug.Log($"<color=cyan>[HarvestIntentionSystem]</color> Условия выполнены. Игрок {playerEntity} хочет добывать цель {targetEntity}. Добавляю WantsToHarvestTag.");
-            // --- END DEBUG ---
-
-            ecb.AddComponent<WantsToHarvestTag>(playerEntity);
+            EntityManager.RemoveComponent<WantsToHarvestTag>(playerEntity);
+        }
+        
+        // Если основная кнопка действия нажата и у игрока еще нет тега намерения,
+        // проверяем условия для его добавления.
+        if (inputs.PrimaryAction && !SystemAPI.HasComponent<WantsToHarvestTag>(playerEntity))
+        {
+            // Проверяем, есть ли у игрока цель и является ли эта цель ресурсным узлом.
+            if (SystemAPI.HasComponent<InteractionTarget>(playerEntity) &&
+                SystemAPI.HasComponent<ResourceNode>(SystemAPI.GetComponent<InteractionTarget>(playerEntity).Value))
+            {
+                var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+                ecb.AddComponent<WantsToHarvestTag>(playerEntity);
+            }
         }
     }
 }
