@@ -38,7 +38,7 @@ public partial class FinalizeBuildingSystem : SystemBase
             ecb.SetComponent(newBuilding, LocalTransform.FromPositionRotation(reqData.Position, reqData.Rotation));
             ecb.AddComponent<NewlyBuiltTag>(newBuilding);
 
-            // --- ИЗМЕНЕНО: СОЗДАЕМ ЗАПРОС НА УДАЛЕНИЕ ПРЕДМЕТА ---
+            // Создаем запрос на удаление предмета
             // Вместо прямого вызова inventory.Remove()
             var removeItemRequestEntity = ecb.CreateEntity();
             ecb.AddComponent(removeItemRequestEntity, new RemoveItemRequest
@@ -47,7 +47,7 @@ public partial class FinalizeBuildingSystem : SystemBase
                 ItemID = reqData.ItemIDToConsume,
                 Amount = 1
             });
-            // ----------------------------------------------------
+            
 
             // Уничтожаем обработанный запрос на постройку
             ecb.DestroyEntity(requestEntity);

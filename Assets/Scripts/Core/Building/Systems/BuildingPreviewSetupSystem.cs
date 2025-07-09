@@ -12,7 +12,7 @@ using UnityEngine;
 /// </summary>
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPreviewLifecycleSystem))] // Важно: должна выполняться после BuildingPreviewLifecycleSystem.
+[UpdateAfter(typeof(BuildingPreviewLifecycleSystem))] 
 public partial struct BuildingPreviewSetupSystem : ISystem
 {
     public void OnUpdate(ref SystemState state)
