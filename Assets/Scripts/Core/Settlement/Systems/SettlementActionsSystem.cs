@@ -1,5 +1,6 @@
 ﻿using Unity.Entities;
 using Unity.Transforms;
+using UnityEngine;
 
 /// <summary>
 /// Система, обрабатывающая действия, связанные с главным поселением игрока,
@@ -45,7 +46,8 @@ public partial class SettlementActionsSystem : SystemBase
             {
                 if (!SystemAPI.Exists(request.NPC) || !SystemAPI.Exists(request.TargetResourceNode)) return;
 
-                if (SystemAPI.HasComponent<NPCComponent>(request.NPC) && SystemAPI.HasComponent<NPCMovementComponent>(request.NPC))
+                if (SystemAPI.HasComponent<NPCComponent>(request.NPC) && SystemAPI.HasComponent<NPCMovementComponent>(request.NPC)
+                && SystemAPI.HasComponent<NPCPathfindingComponent>(request.NPC))
                 {
                     var npcData = SystemAPI.GetComponentRW<NPCComponent>(request.NPC);
                     npcData.ValueRW.Target = request.TargetResourceNode;
@@ -54,6 +56,11 @@ public partial class SettlementActionsSystem : SystemBase
                     var targetTransform = SystemAPI.GetComponent<LocalTransform>(request.TargetResourceNode);
                     movementData.ValueRW.TargetPosition = targetTransform.Position;
                     movementData.ValueRW.HasTarget = true;
+
+                    var pathfindingData = SystemAPI.GetComponentRW<NPCPathfindingComponent>(request.NPC);
+                    pathfindingData.ValueRW.NeedsPathUpdate = true;
+                    // pathfindingData.ValueRW.LastTargetPosition = targetTransform.Position;
+                    // pathfindingData.ValueRW.CurrentWaypointIndex = 0;
                 }
             }).Schedule();
     }

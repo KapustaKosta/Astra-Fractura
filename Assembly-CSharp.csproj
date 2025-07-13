@@ -88,6 +88,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\PlayerAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InventoryInputData.cs" />
+    <Compile Include="Assets\Scripts\NPC\Pathfinding\HybridBuildingSpawner.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewSetupSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryPanelHelper.cs" />
@@ -101,6 +102,7 @@
     <Compile Include="Assets\Scripts\NPC\NPCUI.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAsstesInputs2.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementCandidateTag.cs" />
+    <Compile Include="Assets\Scripts\NPC\Pathfinding\NPCPathfindingSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\SettlementComponent.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\InputsSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Trade\DragAndDrop\MoveItemSystem.cs" />
@@ -131,11 +133,13 @@
     <Compile Include="Assets\Scripts\Core\Inventory\InventorySlot.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Components\InventoryComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Systems\SettlementInitializationSystem.cs" />
+    <Compile Include="Assets\Scripts\NPC\Pathfinding\NPCPathfindingComponent.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\RecipeSlot.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingSettings.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\SpawnHybridBuildingTag.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\StartingInventoryAuthoring.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
@@ -1198,6 +1202,10 @@
       <HintPath>Library\ScriptAssemblies\Unity.Rider.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.AI.Navigation">
+      <HintPath>Library\ScriptAssemblies\Unity.AI.Navigation.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.Transforms.Hybrid">
       <HintPath>Library\ScriptAssemblies\Unity.Transforms.Hybrid.dll</HintPath>
       <Private>False</Private>
@@ -1242,12 +1250,12 @@
       <HintPath>Library\ScriptAssemblies\Unity.Entities.UI.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.TestTools.CodeCoverage.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.TestTools.CodeCoverage.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.TestTools.CodeCoverage.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.TestTools.CodeCoverage.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.PlasticSCM.Editor">
@@ -1342,16 +1350,16 @@
       <HintPath>Library\ScriptAssemblies\Unity.Multiplayer.Center.Common.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.AI.Navigation.Updater">
+      <HintPath>Library\ScriptAssemblies\Unity.AI.Navigation.Updater.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.Mathematics.Extensions">
       <HintPath>Library\ScriptAssemblies\Unity.Mathematics.Extensions.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Entities.Graphics.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.Entities.Graphics.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
-      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Entities.Build">
@@ -1368,6 +1376,10 @@
     </Reference>
     <Reference Include="Unity.Transforms">
       <HintPath>Library\ScriptAssemblies\Unity.Transforms.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
+      <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
@@ -1390,12 +1402,16 @@
       <HintPath>Library\ScriptAssemblies\Unity.VisualScripting.State.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.Mathematics">
-      <HintPath>Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
+    <Reference Include="Unity.AI.Navigation.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.AI.Navigation.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Cinemachine">
       <HintPath>Library\ScriptAssemblies\Cinemachine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.RenderPipelines.Core.Editor">
@@ -1422,6 +1438,10 @@
       <HintPath>Library\ScriptAssemblies\Unity.2D.Sprite.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.AI.Navigation.Editor.ConversionSystem">
+      <HintPath>Library\ScriptAssemblies\Unity.AI.Navigation.Editor.ConversionSystem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.Settings.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.Settings.Editor.dll</HintPath>
       <Private>False</Private>
@@ -1430,12 +1450,12 @@
       <HintPath>Library\ScriptAssemblies\Unity.Entities.Graphics.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.Burst.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.Burst.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.TextMeshPro.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Burst.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.Burst.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Entities.Hybrid.HybridComponents">

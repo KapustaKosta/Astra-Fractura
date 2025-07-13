@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 9147086838807349976}
   - component: {fileID: 827330485550422585}
   - component: {fileID: 7345954253596040985}
+  - component: {fileID: 7498250897263134291}
   m_Layer: 9
   m_Name: SM_Prop_Lander_01
   m_TagString: Untagged
@@ -264,3 +265,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   capacity: 40
   startingItems: []
+--- !u!208 &7498250897263134291
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 123924}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 3.2210002, y: 1.2440001, z: 3.2210002}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 1.2440001, z: 0}
+  m_TimeToStationary: 0.5

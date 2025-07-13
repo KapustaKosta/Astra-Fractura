@@ -64,6 +64,9 @@ class NPCAuthoring : MonoBehaviour
                 Diligence = authoring.diligence,
                 Target = Entity.Null
             });
+
+            AddComponent<NPCPathfindingComponent>(entity);
+            AddBuffer<NPCPathBufferElement>(entity);
         }
     }
 }
