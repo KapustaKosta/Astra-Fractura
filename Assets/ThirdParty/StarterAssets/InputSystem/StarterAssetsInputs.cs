@@ -1,101 +1,127 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
+using System;
 
 namespace StarterAssets
 {
-	public class StarterAssetsInputs : MonoBehaviour
-	{
-		[Header("Character Input Values")]
-		public Vector2 move;
-		public Vector2 look;
-		public bool jump;
-		public bool sprint;
+    /// <summary>
+    /// Этот класс является чистым приемником сообщений от Player Input.
+    /// Он НЕ хранит состояние, а просто генерирует C#-события.
+    /// На эти события подпишется наша ECS-система для обработки ввода.
+    /// </summary>
+    public class StarterAssetsInputs : MonoBehaviour
+    {
+        /// <summary>
+        /// Событие, вызываемое при изменении входных данных движения.
+        /// </summary>
+        public static event Action<Vector2> onMove;
 
-		[Header("Movement Settings")]
-		public bool analogMovement;
+        /// <summary>
+        /// Событие, вызываемое при изменении входных данных обзора (камеры).
+        /// </summary>
+        public static event Action<Vector2> onLook;
 
-		[Header("Mouse Cursor Settings")]
-		public bool cursorLocked = true;
-		public bool cursorInputForLook = true;
+        /// <summary>
+        /// Событие, вызываемое при изменении состояния кнопки спринта.
+        /// </summary>
+        public static event Action<bool> onSprint;
+        
+        /// <summary>
+        /// Событие, вызываемое при однократном нажатии кнопки прыжка.
+        /// </summary>
+        public static event Action onJump;
 
-		[Header("Inventory")]
-		public bool inventory;
+        /// <summary>
+        /// Событие, вызываемое при однократном нажатии кнопки инвентаря.
+        /// </summary>
+        public static event Action onInventory;
 
+        /// <summary>
+        /// Событие, вызываемое при однократном нажатии правой кнопки мыши (или эквивалентного вторичного действия).
+        /// </summary>
+        public static event Action onRightClick;
+
+        /// <summary>
+        /// Событие, вызываемое при изменении состояния основного действия (например, ЛКМ).
+        /// </summary>
+        public static event Action<bool> onPrimaryAction; // <--- ДОБАВЛЕНО НОВОЕ СОБЫТИЕ
 
 #if ENABLE_INPUT_SYSTEM
-		public void OnMove(InputValue value)
-		{
-			MoveInput(value.Get<Vector2>());
-		}
 
-		public void OnInventory(InputValue value)
-		{
-			inventory = value.isPressed;
-		}
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода движения.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnMove(InputValue value)
+        {
+            onMove?.Invoke(value.Get<Vector2>());
+        }
 
-		public void OnLook(InputValue value)
-		{
-			if(cursorInputForLook)
-			{
-				LookInput(value.Get<Vector2>());
-			}
-		}
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода обзора.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnLook(InputValue value)
+        {
+            onLook?.Invoke(value.Get<Vector2>());
+        }
 
-		public void OnJump(InputValue value)
-		{
-			JumpInput(value.isPressed);
-		}
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода спринта.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnSprint(InputValue value)
+        {
+            onSprint?.Invoke(value.isPressed);
+        }
 
-		public void OnSprint(InputValue value)
-		{
-			SprintInput(value.isPressed);
-		}
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода прыжка.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnJump(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                onJump?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода инвентаря.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnInventory(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                onInventory?.Invoke();
+            }
+        }
 
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода правой кнопки мыши.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
         public void OnRightClick(InputValue value)
         {
             if (value.isPressed)
             {
-                Debug.Log("Right-click detected!");
-
-                SettlementClickHandler.Instance.HandleRightClick();
-
-                NPCClickHandler.Instance.HandleRightClick();
+                onRightClick?.Invoke();
             }
         }
+
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки основного действия (ЛКМ).
+        /// Важно: в отличие от Jump/Inventory, он передает состояние `isPressed`, 
+        /// чтобы мы знали, когда кнопка зажата, а когда отпущена.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnFire(InputValue value) // <--- ДОБАВЛЕН НОВЫЙ МЕТОД
+        {
+            onPrimaryAction?.Invoke(value.isPressed);
+        }
+
 #endif
-
-
-        public void MoveInput(Vector2 newMoveDirection)
-		{
-			move = newMoveDirection;
-		} 
-
-		public void LookInput(Vector2 newLookDirection)
-		{
-			look = newLookDirection;
-		}
-
-		public void JumpInput(bool newJumpState)
-		{
-			jump = newJumpState;
-		}
-
-		public void SprintInput(bool newSprintState)
-		{
-			sprint = newSprintState;
-		}
-		
-		private void OnApplicationFocus(bool hasFocus)
-		{
-			SetCursorState(cursorLocked);
-		}
-
-		private void SetCursorState(bool newState)
-		{
-			Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
-		}
-	}
-	
+    }
 }

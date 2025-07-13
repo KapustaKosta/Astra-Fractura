@@ -1,47 +1,60 @@
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Physics.Systems;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+/// <summary>
+/// РЎРёСЃС‚РµРјР° ECS, СѓРїСЂР°РІР»СЏСЋС‰Р°СЏ РґРІРёР¶РµРЅРёРµРј NPC.
+/// РћР±РЅРѕРІР»СЏРµС‚ С„РёР·РёС‡РµСЃРєСѓСЋ СЃРєРѕСЂРѕСЃС‚СЊ NPC РЅР° РѕСЃРЅРѕРІРµ РёС… С†РµР»РµРІРѕР№ РїРѕР·РёС†РёРё.
+/// Р Р°Р±РѕС‚Р°РµС‚ РІ РіСЂСѓРїРїРµ СЃРёРјСѓР»СЏС†РёРё С„РёР·РёРєРё.
+/// </summary>
+[UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial class NPCMovementSystem : SystemBase
 {
+    /// <summary>
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ С„РёР·РёС‡РµСЃРєРёР№ РєР°РґСЂ.
+    /// РџРµСЂРµР±РёСЂР°РµС‚ РІСЃРµ СЃСѓС‰РЅРѕСЃС‚Рё СЃ NPCMovementComponent, LocalTransform Рё PhysicsVelocity,
+    /// Рё РѕР±РЅРѕРІР»СЏРµС‚ РёС… СЃРєРѕСЂРѕСЃС‚СЊ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ Рє С†РµР»РµРІРѕР№ РїРѕР·РёС†РёРё.
+    /// </summary>
     protected override void OnUpdate()
     {
         float deltaTime = SystemAPI.Time.DeltaTime;
 
         Entities
             .WithAll<NPCMovementComponent>()
-            .ForEach((ref LocalTransform localTransform, ref NPCMovementComponent movement) =>
+            .WithAll<PhysicsVelocity>()
+            .ForEach((ref LocalTransform localTransform, ref PhysicsVelocity physicsVelocity, ref NPCMovementComponent movement) =>
             {
                 if (movement.HasTarget)
                 {
-                    float3 currentPosition = new float3(localTransform.Position.x, 0, localTransform.Position.z);
-                    float3 targetPosition = new float3(movement.TargetPosition.x, 0, movement.TargetPosition.z);
-                    float3 direction = math.normalize(targetPosition - currentPosition);
-
-                    // Целевой угол и поворот
-                    float targetAngle = math.atan2(direction.x, direction.z);
-                    quaternion targetRotation = quaternion.Euler(0, targetAngle, 0);
-
-                    // Плавно поворачиваем NPC
-                    localTransform.Rotation = math.slerp(localTransform.Rotation, targetRotation, 1.3f * deltaTime);
-
-                    // Получаем forward-вектор из текущей ориентации
-                    float3 forward = math.forward(localTransform.Rotation);
-
-                    // Угол между forward-вектором и направлением к цели
-                    float angle = math.degrees(math.acos(math.clamp(math.dot(forward, direction), -1f, 1f)));
-
-                    // Двигаемся, если угол почти 0 (т.е. смотрим на цель)
-                    if (angle < 5f)
+                    float3 currentPositionXZ = new float3(localTransform.Position.x, 0, localTransform.Position.z);
+                    float3 targetPositionXZ = new float3(movement.TargetPosition.x, 0, movement.TargetPosition.z);
+                    
+                    if (math.distance(currentPositionXZ, targetPositionXZ) > movement.StoppingDistance)
                     {
-                        localTransform.Position += direction * movement.Speed * deltaTime;
+                        float3 direction = math.normalize(targetPositionXZ - currentPositionXZ);
+
+                        float targetAngle = math.atan2(direction.x, direction.z);
+                        quaternion targetRotation = quaternion.Euler(0, targetAngle, 0);
+                        localTransform.Rotation = math.slerp(localTransform.Rotation, targetRotation, movement.RotationSpeed * deltaTime);
+
+                        physicsVelocity.Linear = direction * movement.Speed;
+                        physicsVelocity.Angular = float3.zero;
+
                     }
-
-                    // Останавливаемся, если близко к цели
-                    if (math.distance(currentPosition, targetPosition) <= 4.2f)
+                    else
                     {
+                        physicsVelocity.Linear = float3.zero;
                         movement.HasTarget = false;
+                    }
+                }
+                else
+                {
+                    if (math.lengthsq(physicsVelocity.Linear) > movement.VelocityZeroingThresholdSq)
+                    {
+                         physicsVelocity.Linear = float3.zero;
                     }
                 }
             }).ScheduleParallel();

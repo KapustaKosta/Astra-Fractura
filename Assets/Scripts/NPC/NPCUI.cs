@@ -2,253 +2,294 @@ using UnityEngine;
 using TMPro;
 using Unity.Entities;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using System.Linq;
 using Unity.Transforms;
+using Unity.Collections;
 
+/// <summary>
+/// РЈРїСЂР°РІР»СЏРµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРј РёРЅС‚РµСЂС„РµР№СЃРѕРј NPC, РѕС‚РѕР±СЂР°Р¶Р°СЏ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ NPC
+/// Рё РїСЂРµРґРѕСЃС‚Р°РІР»СЏСЏ РѕРїС†РёРё РґР»СЏ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ, С‚Р°РєРёРµ РєР°Рє РЅР°Р№Рј РёР»Рё РЅР°Р·РЅР°С‡РµРЅРёРµ Р·Р°РґР°С‡.
+/// </summary>
 public class NPCUI : MonoBehaviour
 {
-    public static NPCUI Instance { get; private set; } // Реализация Singleton  
+    public static NPCUI Instance { get; private set; }
 
     [Header("UI Elements")]
-    [SerializeField] private TextMeshProUGUI npcText; // Текст для отображения информации о NPC  
-    [SerializeField] private GameObject npcMenu; // Панель меню NPC
-    [SerializeField] private Button closeButton; // Кнопка закрытия меню
-    [SerializeField] private Button hireButton; // Кнопка "Нанять" в меню
-    [SerializeField] private Transform resourceNodeListContainer; // Контейнер для списка ResourceNode
-    [SerializeField] private GameObject resourceNodeButtonPrefab; // Префаб кнопки для ResourceNode
+    [SerializeField] private GameObject npcMenu;
+    [SerializeField] private TextMeshProUGUI npcText;
+    [SerializeField] private Button closeButton;
+
+    [Header("Interaction Buttons")]
+    [SerializeField] private Button hireButton;
+    [Tooltip("РљРЅРѕРїРєР° РґР»СЏ РѕС‚РєСЂС‹С‚РёСЏ РѕРєРЅР° С‚РѕСЂРіРѕРІР»Рё СЃ СЌС‚РёРј NPC.")]
+    [SerializeField] private Button tradeButton;
+    
+    [Header("Task Elements")]
+    [SerializeField] private Transform resourceNodeListContainer;
+    [SerializeField] private GameObject resourceNodeButtonPrefab;
+    [SerializeField] private TextMeshProUGUI taskStatusText;
 
     private Entity currentNPCEntity;
-    private NPCComponent currentNPC;
+    private EntityManager entityManager;
+    private bool isInitialized = false;
+    
+    /// <summary>
+    /// РҐСЂР°РЅРёС‚ СЃРѕСЃС‚РѕСЏРЅРёРµ РЅР°Р№РјР° NPC РёР· РїСЂРµРґС‹РґСѓС‰РµРіРѕ РєР°РґСЂР° РѕР±РЅРѕРІР»РµРЅРёСЏ UI.
+    /// РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РѕРїСЂРµРґРµР»РµРЅРёСЏ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РїРµСЂРµСЂРёСЃРѕРІРєРё РёРЅС‚РµСЂС„РµР№СЃР° РїСЂРё РёР·РјРµРЅРµРЅРёРё СЃС‚Р°С‚СѓСЃР° РЅР°Р№РјР°.
+    /// </summary>
+    private bool wasHiredState = false; 
 
-    private EntityManager entityManager; // Для работы с EntityManager  
-    private SettlementComponent settlement; // Для хранения ссылки на поселение  
-
+    /// <summary>
+    /// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ Singleton-СЌРєР·РµРјРїР»СЏСЂ Рё РїСЂРѕРІРµСЂСЏРµС‚ РЅР°Р»РёС‡РёРµ UI-СЌР»РµРјРµРЅС‚РѕРІ.
+    /// </summary>
     private void Awake()
     {
-        // Убедимся, что существует только один экземпляр  
-        if (Instance != null && Instance != this)
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        if (npcMenu == null || npcText == null || closeButton == null || hireButton == null || 
+            tradeButton == null || 
+            resourceNodeListContainer == null || resourceNodeButtonPrefab == null || taskStatusText == null) 
+        { 
+            enabled = false; 
+        }
+    }
+    
+    /// <summary>
+    /// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ EntityManager Рё РїРѕРґРїРёСЃС‹РІР°РµС‚СЃСЏ РЅР° СЃРѕР±С‹С‚РёСЏ РєРЅРѕРїРѕРє.
+    /// </summary>
+    private void Start()
+    {
+        TryInitialize();
+        if(isInitialized)
         {
-            Destroy(gameObject);
+            closeButton.onClick.AddListener(OnCloseButtonPressed);
+            hireButton.onClick.AddListener(OnHireButtonPressed);
+            tradeButton.onClick.AddListener(OnTradeButtonPressed);
+            npcMenu.SetActive(false);
+        }
+    }
+    
+    /// <summary>
+    /// РљР°Р¶РґС‹Р№ РєР°РґСЂ РїСЂРѕРІРµСЂСЏРµС‚ РіР»РѕР±Р°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ, СЂРµС€Р°РµС‚, РґРѕР»Р¶РЅРѕ Р»Рё Р±С‹С‚СЊ РѕС‚РєСЂС‹С‚Рѕ РѕРєРЅРѕ NPC,
+    /// Рё РѕР±РЅРѕРІР»СЏРµС‚ РµРіРѕ СЃРѕРґРµСЂР¶РёРјРѕРµ, РµСЃР»Рё СЃРѕСЃС‚РѕСЏРЅРёРµ С†РµР»РµРІРѕРіРѕ NPC РёР·РјРµРЅРёР»РѕСЃСЊ.
+    /// </summary>
+    void Update()
+    {
+        if (!isInitialized)
+        {
+            TryInitialize();
             return;
         }
 
-        Instance = this;
+        var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
+        if (gameStateQuery.IsEmpty) return;
+        var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        npcMenu.SetActive(false); // Скрываем меню по умолчанию
+        // РџСЂРѕРІРµСЂСЏРµРј, РґРѕР»Р¶РµРЅ Р»Рё РЅР°С€ UI Р±С‹С‚СЊ РѕС‚РєСЂС‹С‚, РЅР° РѕСЃРЅРѕРІРµ РґР°РЅРЅС‹С… РёР· ECS
+        bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
+                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.NPC;
 
-        entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-
-        // Подписываемся на события кнопок
-        closeButton.onClick.AddListener(HideMenu);
-        hireButton.onClick.AddListener(HireNPC);
-    }
-
-    public void Show(NPCComponent npc, Entity npcEntity)
-    {
-        currentNPC = npc;
-        currentNPCEntity = npcEntity;
-
-        // Обновляем текст с информацией о NPC  
-        npcText.text = $"Имя: {npc.Name}\nВозраст: {npc.Age}\nНавыки: {npc.Skills}\n" +
-                       $"Организованность: {npc.Organizedness}\nПреданность: {npc.Loyalty}\nТрудолюбие: {npc.Diligence}";
-        npcText.gameObject.SetActive(true); // Показываем текст  
-        npcMenu.SetActive(true); // Показываем меню
-
-        // Проверяем, нанят ли NPC
-        if (IsHired(npcEntity))
+        
+        if (shouldBeOpen)
         {
-            Debug.Log($"NPC {npc.Name} уже нанят.");
-            hireButton.gameObject.SetActive(false); // Скрываем кнопку "Нанять"
-            ShowResourceNodeOptions(); // Показываем список ResourceNode
+            var targetEntity = entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUITarget;
+            
+            if (!entityManager.Exists(targetEntity))
+            {
+                if (npcMenu.activeSelf) Hide();
+                return;
+            }
+
+            bool isHiredNow = entityManager.HasComponent<NPCHiredTag>(targetEntity);
+            
+            // РћР±РЅРѕРІР»СЏРµРј UI, РµСЃР»Рё РѕРЅ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ РІРїРµСЂРІС‹Рµ, СЃРјРµРЅРёР»СЃСЏ С†РµР»РµРІРѕР№ NPC,
+            // РёР»Рё РёР·РјРµРЅРёР»СЃСЏ РµРіРѕ СЃС‚Р°С‚СѓСЃ РЅР°Р№РјР°.
+            if (!npcMenu.activeSelf || currentNPCEntity != targetEntity || wasHiredState != isHiredNow)
+            {
+                Show(targetEntity);
+            }
         }
         else
         {
-            Debug.Log($"NPC {npc.Name} не нанят.");
-            hireButton.gameObject.SetActive(true); // Показываем кнопку "Нанять"
-            ClearResourceNodeOptions(); // Очищаем список ResourceNode
+            if (npcMenu.activeSelf)
+            {
+                Hide();
+            }
         }
     }
 
-    public void Hide()
+    /// <summary>
+    /// РџС‹С‚Р°РµС‚СЃСЏ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ EntityManager, РµСЃР»Рё РѕРЅ РµС‰Рµ РЅРµ Р±С‹Р» РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ.
+    /// </summary>
+    private void TryInitialize()
     {
-        // Скрываем текст, кнопку и меню  
-        npcText.text = "";
-        npcText.gameObject.SetActive(false);
-        npcMenu.SetActive(false);
-        ClearResourceNodeOptions(); // Очищаем список ResourceNode
+        if (isInitialized) return;
+        if (World.DefaultGameObjectInjectionWorld != null && World.DefaultGameObjectInjectionWorld.IsCreated)
+        {
+            entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            isInitialized = true;
+        }
     }
 
-    private void HideMenu()
+    /// <summary>
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ Рё РїРѕР»РЅРѕСЃС‚СЊСЋ РїРµСЂРµСЃС‚СЂР°РёРІР°РµС‚ UI РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ NPC.
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё, Р° РЅРµ РєР°Р¶РґС‹Р№ РєР°РґСЂ, РґР»СЏ РѕРїС‚РёРјРёР·Р°С†РёРё.
+    /// </summary>
+    /// <param name="npcEntity">РЎСѓС‰РЅРѕСЃС‚СЊ NPC РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ.</param>
+    private void Show(Entity npcEntity)
     {
-        // Скрываем только меню, оставляя текст и кнопку
-        npcMenu.SetActive(false);
-    }
+        if (!isInitialized || !entityManager.Exists(npcEntity)) 
+        {
+            Hide();
+            return;
+        }
+        
+        currentNPCEntity = npcEntity;
+        npcMenu.SetActive(true);
 
-    private void ShowResourceNodeOptions()
-    {
-        // Очищаем предыдущие кнопки
+        NPCComponent npc = entityManager.GetComponentData<NPCComponent>(npcEntity);
+
+        npcText.text = $"РРјСЏ: {npc.Name}\nР’РѕР·СЂР°СЃС‚: {npc.Age}\nРќР°РІС‹РєРё: {npc.Skills}\n" +
+                       $"РћСЂРіР°РЅРёР·РѕРІР°РЅРЅРѕСЃС‚СЊ: {npc.Organizedness}\nР›РѕСЏР»СЊРЅРѕСЃС‚СЊ: {npc.Loyalty}\nРўСЂСѓРґРѕР»СЋР±РёРµ: {npc.Diligence}";
+        
+        taskStatusText.gameObject.SetActive(false);
         ClearResourceNodeOptions();
 
-        // Показываем контейнер
-        ShowResourceNodeListContainer();
-
-        // Создаём EntityQuery для поиска всех ResourceNode
-        var query = entityManager.CreateEntityQuery(typeof(ResourceNode));
-        var resourceNodes = query.ToEntityArray(Unity.Collections.Allocator.Temp);
-
-        foreach (var resourceNode in resourceNodes)
-        {
-            // Получаем данные ResourceNode
-            var resourceNodeData = entityManager.GetComponentData<ResourceNode>(resourceNode);
-
-            // Создаём кнопку для ResourceNode
-            var buttonObject = Instantiate(resourceNodeButtonPrefab, resourceNodeListContainer);
-            var button = buttonObject.GetComponent<Button>();
-            var buttonText = buttonObject.GetComponentInChildren<TextMeshProUGUI>();
-
-            // Устанавливаем текст кнопки
-            buttonText.text = $"Добывать: {resourceNodeData.resourceType}";
-
-            // Добавляем обработчик нажатия
-            button.onClick.AddListener(() => AssignNPCToResourceNode(resourceNode));
-        }
-
-        resourceNodes.Dispose();
-    }
-
-    private void ClearResourceNodeOptions()
-    {
-        // Скрываем контейнер
-        HideResourceNodeListContainer();
-
-        // Удаляем все дочерние объекты из контейнера
-        foreach (Transform child in resourceNodeListContainer)
-        {
-            Destroy(child.gameObject);
-        }
-    }
-
-    private void AssignNPCToResourceNode(Entity resourceNode)
-    {
-        if (entityManager.HasComponent<NPCComponent>(currentNPCEntity))
-        {
-            var npcData = entityManager.GetComponentData<NPCComponent>(currentNPCEntity);
-            npcData.Target = resourceNode; // Устанавливаем цель
-            entityManager.SetComponentData(currentNPCEntity, npcData);
-
-            // Получаем позицию цели
-            var targetPosition = entityManager.GetComponentData<LocalTransform>(resourceNode).Position;
-
-            // Добавляем или обновляем компонент движения
-            if (entityManager.HasComponent<NPCMovementComponent>(currentNPCEntity))
-            {
-                var movement = entityManager.GetComponentData<NPCMovementComponent>(currentNPCEntity);
-                movement.TargetPosition = targetPosition;
-                movement.HasTarget = true;
-                entityManager.SetComponentData(currentNPCEntity, movement);
-            }
-            else
-            {
-                entityManager.AddComponentData(currentNPCEntity, new NPCMovementComponent
-                {
-                    Speed = 2.0f,
-                    TargetPosition = targetPosition,
-                    HasTarget = true
-                });
-            }
-
-            Debug.Log($"NPC {npcData.Name} отправлен работать на {resourceNode}.");
-        }
-
-        // Скрываем меню после назначения
-        Hide();
+        bool hired = entityManager.HasComponent<NPCHiredTag>(npcEntity);
+        wasHiredState = hired;
         
-        // Разблокируем управление игроком  
-        NPCClickHandler.Instance.LockPlayerControls(false);
-    }
+        bool hasInventory = entityManager.HasComponent<HasInventoryTag>(npcEntity);
 
+        hireButton.gameObject.SetActive(!hired);
+        // РљРЅРѕРїРєР° РѕР±РјРµРЅР° РІРёРґРЅР° С‚РѕР»СЊРєРѕ РµСЃР»Рё NPC РЅР°РЅСЏС‚ Рё Сѓ РЅРµРіРѕ РµСЃС‚СЊ РёРЅРІРµРЅС‚Р°СЂСЊ
+        tradeButton.gameObject.SetActive(hired && hasInventory);
 
-    public void HireNPC()
-    {
-        if (currentNPCEntity != Entity.Null)
+        if (hired)
         {
-            // Получаем текущий компонент поселения  
-            var query = entityManager.CreateEntityQuery(typeof(SettlementComponent));
-
-            if (!query.IsEmpty)
+            if (npc.Target != Entity.Null)
             {
-                // Получаем сущность синглтона
-                var singletonEntity = query.GetSingletonEntity();
-
-                // Получаем данные компонента PlayerSettlementComponent
-                settlement = entityManager.GetComponentData<SettlementComponent>(singletonEntity);
-
-                // Добавляем NPC в список поселения  
-                if (settlement.NPCs.Length < settlement.NPCs.Capacity)
+                taskStatusText.gameObject.SetActive(true);
+                if (entityManager.HasComponent<ResourceNode>(npc.Target))
                 {
-                    settlement.NPCs.Add(currentNPCEntity);
-                    settlement.Population += 1; // Увеличиваем население поселения
-                    entityManager.SetComponentData(singletonEntity, settlement);
-
-                    Debug.Log($"NPC {currentNPC.Name} нанят!");
+                    var resourceNode = entityManager.GetComponentData<ResourceNode>(npc.Target);
+                    taskStatusText.text = $"Р—Р°РґР°С‡Р°: Р”РѕР±С‹С‡Р° ({resourceNode.resourceType})";
                 }
                 else
                 {
-                    Debug.LogWarning("Поселение не может принять больше NPC.");
+                    taskStatusText.text = "Р—Р°РґР°С‡Р°: Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ...";
                 }
             }
-
-            // Скрываем UI после найма  
-            Hide();
-
-            // Разблокируем управление игроком  
-            NPCClickHandler.Instance.LockPlayerControls(false);
-        }
-    }
-
-    private bool IsHired(Entity npcEntity)
-    {
-        // Проверяем, находится ли NPC в поселении
-        var query = entityManager.CreateEntityQuery(typeof(SettlementComponent));
-        if (!query.IsEmpty)
-        {
-            var singletonEntity = query.GetSingletonEntity();
-            var settlement = entityManager.GetComponentData<SettlementComponent>(singletonEntity);
-
-            // Проверяем вручную, содержится ли NPC в списке
-            for (int i = 0; i < settlement.NPCs.Length; i++)
+            else
             {
-                if (settlement.NPCs[i] == npcEntity)
-                {
-                    return true;
-                }
+                ShowResourceNodeOptions();
             }
         }
-        return false;
     }
 
-    private void ShowResourceNodeListContainer()
+    /// <summary>
+    /// РЎРєСЂС‹РІР°РµС‚ РѕРєРЅРѕ UI NPC.
+    /// </summary>
+    public void Hide()
     {
-        if (resourceNodeListContainer != null)
+        if (!enabled || npcMenu == null || !npcMenu.activeSelf) return;
+        npcMenu.SetActive(false);
+        ClearResourceNodeOptions();
+        currentNPCEntity = Entity.Null;
+        wasHiredState = false;
+    }
+
+    /// <summary>
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РЅР°Р¶Р°С‚РёРµ РєРЅРѕРїРєРё "Р—Р°РєСЂС‹С‚СЊ", РѕС‚РїСЂР°РІР»СЏСЏ Р·Р°РїСЂРѕСЃ РІ ECS.
+    /// </summary>
+    private void OnCloseButtonPressed()
+    {
+        if (!isInitialized) return;
+        GameBridge.Instance?.HandleUICloseAction();
+    }
+    
+    /// <summary>
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РЅР°Р¶Р°С‚РёРµ РєРЅРѕРїРєРё "РќР°РЅСЏС‚СЊ", СЃРѕР·РґР°РІР°СЏ ECS-Р·Р°РїСЂРѕСЃ РЅР° РЅР°Р№Рј.
+    /// </summary>
+    private void OnHireButtonPressed()
+    {
+        if (!isInitialized || currentNPCEntity == Entity.Null) return;
+
+        var playerSettlementQuery = entityManager.CreateEntityQuery(typeof(PlayerSettlementTag));
+        if (playerSettlementQuery.IsEmpty)
         {
-            resourceNodeListContainer.gameObject.SetActive(true);
+            return; 
         }
-        else
+        
+        var entity = entityManager.CreateEntity();
+        entityManager.AddComponentData(entity, new HireNPCRequest { NPCToHire = currentNPCEntity });
+    }
+
+    /// <summary>
+    /// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РЅР°Р¶Р°С‚РёРµ РєРЅРѕРїРєРё "РћР±РјРµРЅ", СЃРѕР·РґР°РІР°СЏ Р·Р°РїСЂРѕСЃ РЅР° РѕС‚РєСЂС‹С‚РёРµ TradeUI.
+    /// </summary>
+    private void OnTradeButtonPressed()
+    {
+        if (!isInitialized || currentNPCEntity == Entity.Null) return;
+
+        // РЎРѕР·РґР°РµРј Р·Р°РїСЂРѕСЃ РЅР° РѕС‚РєСЂС‹С‚РёРµ РѕРєРЅР° С‚РѕСЂРіРѕРІР»Рё, РїРµСЂРµРґР°РІР°СЏ С‚РµРєСѓС‰РµРіРѕ NPC РєР°Рє С†РµР»СЊ
+        var requestEntity = entityManager.CreateEntity();
+        entityManager.AddComponentData(requestEntity, new OpenTradeUIRequest { Target = currentNPCEntity });
+    }
+
+    /// <summary>
+    /// РћС‚РѕР±СЂР°Р¶Р°РµС‚ СЃРїРёСЃРѕРє РґРѕСЃС‚СѓРїРЅС‹С… СЂРµСЃСѓСЂСЃРѕРІ РґР»СЏ РЅР°Р·РЅР°С‡РµРЅРёСЏ Р·Р°РґР°С‡Рё NPC.
+    /// </summary>
+    private void ShowResourceNodeOptions()
+    {
+        if (!isInitialized || resourceNodeListContainer == null || resourceNodeButtonPrefab == null) return;
+        ClearResourceNodeOptions();
+        resourceNodeListContainer.gameObject.SetActive(true);
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(ResourceNode), typeof(LocalTransform));
+        using var resourceNodeEntities = query.ToEntityArray(Allocator.Temp);
+
+        foreach (var entity in resourceNodeEntities)
         {
-            Debug.LogWarning("resourceNodeListContainer не назначен!");
+            GameObject buttonObject = Instantiate(resourceNodeButtonPrefab, resourceNodeListContainer.transform);
+            Button button = buttonObject.GetComponent<Button>();
+            TextMeshProUGUI buttonText = buttonObject.GetComponentInChildren<TextMeshProUGUI>();
+
+            if (buttonText != null && entityManager.HasComponent<ResourceNode>(entity))
+            {
+                ResourceNode resourceNodeData = entityManager.GetComponentData<ResourceNode>(entity);
+                buttonText.text = $"Р”РѕР±С‹РІР°С‚СЊ: {resourceNodeData.resourceType}";
+            }
+            if (button != null)
+            {
+                Entity capturedEntity = entity;
+                button.onClick.AddListener(() => AssignNPCToResourceNode(capturedEntity));
+            }
         }
     }
 
-    private void HideResourceNodeListContainer()
+    /// <summary>
+    /// РЈРґР°Р»СЏРµС‚ РІСЃРµ РґРѕС‡РµСЂРЅРёРµ РѕР±СЉРµРєС‚С‹ РёР· РєРѕРЅС‚РµР№РЅРµСЂР° СЃРїРёСЃРєР° СЂРµСЃСѓСЂСЃРѕРІ.
+    /// </summary>
+    private void ClearResourceNodeOptions()
     {
-        if (resourceNodeListContainer != null)
+        if (resourceNodeListContainer == null) return;
+        foreach (Transform child in resourceNodeListContainer.transform) { Destroy(child.gameObject); }
+        resourceNodeListContainer.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// РќР°Р·РЅР°С‡Р°РµС‚ С‚РµРєСѓС‰РµРіРѕ NPC РЅР° СѓРєР°Р·Р°РЅРЅС‹Р№ СЂРµСЃСѓСЂСЃРЅС‹Р№ СѓР·РµР» Рё Р·Р°РєСЂС‹РІР°РµС‚ UI.
+    /// </summary>
+    /// <param name="resourceNodeEntity">РЎСѓС‰РЅРѕСЃС‚СЊ С†РµР»РµРІРѕРіРѕ СЂРµСЃСѓСЂСЃР°.</param>
+    private void AssignNPCToResourceNode(Entity resourceNodeEntity)
+    {
+        if (isInitialized && currentNPCEntity != Entity.Null && resourceNodeEntity != Entity.Null)
         {
-            resourceNodeListContainer.gameObject.SetActive(false);
-        }
-        else
-        {
-            Debug.LogWarning("resourceNodeListContainer не назначен!");
+            var entity = entityManager.CreateEntity();
+            entityManager.AddComponentData(entity, new AssignNPCToTaskRequest
+            {
+                NPC = currentNPCEntity,
+                TargetResourceNode = resourceNodeEntity
+            });
+            OnCloseButtonPressed();
         }
     }
 }

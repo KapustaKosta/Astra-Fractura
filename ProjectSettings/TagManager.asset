@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - CinemachineTarget
+  - CinemachineProxyTarget
   layers:
   - Default
   - TransparentFX
@@ -16,7 +17,7 @@ TagManager:
   - NPC
   - Player
   - Building
-  - 
+  - BuildingPreview
   - 
   - 
   - 
