@@ -125,7 +125,9 @@ public class CraftingUI : MonoBehaviour
         }
         else
         {
+            #if UNITY_EDITOR
             Debug.Log("Не хватает ресурсов!");
+            #endif
         }
     }
 }

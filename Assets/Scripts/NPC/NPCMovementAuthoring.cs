@@ -1,84 +1,40 @@
 using UnityEngine;
 using Unity.Entities;
-using Unity.Mathematics;
 
 /// <summary>
-/// Authoring-компонент для определения параметров движения NPC в ECS.
-/// Позволяет настраивать скорость движения NPC в редакторе Unity.
+/// Authoring-компонент, который наделяет сущность способностью двигаться.
+/// Добавляет компонент NPCMovementComponent с настройками скорости и дистанции остановки.
 /// </summary>
 [DisallowMultipleComponent]
 public class NPCMovementAuthoring : MonoBehaviour
 {
-    /// <summary>
-    /// Скорость движения NPC.
-    /// </summary>
-    [Header("Movement Settings")]
-    public float Speed = 2.0f;
-    [Tooltip("Как быстро NPC поворачивается к своей цели.")]
-    public float RotationSpeed = 5.0f;
-    [Tooltip("На каком расстоянии от цели NPC остановится.")]
-    public float StoppingDistance = 0.5f;
-    [Tooltip("Пороговое значение скорости, ниже которого скорость обнуляется.")]
-    public float VelocityZeroingThreshold = 0.001f;
+    [Header("Настройки движения")]
+    [Tooltip("Скорость передвижения сущности в метрах/сек.")]
+    public float Speed = 3.5f;
+    
+    [Tooltip("Расстояние до цели, на котором сущность прекратит движение.")]
+    public float StoppingDistance = 1.5f;
 
     /// <summary>
-    /// Baker-класс для преобразования NPCMovementAuthoring в ECS-компоненты.
+    /// Baker преобразует данные из этого MonoBehaviour в компоненты ECS.
     /// </summary>
     public class Baker : Baker<NPCMovementAuthoring>
     {
         /// <summary>
-        /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
         /// Создает и добавляет компонент NPCMovementComponent к сущности NPC.
         /// </summary>
         /// <param name="authoring">Экземпляр NPCMovementAuthoring.</param>
         public override void Bake(NPCMovementAuthoring authoring)
         {
-            var entity = GetEntity(TransformUsageFlags.Dynamic); 
+            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            
+            // Добавляем компонент с параметрами движения.
+            // Этот компонент будет использоваться системой NPCMovementSystem.
             AddComponent(entity, new NPCMovementComponent
             {
                 Speed = authoring.Speed,
-                RotationSpeed = authoring.RotationSpeed,
-                StoppingDistance = authoring.StoppingDistance,
-                VelocityZeroingThresholdSq = authoring.VelocityZeroingThreshold * authoring.VelocityZeroingThreshold,
-                TargetPosition = float3.zero,
-                HasTarget = false
+                StoppingDistance = authoring.StoppingDistance
             });
         }
     }
-}
-
-/// <summary>
-/// ECS-компонент, хранящий данные, связанные с движением NPC.
-/// </summary>
-public struct NPCMovementComponent : IComponentData
-{
-    /// <summary>
-    /// Скорость перемещения NPC.
-    /// </summary>
-    public float Speed;
-    
-    /// <summary>
-    /// Скорость поворота NPC.
-    /// </summary>
-    public float RotationSpeed;
-    
-    /// <summary>
-    /// Дистанция остановки от цели.
-    /// </summary>
-    public float StoppingDistance;
-
-    /// <summary>
-    /// Квадрат порогового значения скорости для обнуления.
-    /// </summary>
-    public float VelocityZeroingThresholdSq;
-
-    /// <summary>
-    /// Целевая позиция, к которой движется NPC.
-    /// </summary>
-    public float3 TargetPosition;
-
-    /// <summary>
-    /// Флаг, указывающий, есть ли у NPC активная цель для движения.
-    /// </summary>
-    public bool HasTarget;
 }

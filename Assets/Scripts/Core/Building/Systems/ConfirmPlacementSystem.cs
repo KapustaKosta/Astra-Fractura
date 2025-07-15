@@ -1,8 +1,8 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine.EventSystems; // Для IsPointerOverGameObject
-using UnityEngine; // Для Debug.Log (можно убрать в релизе)
+using UnityEngine.EventSystems; 
+using UnityEngine; 
 
 /// <summary>
 /// Система, которая обрабатывает ввод игрока для подтверждения постройки и создает запрос.
@@ -57,7 +57,9 @@ public partial class ConfirmPlacementSystem : SystemBase
             var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
             if (!SystemAPI.HasComponent<BuildingState>(gameStateEntity))
             {
+                #if UNITY_EDITOR
                 Debug.LogError("ConfirmPlacementSystem: BuildingState не найден на GameStateEntity! Невозможно создать PlaceBuildingRequest.");
+                #endif
                 return;
             }
             var buildingState = SystemAPI.GetComponent<BuildingState>(gameStateEntity);
@@ -78,8 +80,9 @@ public partial class ConfirmPlacementSystem : SystemBase
         }
         else
         {
-            
+            #if UNITY_EDITOR
             Debug.Log("Невозможно разместить здание: невалидная позиция.");
+            #endif
         }
     }
 }

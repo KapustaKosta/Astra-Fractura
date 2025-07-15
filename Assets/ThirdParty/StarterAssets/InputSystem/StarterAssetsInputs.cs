@@ -44,7 +44,7 @@ namespace StarterAssets
         /// <summary>
         /// Событие, вызываемое при изменении состояния основного действия (например, ЛКМ).
         /// </summary>
-        public static event Action<bool> onPrimaryAction; // <--- ДОБАВЛЕНО НОВОЕ СОБЫТИЕ
+        public static event Action<bool> onPrimaryAction; 
 
 #if ENABLE_INPUT_SYSTEM
 
@@ -117,7 +117,7 @@ namespace StarterAssets
         /// чтобы мы знали, когда кнопка зажата, а когда отпущена.
         /// </summary>
         /// <param name="value">Значение ввода.</param>
-        public void OnFire(InputValue value) // <--- ДОБАВЛЕН НОВЫЙ МЕТОД
+        public void OnFire(InputValue value) 
         {
             onPrimaryAction?.Invoke(value.isPressed);
         }

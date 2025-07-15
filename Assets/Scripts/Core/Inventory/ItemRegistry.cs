@@ -23,8 +23,11 @@ public class ItemRegistry : ScriptableObject
                 _instance = Resources.Load<ItemRegistry>("ItemRegistry");
                 if (_instance == null)
                 {
-                    Debug.LogError("[ItemRegistry] Ошибка: Не удалось найти ассет 'ItemRegistry' в папке Assets/Resources.");
+                    #if UNITY_EDITOR
+                    Debug.LogError("[ItemRegistry] Ошибка: Не удалось найти ассет 'ItemRegistry' " +
+                                   "в папке Assets/Resources.");
                     return null;
+                    #endif
                 }
             }
             // Вызываем Initialize() при каждом доступе, чтобы быть устойчивым к Domain Reload в редакторе.
@@ -59,7 +62,9 @@ public class ItemRegistry : ScriptableObject
 
             if (item.itemID == 0)
             {
-                Debug.LogError($"[ItemRegistry] Ошибка: У предмета '{item.name}' недопустимый ItemID равный 0.");
+                #if UNITY_EDITOR
+                Debug.LogError($"[ItemRegistry] Ошибка: У предмета '{item.name}' ItemID равный 0.");
+                #endif
                 continue;
             }
             if(!itemDict.ContainsKey(item.itemID))
@@ -68,7 +73,9 @@ public class ItemRegistry : ScriptableObject
             }
             else
             {
+                #if UNITY_EDITOR
                 Debug.LogWarning($"[ItemRegistry]: Обнаружен дубликат ItemID: {item.itemID} у предмета '{item.name}'.");
+                #endif
             }
         }
         
@@ -84,7 +91,10 @@ public class ItemRegistry : ScriptableObject
     {
         if (itemDict == null)
         {
-            Debug.LogError($"[GetItemData] Попытка получить данные о предмете, но словарь (itemDict) не был инициализирован. ItemID: {itemID}");
+            #if UNITY_EDITOR
+            Debug.LogError($"[GetItemData] Попытка получить данные о предмете," +
+                           $" но словарь (itemDict) не был инициализирован. ItemID: {itemID}");
+            #endif
             return null;
         }
 

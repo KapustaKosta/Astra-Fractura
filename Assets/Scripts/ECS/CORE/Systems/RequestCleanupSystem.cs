@@ -30,11 +30,11 @@ public partial class RequestCleanupSystem : SystemBase
                 ComponentType.ReadWrite<CloseAllUIRequest>(),
                 ComponentType.ReadWrite<InteractionRequest>(),
                 ComponentType.ReadWrite<HireNPCRequest>(),
-                ComponentType.ReadWrite<AssignNPCToTaskRequest>(),
                 ComponentType.ReadWrite<AddItemRequest>(),
                 ComponentType.ReadWrite<RemoveItemRequest>(),
                 ComponentType.ReadWrite<MoveItemRequest>(),
-                ComponentType.ReadWrite<SplitStackRequest>()
+                ComponentType.ReadWrite<SplitStackRequest>(),
+                ComponentType.ReadWrite<PlayerAssignHarvestRequest>()
             }
         };
         m_RequestQuery = GetEntityQuery(queryDesc);

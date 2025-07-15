@@ -3,12 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Централизованная система для обработки запросов на изменение инвентарей.
-/// Обрабатывает запросы на добавление (<c>AddItemRequest</c>) и удаление (<c>RemoveItemRequest</c>)
-/// предметов для любой сущности, имеющей инвентарь.
+/// Обрабатывает запросы на добавление (AddItemRequest) и удаление (RemoveItemRequest) предметов.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(FinalizeBuildingSystem))]
-[UpdateAfter(typeof(ProcessHarvestRequestSystem))]
 public partial class InventorySystem : SystemBase
 {
     /// <summary>
@@ -18,20 +15,15 @@ public partial class InventorySystem : SystemBase
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         
-        // Получаем безопасный доступ к буферам инвентаря всех сущностей для их изменения.
-        var inventoryLookup = GetBufferLookup<InventoryItemElement>(false); 
-        // Получаем доступ к реестру для получения данных о предметах, таких как максимальный размер стака.
+        var inventoryLookup = GetBufferLookup<InventoryItemElement>(); 
         var itemRegistry = ItemRegistry.Instance;
+        if (itemRegistry == null) return;
 
-        if (itemRegistry == null)
-        {
-            return;
-        }
-
-        // Обработка запросов на добавление предметов.
+        // Этап 1: Обработка запросов на добавление предметов
         Entities
-            .WithoutBurst() 
-            .ForEach((Entity requestEntity, in AddItemRequest request) =>
+            .WithoutBurst()
+            .WithChangeFilter<AddItemRequest>() // Оптимизация: система сработает только если появились новые запросы.
+            .ForEach((Entity requestEntity, ref AddItemRequest request) =>
             {
                 // Проверяем, что у целевой сущности есть инвентарь.
                 if (!inventoryLookup.HasBuffer(request.TargetInventoryOwner))
@@ -41,96 +33,88 @@ public partial class InventorySystem : SystemBase
                 }
 
                 var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
-                var itemData = itemRegistry.GetItemData(request.ItemID);
+                int amountToAdd = request.Amount;
+                int actuallyAdded = 0;
+
+                // Сначала пытаемся добавить предметы в уже существующие стаки того же типа.
+                for (int i = 0; i < inventoryBuffer.Length && amountToAdd > 0; i++)
+                {
+                    var element = inventoryBuffer[i];
+                    if (element.ItemID == request.ItemID)
+                    {
+                        var itemData = itemRegistry.GetItemData(request.ItemID);
+                        if (itemData == null) continue;
+                        
+                        int spaceInStack = itemData.maxStack - element.Amount;
+                        int transferAmount = Mathf.Min(amountToAdd, spaceInStack);
+
+                        element.Amount += transferAmount;
+                        inventoryBuffer[i] = element;
+                        
+                        amountToAdd -= transferAmount;
+                        actuallyAdded += transferAmount;
+                    }
+                }
+
+                // Затем пытаемся положить оставшиеся предметы в пустые слоты.
+                for (int i = 0; i < inventoryBuffer.Length && amountToAdd > 0; i++)
+                {
+                    if (inventoryBuffer[i].ItemID == 0)
+                    {
+                        var itemData = itemRegistry.GetItemData(request.ItemID);
+                        if (itemData == null) break;
+
+                        int transferAmount = Mathf.Min(amountToAdd, itemData.maxStack);
+                        
+                        inventoryBuffer[i] = new InventoryItemElement { ItemID = request.ItemID, Amount = transferAmount };
+
+                        amountToAdd -= transferAmount;
+                        actuallyAdded += transferAmount;
+                    }
+                }
                 
-                // Проверяем, что предмет с таким ID существует в реестре.
-                if (itemData == null)
+                // Обновляем поле в запросе, чтобы отразить, сколько предметов было добавлено по факту.
+                request.Amount = actuallyAdded; 
+                
+            }).Run();
+
+        // Этап 2: Обработка запросов на удаление предметов
+        Entities
+            .WithoutBurst()
+            .ForEach((Entity requestEntity, in RemoveItemRequest request) =>
+            {
+                if (!inventoryLookup.HasBuffer(request.TargetInventoryOwner))
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
                 
-                int amountLeftToAdd = request.Amount;
+                var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
+                int amountToRemove = request.Amount;
 
-                // Этап 1: Стекирование. Пытаемся добавить предметы в уже существующие, неполные стаки.
-                if (itemData.maxStack > 1)
+                // Итерируем инвентарь с конца, чтобы безопасно удалять элементы.
+                for (int i = inventoryBuffer.Length - 1; i >= 0 && amountToRemove > 0; i--)
                 {
-                    for (int i = 0; i < inventoryBuffer.Length; i++)
+                    if (inventoryBuffer[i].ItemID == request.ItemID)
                     {
-                        if (amountLeftToAdd <= 0) break;
-
                         var element = inventoryBuffer[i];
-                        // Ищем слот с таким же предметом, в котором еще есть место.
-                        if (element.ItemID == request.ItemID && element.Amount < itemData.maxStack)
+                        int amountToTake = Mathf.Min(amountToRemove, element.Amount);
+                        
+                        element.Amount -= amountToTake;
+                        amountToRemove -= amountToTake;
+
+                        // Если стак полностью опустел, очищаем слот.
+                        if (element.Amount <= 0)
                         {
-                            int spaceInStack = itemData.maxStack - element.Amount;
-                            int amountToMove = Mathf.Min(amountLeftToAdd, spaceInStack);
-                            
-                            element.Amount += amountToMove;
-                            inventoryBuffer[i] = element; 
-                            amountLeftToAdd -= amountToMove;
+                            inventoryBuffer[i] = default; // Эквивалентно new InventoryItemElement { ItemID = 0, Amount = 0 }
+                        }
+                        else
+                        {
+                            inventoryBuffer[i] = element;
                         }
                     }
                 }
-                
-                // Этап 2: Добавление в новые слоты. Если предметы еще остались, ищем пустые слоты.
-                if (amountLeftToAdd > 0)
-                {
-                    for (int i = 0; i < inventoryBuffer.Length; i++)
-                    {
-                        if (amountLeftToAdd <= 0) break;
-
-                        // Пустой слот определяется по ItemID равному 0.
-                        if (inventoryBuffer[i].ItemID == 0)
-                        {
-                            int amountForNewStack = Mathf.Min(amountLeftToAdd, itemData.maxStack);
-                            inventoryBuffer[i] = new InventoryItemElement { ItemID = request.ItemID, Amount = amountForNewStack };
-                            amountLeftToAdd -= amountForNewStack;
-                        }
-                    }
-                }
-                
-                ecb.DestroyEntity(requestEntity);
-
-            }).Run();
-
-        // Обработка запросов на удаление предметов.
-        Entities
-            .WithoutBurst()
-            .ForEach((Entity requestEntity, in RemoveItemRequest request) =>
-            {
-                if (inventoryLookup.HasBuffer(request.TargetInventoryOwner))
-                {
-                    var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
-                    int amountToRemove = request.Amount;
-
-                    // Итерируемся с конца инвентаря чтобы удаление
-                    // из одного слота не повлияло на индексы последующих слотов в той же итерации.
-                    for (int i = inventoryBuffer.Length - 1; i >= 0; i--)
-                    {
-                        if (amountToRemove <= 0) break;
-
-                        if (inventoryBuffer[i].ItemID == request.ItemID)
-                        {
-                            var element = inventoryBuffer[i];
-                            int amountToTake = Mathf.Min(amountToRemove, element.Amount);
-                            
-                            element.Amount -= amountToTake;
-                            amountToRemove -= amountToTake;
-
-                            // Если в стаке не осталось предметов - очищаем слот.
-                            // Мы не удаляем сам элемент из буфера, чтобы сохранить фиксированный размер инвентаря.
-                            if (element.Amount <= 0)
-                            {
-                                inventoryBuffer[i] = new InventoryItemElement { ItemID = 0, Amount = 0 };
-                            }
-                            else
-                            {
-                                inventoryBuffer[i] = element;
-                            }
-                        }
-                    }
-                }
+                // Запрос на удаление считается выполненным и уничтожается.
                 ecb.DestroyEntity(requestEntity);
             }).Run();
     }

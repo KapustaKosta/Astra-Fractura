@@ -69,7 +69,9 @@ public class StartingInventoryAuthoring : MonoBehaviour
             {
                 if (currentSlot >= authoring.capacity)
                 {
+                    #if UNITY_EDITOR
                     Debug.LogWarning($"[StartingInventoryAuthoring] Недостаточно места в инвентаре для всех стартовых предметов на '{authoring.name}'.", authoring.gameObject);
+                    #endif
                     break;
                 }
                 
@@ -78,7 +80,9 @@ public class StartingInventoryAuthoring : MonoBehaviour
                 Item item = startingItem.item;
                 if (item.itemID == 0)
                 {
-                    Debug.LogError($"[StartingInventoryAuthoring] У стартового предмета '{item.name}' невалидный ItemID (0).", authoring.gameObject);
+                    #if UNITY_EDITOR
+                    Debug.LogError($"[StartingInventoryAuthoring] У стартового предмета '{item.name}'  ItemID (0).", authoring.gameObject);
+                    #endif
                     continue;
                 }
 

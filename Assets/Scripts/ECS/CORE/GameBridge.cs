@@ -36,7 +36,9 @@ public class GameBridge : MonoBehaviour
         }
         else
         {
+            #if UNITY_EDITOR
             Debug.LogError("[GameBridge] ECS World не найден при вызове Start().");
+            #endif
         }
     }
 
@@ -48,7 +50,9 @@ public class GameBridge : MonoBehaviour
     {
         if (entityManager.World == null || !entityManager.World.IsCreated)
         {
+            #if UNITY_EDITOR
             Debug.LogError("[GameBridge] Невозможно отправить CloseAllUIRequest: EntityManager не валиден.");
+            #endif
             return;
         }
 

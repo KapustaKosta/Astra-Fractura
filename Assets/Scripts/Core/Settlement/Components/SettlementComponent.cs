@@ -26,3 +26,9 @@ public struct SettlementComponent : IComponentData
     /// </summary>
     public FixedList64Bytes<Entity> NPCs;
 }
+
+/// <summary>
+/// Компонент-тег, указывающий, что в инвентаре поселения
+/// нет ни одного свободного слота. Управляется системой SettlementInventoryStateSystem.
+/// </summary>
+public struct SettlementInventoryFullTag : IComponentData { }

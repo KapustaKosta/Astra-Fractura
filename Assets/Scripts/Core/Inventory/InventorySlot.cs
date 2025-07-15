@@ -51,7 +51,9 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         // Эта проверка остается на всякий случай, она срабатывает самой первой.
         if (icon == null || amountText == null || slotButton == null)
         {
-            Debug.LogError($"[InventorySlot AWAKE CHECK] Одна или несколько ссылок (Icon, AmountText, SlotButton) не установлены для слота '{this.gameObject.name}'!", this.gameObject);
+            #if UNITY_EDITOR
+            Debug.LogError($"Одна или несколько ссылок (Icon, AmountText, SlotButton) не установлены для слота '{this.gameObject.name}'!", this.gameObject);
+            #endif
         }
     }
 
@@ -79,14 +81,19 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
 
         if (icon == null || amountText == null)
         {
-            Debug.LogError($"[InventorySlot SETUP CHECK] FATAL: Ссылки на UI элементы (Icon, AmountText) равны NULL на слоте '{this.gameObject.name}'.", this.gameObject);
+            #if UNITY_EDITOR
+            Debug.LogError($"Ссылки на UI элементы (Icon, AmountText) не установлены для '{this.gameObject.name}'.", this.gameObject);
             return;
+            #endif
         }
 
         if (currentItem.icon == null)
         {
-            Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID}) в ассете не назначен спрайт. Иконка будет скрыта.");
+            #if UNITY_EDITOR
+            Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID})" +
+                             $" в ассете не назначен спрайт. Иконка будет скрыта.");
             icon.enabled = false;
+            #endif
         }
         else
         {

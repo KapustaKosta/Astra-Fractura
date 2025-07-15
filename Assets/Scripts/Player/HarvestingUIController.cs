@@ -53,20 +53,41 @@ public class HarvestingUIController : MonoBehaviour
             return;
         }
 
-        // Проверяем, есть ли у игрока тег IsHarvestingTag
-        bool isHarvesting = entityManager.HasComponent<IsHarvestingTag>(playerEntity);
+
+        // Ищем намерение добывать (WantsToHarvestTag).
+        bool isTryingToHarvest = entityManager.HasComponent<WantsToHarvestTag>(playerEntity);
 
         // Синхронизируем видимость текстового поля
-        if (harvestText.gameObject.activeSelf != isHarvesting)
+        if (harvestText.gameObject.activeSelf != isTryingToHarvest)
         {
-            harvestText.gameObject.SetActive(isHarvesting);
+            harvestText.gameObject.SetActive(isTryingToHarvest);
         }
 
-        // Если добываем - обновляем текст
-        if (isHarvesting)
+        // Если UI должен быть виден, обновляем текст
+        if (isTryingToHarvest)
         {
-            var harvestingTag = entityManager.GetComponentData<IsHarvestingTag>(playerEntity);
-            UpdateHarvestText(harvestingTag.ResourceType);
+            // Чтобы узнать, ЧТО добывается, нам нужна цель из компонента ActiveTarget.
+            if (entityManager.HasComponent<ActiveTarget>(playerEntity))
+            {
+                var targetEntity = entityManager.GetComponentData<ActiveTarget>(playerEntity).Value;
+                
+                // Убедимся, что цель существует и является ресурсом
+                if (entityManager.HasComponent<ResourceNode>(targetEntity))
+                {
+                    var resourceType = entityManager.GetComponentData<ResourceNode>(targetEntity).resourceType;
+                    UpdateHarvestText(resourceType);
+                }
+                else
+                {
+                    // Если цель по какой-то причине невалидна, прячем UI, чтобы избежать ошибок
+                    harvestText.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                // Если есть намерение, но нет цели - это некорректное состояние. Прячем UI.
+                harvestText.gameObject.SetActive(false);
+            }
         }
     }
 

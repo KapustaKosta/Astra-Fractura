@@ -526,6 +526,38 @@ PrefabInstance:
       propertyPath: m_Material.m_CollidesWithCategories.m_Value.Category10
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: harvestRange
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: stoppingDistance
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.data[1].Type
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.data[2].Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.data[0].BaseScore
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.data[1].BaseScore
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4228581274504356608, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: availableActions.Array.data[2].BaseScore
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 5133882332170827246, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
       propertyPath: m_Mass
       value: 70
@@ -556,11 +588,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5133882332170827246, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
       propertyPath: m_OverrideDefaultMassDistribution
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631267094362663696, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: Speed
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6631267094362663696, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
       propertyPath: StoppingDistance
-      value: 2
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631267094362663696, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      propertyPath: ReturnToBaseStoppingDistance
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -569,6 +609,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2067346503}
+    - targetCorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2067346508}
+    - targetCorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2067346510}
   m_SourcePrefab: {fileID: 100100000, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
 --- !u!1 &326795451
 GameObject:
@@ -921,6 +967,7 @@ GameObject:
   - component: {fileID: 1313986273}
   - component: {fileID: 1313986274}
   - component: {fileID: 1313986275}
+  - component: {fileID: 1313986276}
   m_Layer: 8
   m_Name: PlayerECS
   m_TagString: Player
@@ -965,7 +1012,6 @@ MonoBehaviour:
   InteractableLayers:
     serializedVersion: 2
     m_Bits: 640
-  HarvestInterval: 0.5
   RotationSpeed: 1
   LookInputDeadzone: 0.01
   TopClamp: 90
@@ -1215,6 +1261,20 @@ MonoBehaviour:
     amount: 1
   - item: {fileID: 11400000, guid: 953c5c60a280c294db3b9cc4b8e1d9c4, type: 2}
     amount: 1
+--- !u!114 &1313986276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313986264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a18579bf6345bbb23d1d442073687f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  harvestInterval: 1
+  interactionRange: 8
 --- !u!1 &1476490278
 GameObject:
   m_ObjectHideFlags: 0
@@ -2282,8 +2342,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3c6c4aea9034d4ea48ebd7aed58a884, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  capacity: 20
+  capacity: 1
   startingItems: []
+--- !u!114 &2067346508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1020355905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a18579bf6345bbb23d1d442073687f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  harvestInterval: 1
+  interactionRange: 4
+--- !u!114 &2067346510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1020355905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dce3aaf8d20454c91980e50b148d874, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AISearchRadius: 100
+  ResourceCollisionLayer: 6
+  PlayerAssignHarvestPriority: 999
+  PlayerAssignReturnPriority: 1000
+  RotationSpeed: 10
+  HarvestInteractionRangeBuffer: 0.9
+  ReturnToBaseStoppingDistanceBuffer: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

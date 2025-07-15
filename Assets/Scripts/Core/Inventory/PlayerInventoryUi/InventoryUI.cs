@@ -151,7 +151,9 @@ public class InventoryUI : MonoBehaviour
                 break;
 
             default:
+                #if UNITY_EDITOR
                 Debug.LogWarning($"[InventoryUI] Неизвестный тип предмета: {item.itemType}");
+                #endif
                 break;
         }
     }

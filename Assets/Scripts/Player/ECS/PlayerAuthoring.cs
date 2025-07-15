@@ -86,15 +86,13 @@ public class PlayerAuthoring : MonoBehaviour
     /// </summary>
     public LayerMask IgnoreLayers;
     
-    [Header("Interaction & Harvesting")]
+    [Header("Interaction & Targeting")]
     [Tooltip("Максимальная дистанция для взаимодействия (ПКМ).")]
     public float InteractionDistance = 5.0f;
     [Tooltip("Максимальная дистанция для обнаружения цели (для подсветки).")]
     public float TargetingDistance = 10.0f;
     [Tooltip("Слои, с которыми можно взаимодействовать.")]
     public LayerMask InteractableLayers;
-    [Tooltip("Интервал между 'тиками' добычи ресурсов в секундах.")]
-    public float HarvestInterval = 0.5f;
 
     /// <summary>
     /// Скорость вращения игрока/камеры.
@@ -153,7 +151,7 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
 {
     /// <summary>
     /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
-    /// Этот Baker больше НЕ отвечает за создание инвентаря.
+    /// Этот Baker больше не отвечает за создание инвентаря.
     /// </summary>
     /// <param name="authoring">Экземпляр PlayerAuthoring.</param>
     public override void Bake(PlayerAuthoring authoring)
@@ -201,7 +199,6 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             InteractionDistance = authoring.InteractionDistance,
             InteractableLayers = authoring.InteractableLayers.value,
             TargetingDistance = authoring.TargetingDistance,
-            HarvestInterval = authoring.HarvestInterval,
             GroundedVerticalVelocity = authoring.GroundedVerticalVelocity,
             LookInputDeadzone = authoring.LookInputDeadzone,
             SpeedSnapThreshold = authoring.SpeedSnapThreshold
@@ -217,7 +214,6 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             jumpTimeoutDelta = authoring.JumpTimeout,
             fallTimeoutDelta = authoring.FallTimeout,
             isGrounded = true,
-            LastHarvestTime = -1f
         });
 
         AddComponent<InputsData>(entity);

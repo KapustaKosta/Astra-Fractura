@@ -61,8 +61,10 @@ public partial class PreviewMaterialSystem : SystemBase
                 }
                 else
                 {
+                    #if UNITY_EDITOR
                     Debug.LogWarning("PreviewMaterialSystem: материалы превью не инициализированы — " +
                                      "проверьте BuildingSettingsAuthoring.");
+                    #endif
                 }
             }
         }

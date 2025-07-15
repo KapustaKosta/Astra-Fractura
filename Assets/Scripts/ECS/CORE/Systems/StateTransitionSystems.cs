@@ -18,9 +18,10 @@ public partial class EnterBuildingModeSystem : SystemBase
         foreach (var (request, requestEntity) in 
                  SystemAPI.Query<RefRO<EnterBuildingModeRequest>>().WithEntityAccess())
         {
-            
+            #if UNITY_EDITOR
             Debug.Log($"[EnterBuildingModeSystem] Обнаружен запрос EnterBuildingModeRequest (Entity: {requestEntity.Index}," +
                       $" ItemID: {request.ValueRO.ItemID}).");
+            #endif
 
             if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
             {
@@ -31,8 +32,10 @@ public partial class EnterBuildingModeSystem : SystemBase
             
             if (prefab != Entity.Null)
             {
+                #if UNITY_EDITOR
                 Debug.Log($"[EnterBuildingModeSystem] Префаб для ItemID {request.ValueRO.ItemID} успешно найден." +
                           $" Применяю смену состояния на InBuildingMode.");
+                #endif
                 
                 // Удаляем старые теги и данные
                 ecb.RemoveComponent<InDefaultMode>(gameStateEntity);

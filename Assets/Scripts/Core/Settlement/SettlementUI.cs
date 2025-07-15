@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.Entities;
 using TMPro;
 using UnityEngine.UI;
-using Unity.Collections;
+using Unity.Collections; // For FixedList64Bytes
 
 /// <summary>
 /// Управляет пользовательским интерфейсом Поселения, отображая его статистику
@@ -31,6 +31,10 @@ public class SettlementUI : MonoBehaviour
     private EntityManager entityManager;
     private Entity currentSettlementEntity;
 
+
+    private int lastKnownNpcCount = -1;
+    private bool lastTradeButtonActiveState = false;
+
     /// <summary>
     /// Инициализирует Singleton-экземпляр и проверяет наличие UI-элементов.
     /// </summary>
@@ -43,7 +47,9 @@ public class SettlementUI : MonoBehaviour
             tradeButton == null || 
             npcListContainer == null || npcListItemPrefab == null)
         {
+            #if UNITY_EDITOR
             Debug.LogError("[SettlementUI] Не все UI элементы назначены в инспекторе! Компонент будет отключен.", this);
+            #endif
             enabled = false;
         }
     }
@@ -91,14 +97,28 @@ public class SettlementUI : MonoBehaviour
                 if (entityManager.Exists(uiState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(uiState.ActiveUITarget))
                 {
                     currentSettlementEntity = uiState.ActiveUITarget;
-                    var settlementData = entityManager.GetComponentData<SettlementComponent>(currentSettlementEntity);
-                    Show(settlementData);
+                    // Вызываем Show, но без аргументов, чтобы оно само прочитало актуальные данные
+                    Show(); 
                 }
             }
             else
             {
                 Hide();
             }
+        }
+    }
+
+    /// <summary>
+    /// Вызывается каждый кадр после всех обновлений. Если панель торговли активна,
+    /// обновляет данные в слотах обоих инвентарей (игрока и цели).
+    /// </summary>
+    void LateUpdate()
+    {
+        if (uiPanel != null && uiPanel.activeSelf && currentSettlementEntity != Entity.Null && entityManager.Exists(currentSettlementEntity))
+        {
+            // Здесь обновляем UI поселения каждый кадр, чтобы динамически отображать изменения статусов NPC
+            var settlementData = entityManager.GetComponentData<SettlementComponent>(currentSettlementEntity);
+            RefreshUI(in settlementData);
         }
     }
 
@@ -117,18 +137,49 @@ public class SettlementUI : MonoBehaviour
 
     /// <summary>
     /// Отображает окно UI поселения с актуальными данными.
+    /// Вызывается при первом открытии окна.
     /// </summary>
-    private void Show(SettlementComponent settlement)
+    private void Show()
     {
         if (!enabled) return;
+        uiPanel.SetActive(true);
+        // Сброс для перерисовки списка NPC и кнопок при первом открытии
+        lastKnownNpcCount = -1; 
+        lastTradeButtonActiveState = !tradeButton.gameObject.activeSelf; // Принудительный сброс
+
+        // Первичное обновление данных
+        if (entityManager.Exists(currentSettlementEntity))
+        {
+            var settlementData = entityManager.GetComponentData<SettlementComponent>(currentSettlementEntity);
+            RefreshUI(in settlementData, true); // Принудительная полная перерисовка
+        }
+    }
+
+    /// <summary>
+    /// Обновляет все элементы UI поселения.
+    /// </summary>
+    /// <param name="settlement">Актуальные данные поселения.</param>
+    /// <param name="forceUpdateNPCList">Принудительно перерисовать список NPC.</param>
+    private void RefreshUI(in SettlementComponent settlement, bool forceUpdateNPCList = false)
+    {
         settlementNameText.text = settlement.Name.ToString();
         statsText.text = $"Уровень: {settlement.Level}\nНаселение: {settlement.Population}";
     
-        UpdateNPCList(in settlement.NPCs);
-        uiPanel.SetActive(true);
+        // Обновляем список NPC только если изменилось количество или принудительно
+        if (forceUpdateNPCList || settlement.NPCs.Length != lastKnownNpcCount)
+        {
+            UpdateNPCList(in settlement.NPCs);
+            lastKnownNpcCount = settlement.NPCs.Length;
+        }
+        // В противном случае, если количество не менялось, UpdateNPCList не пересоздает все кнопки,
+        // но NPCUISystem может обновить их текст через свои собственные обновления.
 
         bool hasInventory = entityManager.HasComponent<HasInventoryTag>(currentSettlementEntity);
-        tradeButton.gameObject.SetActive(hasInventory);
+        if (tradeButton.gameObject.activeSelf != hasInventory || forceUpdateNPCList) // Обновляем состояние кнопки торговли
+        {
+            tradeButton.gameObject.SetActive(hasInventory);
+            lastTradeButtonActiveState = hasInventory;
+        }
     }
 
     /// <summary>
@@ -139,6 +190,8 @@ public class SettlementUI : MonoBehaviour
         if (!enabled || uiPanel == null) return;
         uiPanel.SetActive(false);
         currentSettlementEntity = Entity.Null;
+        ClearNPCList(); // Очищаем список при скрытии
+        lastKnownNpcCount = -1; // Сбрасываем состояние
     }
 
     /// <summary>
@@ -169,7 +222,7 @@ public class SettlementUI : MonoBehaviour
         ClearNPCList();
 
         bool hasNpcs = npcList.Length > 0;
-        npcListContainer.SetActive(hasNpcs);
+        npcListContainer.gameObject.SetActive(hasNpcs);
 
         if (!hasNpcs) return;
 
@@ -186,11 +239,11 @@ public class SettlementUI : MonoBehaviour
             
             if (nameText != null)
             {
-                
                 string npcName = npcData.Name.ToString();
-                string statusText = " - Простаивает";
+                string statusText = " - Простаивает"; // По умолчанию
 
-                if (npcData.Target != Entity.Null)
+                // NPCComponent.Target теперь синхронизируется с NPCActiveTask.Target
+                if (npcData.Target != Entity.Null && entityManager.Exists(npcData.Target))
                 {
                     if (entityManager.HasComponent<ResourceNode>(npcData.Target))
                     {
@@ -199,7 +252,7 @@ public class SettlementUI : MonoBehaviour
                     }
                     else
                     {
-                        statusText = " - Занят";
+                        statusText = " - Занят"; // Если цель есть, но не ResourceNode
                     }
                 }
                 

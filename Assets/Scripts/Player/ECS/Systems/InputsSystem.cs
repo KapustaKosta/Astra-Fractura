@@ -116,7 +116,7 @@ public partial class InputsSystem : SystemBase
         
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
-        bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity); // Добавлено
+        bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity); 
 
         // Обработка правой кнопки мыши: если в режиме строительства, то это запрос на выход,
         // иначе - запрос на взаимодействие.

@@ -44,7 +44,9 @@ public class DragAndDropHandler : MonoBehaviour
 
         if (draggedIconImage == null)
         {
+            #if UNITY_EDITOR
             Debug.LogError("[DragAndDropHandler] Не назначен компонент Image для DragAndDropHandler.", this);
+            #endif
             return;
         }
 

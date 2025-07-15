@@ -4,7 +4,8 @@ using Unity.Collections;
 
 /// <summary>
 /// Authoring-компонент для определения поселений в ECS.
-/// Позволяет настраивать базовые параметры поселения, а также наличие у него склада.
+/// Позволяет настраивать базовые параметры поселения.
+/// Возможность иметь инвентарь (склад) теперь добавляется через компонент StartingInventoryAuthoring.
 /// </summary>
 [DisallowMultipleComponent]
 public class SettlementAuthoring : MonoBehaviour
@@ -22,13 +23,6 @@ public class SettlementAuthoring : MonoBehaviour
     [Header("Player Settings")]
     [Tooltip("Отметьте, если это здание может стать ГЛАВНЫМ поселением игрока, когда будет построено ПЕРВЫМ.")]
     public bool canBecomePlayerSettlement = true;
-
-    [Header("Storage Settings")]
-    [Tooltip("Отметьте, если у этого поселения должен быть собственный инвентарь (склад).")]
-    public bool hasStorage = false;
-    
-    [Tooltip("Вместимость склада в слотах, если он есть.")]
-    public int storageCapacity = 100;
 
     /// <summary>
     /// Baker-класс, который преобразует данные из MonoBehaviour в ECS-компоненты.
@@ -56,15 +50,6 @@ public class SettlementAuthoring : MonoBehaviour
             if (authoring.canBecomePlayerSettlement)
             {
                 AddComponent<PlayerSettlementCandidateTag>(entity);
-            }
-            
-            // Если в инспекторе указано, что у поселения есть склад,
-            // добавляем ему все необходимые для инвентаря компоненты.
-            if (authoring.hasStorage)
-            {
-                AddComponent<HasInventoryTag>(entity);
-                AddComponent(entity, new InventoryProperties { Capacity = authoring.storageCapacity });
-                AddBuffer<InventoryItemElement>(entity);
             }
         }
     }

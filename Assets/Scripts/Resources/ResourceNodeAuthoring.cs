@@ -1,5 +1,6 @@
 using Unity.Entities;
 using UnityEngine;
+using System;
 
 class ResourceNodeAuthoring : MonoBehaviour
 {
@@ -26,7 +27,7 @@ class ResourceNodeAuthoring : MonoBehaviour
     }
 }
 
-public struct ResourceNode : IComponentData
+public partial struct ResourceNode : IComponentData
 {
     public int speedOfCollection;
     public ResourceCollectionType resourceType;

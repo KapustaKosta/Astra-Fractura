@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using Unity.Entities; // Добавлено для доступа к ECS
+using Unity.Entities;
 
 /// <summary>
 /// MonoBehaviour для разрушаемого ресурсного узла.
@@ -39,7 +39,9 @@ public class ResourcesNode : MonoBehaviour
         // Проверяем, есть ли у инструмента флаги для добычи этого ресурса
         if (requiredTool != null && (toolUsed == null || !toolUsed.canHarvest.HasFlag(resourceType)))
         {
+            #if UNITY_EDITOR
             Debug.Log($"Нужен правильный инструмент для добычи: {resourceType}");
+            #endif
             return;
         }
 
@@ -50,6 +52,7 @@ public class ResourcesNode : MonoBehaviour
         }
 
         health -= damage;
+        
         Debug.Log($"Ресурс {gameObject.name} получил {damage} урона. Осталось здоровья: {health}");
 
         if (health <= 0)
@@ -63,7 +66,9 @@ public class ResourcesNode : MonoBehaviour
         // Проверяем, доступен ли мир ECS
         if (World.DefaultGameObjectInjectionWorld == null || !World.DefaultGameObjectInjectionWorld.IsCreated)
         {
+            #if UNITY_EDITOR
             Debug.LogError("ResourcesNode: Не удалось выдать добычу, так как мир ECS не доступен.");
+            #endif
             return;
         }
 
@@ -74,7 +79,9 @@ public class ResourcesNode : MonoBehaviour
         var playerQuery = entityManager.CreateEntityQuery(typeof(PlayerControllerData));
         if (playerQuery.IsEmpty)
         {
+            #if UNITY_EDITOR
             Debug.LogError("ResourcesNode: Не удалось найти сущность игрока для выдачи добычи.");
+            #endif
             return;
         }
         var playerEntity = playerQuery.GetSingletonEntity();
@@ -99,7 +106,9 @@ public class ResourcesNode : MonoBehaviour
                     ItemID = drop.item.itemID,
                     Amount = amount
                 });
+                #if UNITY_EDITOR
                 Debug.Log($"Создан запрос на выдачу {amount}x '{drop.item.itemName}' (ID: {drop.item.itemID}) игроку.");
+                #endif
             }
         }
         

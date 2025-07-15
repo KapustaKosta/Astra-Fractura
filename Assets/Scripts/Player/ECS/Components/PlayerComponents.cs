@@ -1,5 +1,4 @@
 ﻿using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 using Unity.Physics;
 
@@ -92,7 +91,6 @@ public struct PlayerControllerData : IComponentData
     public float InteractionDistance;
     public int InteractableLayers;
     public float TargetingDistance;
-    public float HarvestInterval;
     public float GroundedVerticalVelocity;
     public float LookInputDeadzone;
     public float SpeedSnapThreshold;

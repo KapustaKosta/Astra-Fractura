@@ -39,7 +39,9 @@ public static class ItemToEntityResolver
         
         
         // Если мы дошли до сюда, префаб не был найден.
+        #if UNITY_EDITOR
         Debug.LogError($"[ItemToEntityResolver] Не удалось найти префаб сущности для ItemID: {itemID}.");
+        #endif
         return Entity.Null;
     }
 }

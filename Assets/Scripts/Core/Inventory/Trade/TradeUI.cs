@@ -118,7 +118,9 @@ public class TradeUI : MonoBehaviour
     {
         if (!isInitialized || playerEntity == Entity.Null)
         {
+            #if UNITY_EDITOR
             Debug.LogError("[TradeUI] Не удалось показать окно: UI не инициализирован или не найдена сущность игрока.");
+            #endif
             return;
         }
         

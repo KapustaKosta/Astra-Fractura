@@ -1,9 +1,8 @@
 ﻿using Unity.Entities;
-using Unity.Transforms;
+using UnityEngine; 
 
 /// <summary>
-/// Система, обрабатывающая действия, связанные с главным поселением игрока,
-/// такие как найм NPC и назначение им задач.
+/// Обрабатывает действия, инициированные от имени поселения, например, найм NPC.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class SettlementActionsSystem : SystemBase
@@ -13,7 +12,8 @@ public partial class SettlementActionsSystem : SystemBase
     /// </summary>
     protected override void OnCreate()
     {
-        RequireForUpdate<PlayerSettlementTag>(); 
+        // Система будет работать, только если в мире есть сущность с тегом поселения.
+        RequireForUpdate<PlayerSettlementTag>();
     }
 
     /// <summary>
@@ -21,40 +21,41 @@ public partial class SettlementActionsSystem : SystemBase
     /// </summary>
     protected override void OnUpdate()
     {
+        // Нет смысла распараллеливать эту систему, так как она всегда работает
+        // с одним-единственным поселением и небольшим количеством запросов.
+        // Используем один CommandBuffer для всех операций.
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         
-        var playerSettlementEntity = SystemAPI.GetSingletonEntity<PlayerSettlementTag>();
-        var settlementData = SystemAPI.GetComponentRW<SettlementComponent>(playerSettlementEntity);
+        // Получаем прямой доступ на запись к компоненту нашего синглтона.
+        var settlementData = SystemAPI.GetSingletonRW<SettlementComponent>();
 
+        // Обработка запросов на найм NPC
         Entities
             .WithoutBurst()
             .ForEach((in HireNPCRequest request) =>
             {
-                if (!SystemAPI.Exists(request.NPCToHire)) return;
-
-                if (settlementData.ValueRO.NPCs.Length < settlementData.ValueRO.NPCs.Capacity && !SystemAPI.HasComponent<NPCHiredTag>(request.NPCToHire))
+                // Проверяем, существует ли NPC и не нанят ли он уже
+                if (!SystemAPI.Exists(request.NPCToHire) || SystemAPI.HasComponent<NPCHiredTag>(request.NPCToHire))
                 {
+                    return; 
+                }
+                
+                // Проверяем, есть ли место в поселении
+                if (settlementData.ValueRO.NPCs.Length < settlementData.ValueRO.NPCs.Capacity)
+                {
+                    // Найм: добавляем NPC в список поселения и ставим ему тег
                     settlementData.ValueRW.NPCs.Add(request.NPCToHire);
                     settlementData.ValueRW.Population += 1;
                     ecb.AddComponent<NPCHiredTag>(request.NPCToHire);
                 }
-            }).Run();
-
-        Entities
-            .ForEach((in AssignNPCToTaskRequest request) =>
-            {
-                if (!SystemAPI.Exists(request.NPC) || !SystemAPI.Exists(request.TargetResourceNode)) return;
-
-                if (SystemAPI.HasComponent<NPCComponent>(request.NPC) && SystemAPI.HasComponent<NPCMovementComponent>(request.NPC))
+                else
                 {
-                    var npcData = SystemAPI.GetComponentRW<NPCComponent>(request.NPC);
-                    npcData.ValueRW.Target = request.TargetResourceNode;
-
-                    var movementData = SystemAPI.GetComponentRW<NPCMovementComponent>(request.NPC);
-                    var targetTransform = SystemAPI.GetComponent<LocalTransform>(request.TargetResourceNode);
-                    movementData.ValueRW.TargetPosition = targetTransform.Position;
-                    movementData.ValueRW.HasTarget = true;
+                    #if UNITY_EDITOR
+                    Debug.LogWarning($"Недостаточно места в поселении для найма NPC {request.NPCToHire.Index}.");
+                    #endif
                 }
-            }).Schedule();
+                
+            })
+            .Run();
     }
 }
