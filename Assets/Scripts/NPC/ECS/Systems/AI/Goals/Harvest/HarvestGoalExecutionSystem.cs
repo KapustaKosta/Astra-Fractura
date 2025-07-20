@@ -3,9 +3,9 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 /// <summary>
-/// Система выполнения цели "Сбор ресурсов" для ИИ.
-/// Обрабатывает логику перемещения NPC к ресурсу и началу сбора.
-/// Обновляется в группе SimulationSystemGroup после NPCTaskCleanupSystem.
+/// Система выполнения цели "Сбор ресурсов" для ИИ-агентов.
+/// Управляет переходом NPC в режим добычи при достижении цели,
+/// контролируя начало и завершение процесса сбора ресурсов.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(NPCTaskCleanupSystem))]
@@ -17,66 +17,61 @@ public partial class HarvestGoalExecutionSystem : SystemBase
     /// </summary>
     protected override void OnUpdate()
     {
-        // Получаем командный буфер и настройки AI
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var settings = SystemAPI.GetSingleton<AISettings>();
+        // Получаем прямой доступ к EntityManager для немедленного изменения компонентов
+        var entityManager = this.EntityManager;
 
+        // Обрабатываем всех сущностей с ИИ-движением и активной целью
         Entities
-            .ForEach((Entity entity, in ActiveGoal goal, in HarvesterSettings harvesterSettings) =>
+            .WithStructuralChanges() // Разрешаем структурные изменения в текущем потоке
+            .ForEach((Entity entity, ref NPCMovementComponent movement, in ActiveGoal goal, 
+                     in HarvesterSettings harvesterSettings, in LocalToWorld npcTransform) =>
             {
-                // Проверяем, что это цель на сбор ресурсов
-                if (goal.Type != GoalType.Harvest) return;
-                
-                // Проверяем существование цели (если ресурс уничтожен, пропускаем)
-                if (!SystemAPI.HasComponent<LocalToWorld>(goal.Target)) return;
-                
-                // Получаем позиции NPC и цели
-                var targetTransform = SystemAPI.GetComponent<LocalToWorld>(goal.Target);
-                var npcTransform = SystemAPI.GetComponent<LocalToWorld>(entity);
-                
-                // Рассчитываем расстояние до цели
-                float sqrDistance = math.distancesq(npcTransform.Position, targetTransform.Position);
-                float interactionRange = harvesterSettings.InteractionRange * settings.HarvestInteractionRangeBuffer;
-                bool isInRange = sqrDistance <= interactionRange * interactionRange;
+                // Проверяем, что цель - сбор ресурсов и есть корректная целевая сущность
+                if (goal.Type != GoalType.Harvest || 
+                    goal.Target == Entity.Null || 
+                    !entityManager.HasComponent<LocalToWorld>(goal.Target)) 
+                {
+                    return;
+                }
 
-                if (isInRange)
+                // Проверяем, достиг ли NPC цели (движение завершено)
+                bool hasArrived = !movement.HasTarget;
+                
+                // Получаем позицию цели
+                var targetTransform = entityManager.GetComponentData<LocalToWorld>(goal.Target);
+                
+                // Проверяем, находится ли NPC в радиусе взаимодействия
+                // Используем distance squared для избежания вычисления корня
+                bool isInRange = math.distancesq(npcTransform.Position, targetTransform.Position) 
+                               <= harvesterSettings.InteractionRange * harvesterSettings.InteractionRange;
+
+                // Проверяем наличие метки активного сбора
+                bool wantsToHarvest = entityManager.HasComponent<WantsToHarvestTag>(entity);
+
+                // Логика управления состоянием сбора:
+                if (hasArrived && isInRange)
                 {
-                    // NPC на месте - останавливаем движение и устанавливаем метки
-                    if (SystemAPI.HasComponent<MoveToRequest>(entity))
-                        ecb.RemoveComponent<MoveToRequest>(entity);
-                    
-                    if (!SystemAPI.HasComponent<IsAtHarvestTargetTag>(entity))
-                        ecb.AddComponent<IsAtHarvestTargetTag>(entity);
-                    
-                    // Устанавливаем намерение собирать ресурсы и активную цель
-                    if (!SystemAPI.HasComponent<WantsToHarvestTag>(entity))
+                    // Условия выполнены - начинаем или продолжаем сбор
+                    if (!wantsToHarvest)
                     {
-                        ecb.AddComponent<WantsToHarvestTag>(entity);
-                        ecb.AddComponent(entity, new ActiveTarget { Value = goal.Target }); 
+                        // Активируем режим сбора:
+                        entityManager.AddComponent<WantsToHarvestTag>(entity);
+                        // Устанавливаем целевой объект для взаимодействия
+                        entityManager.AddComponentData(entity, new ActiveTarget { Value = goal.Target });
                     }
                 }
-                else 
+                else
                 {
-                    // NPC далеко от цели - организуем движение
-                    if (SystemAPI.HasComponent<IsAtHarvestTargetTag>(entity))
-                        ecb.RemoveComponent<IsAtHarvestTargetTag>(entity);
-                    
-                    // Отменяем намерение собирать и очищаем цель
-                    if (SystemAPI.HasComponent<WantsToHarvestTag>(entity))
+                    // Условия НЕ выполнены - прекращаем сбор
+                    if (wantsToHarvest)
                     {
-                        ecb.RemoveComponent<WantsToHarvestTag>(entity);
-                        ecb.RemoveComponent<ActiveTarget>(entity); 
-                    }
-                    
-                    // Запрашиваем движение к цели, если еще не движемся
-                    if (!SystemAPI.HasComponent<MoveToRequest>(entity))
-                    {
-                        ecb.AddComponent(entity, new MoveToRequest {
-                            TargetEntity = goal.Target,
-                            StoppingDistance = interactionRange 
-                        });
+                        // Деактивируем режим сбора:
+                        entityManager.RemoveComponent<WantsToHarvestTag>(entity);
+                        // Очищаем ссылку на активную цель
+                        entityManager.RemoveComponent<ActiveTarget>(entity);
                     }
                 }
-            }).Schedule();
+
+            }).Run();
     }
 }

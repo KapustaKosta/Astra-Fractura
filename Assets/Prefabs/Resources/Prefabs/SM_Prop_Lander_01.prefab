@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 9147086838807349976}
   - component: {fileID: 827330485550422585}
   - component: {fileID: 7345954253596040985}
+  - component: {fileID: 1728844498447106098}
+  - component: {fileID: -2414500593566360699}
   m_Layer: 9
   m_Name: SM_Prop_Lander_01
   m_TagString: Untagged
@@ -105,6 +107,8 @@ MonoBehaviour:
   startingPopulation: 0
   startingLevel: 1
   canBecomePlayerSettlement: 1
+  hasStorage: 0
+  storageCapacity: 100
 --- !u!114 &827330485550422585
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -262,3 +266,35 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   capacity: 1
   startingItems: []
+--- !u!208 &1728844498447106098
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 123924}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 3.2210002, y: 1.2440001, z: 3.2210002}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 1.2440001, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &-2414500593566360699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 123924}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac18ca47d8fd486ab84a6f95a7c35ea0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ArrivalOffset:
+    x: 0
+    y: 0
+    z: -6.21

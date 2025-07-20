@@ -44,3 +44,4 @@ public struct IsAtHarvestTargetTag : IComponentData {}
 /// действия по разгрузке инвентаря.
 /// </summary>
 public struct IsUnloadingTag : IComponentData { }
+

@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using UnityEngine; 
 
 /// <summary>
 /// Система разгрузки инвентаря NPC при возврате на базу.
@@ -38,7 +39,7 @@ public partial class NPCUnloadSystem : SystemBase
                 
                 // Очищаем метки после создания запроса
                 ecb.RemoveComponent<UnloadRequestTag>(entity);
-                ecb.RemoveComponent<ActiveGoal>(entity);
+
             }).Schedule();
     }
 }
