@@ -21,6 +21,10 @@ public partial class InputsSystem : SystemBase
     private double lastJumpTime;
     private bool primaryActionInput;
 
+    // Поля для хранения состояния ввода для квикбара.
+    private int quickbarDigitPressed;
+    private float quickbarScrollDelta;
+
     /// <summary>
     /// Вызывается при создании системы. Гарантирует, что синглтон GameState и игрок существуют.
     /// </summary>
@@ -42,12 +46,18 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onInventory += OnInventory;
         StarterAssetsInputs.onRightClick += OnRightClick;
         StarterAssetsInputs.onPrimaryAction += OnPrimaryAction;
+        StarterAssetsInputs.onQuickbarDigit += OnQuickbarDigit;
+        StarterAssetsInputs.onQuickbarScroll += OnQuickbarScroll;
         
         inventoryRequested = false;
         rightClickRequested = false;
         jumpRequested = false;
         primaryActionInput = false;
         lastJumpTime = double.NegativeInfinity;
+
+        // Инициализируем поля для квикбара.
+        quickbarDigitPressed = 0;
+        quickbarScrollDelta = 0f;
     }
 
     /// <summary>
@@ -62,6 +72,8 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onInventory -= OnInventory;
         StarterAssetsInputs.onRightClick -= OnRightClick;
         StarterAssetsInputs.onPrimaryAction -= OnPrimaryAction;
+        StarterAssetsInputs.onQuickbarDigit -= OnQuickbarDigit;
+        StarterAssetsInputs.onQuickbarScroll -= OnQuickbarScroll;
     }
 
     /// <summary>
@@ -98,6 +110,16 @@ public partial class InputsSystem : SystemBase
     /// Обработчик для основного действия (ЛКМ).
     /// </summary>
     private void OnPrimaryAction(bool isPressed) => primaryActionInput = isPressed;
+
+    /// <summary>
+    /// Обработчик события нажатия цифровой клавиши квикбара.
+    /// </summary>
+    private void OnQuickbarDigit(int digit) => quickbarDigitPressed = digit;
+
+    /// <summary>
+    /// Обработчик события прокрутки колеса мыши для квикбара.
+    /// </summary>
+    private void OnQuickbarScroll(float delta) => quickbarScrollDelta = delta;
 
     /// <summary>
     /// Вызывается каждый кадр. Обновляет InputsData и создает одноразовые запросы для UI.
@@ -146,6 +168,10 @@ public partial class InputsSystem : SystemBase
         bool currentJump = !isUI && jumpBuffered;
         // Мы передаем сырое состояние кнопки, а другие системы решат, можно ли выполнять действие
         bool currentPrimaryAction = primaryActionInput;
+        
+        // Определяем финальные значения для квикбара, блокируя ввод в режиме UI.
+        int currentQuickbarDigit = isUI ? 0 : quickbarDigitPressed;
+        float currentQuickbarScroll = isUI ? 0f : quickbarScrollDelta;
 
         // Обновляем синглтон InputsData, который служит источником правды о вводе для других систем
         var inputs = SystemAPI.GetSingletonRW<InputsData>();
@@ -157,7 +183,14 @@ public partial class InputsSystem : SystemBase
         inputs.ValueRW.secondaryActionDown = false;
         inputs.ValueRW.PrimaryAction = currentPrimaryAction;
 
+        // Обновляем поля квикбара в компоненте InputsData.
+        inputs.ValueRW.QuickbarDigitKeyPressed = currentQuickbarDigit;
+        inputs.ValueRW.QuickbarScrollDelta = currentQuickbarScroll;
         
         jumpRequested = false;
+        
+        // Сбрасываем одноразовый ввод для квикбара.
+        quickbarDigitPressed = 0;
+        quickbarScrollDelta = 0f;
     }
 }

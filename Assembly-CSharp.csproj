@@ -83,6 +83,7 @@
     <Compile Include="Assets\Scripts\ECS\CORE\CursorLockManager.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceItemMapping.cs" />
     <Compile Include="Assets\Scripts\Core\Building\NewlyBuiltTag.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Components\QuickbarComponents.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\AIPathfindingBridgeSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
@@ -90,6 +91,7 @@
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\NPCUISyncSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\RequestComponents.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestConditionSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\ActiveItemSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\ItemToEntityResolver.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Trade\TradeUI.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourcesNode.cs" />
@@ -131,6 +133,7 @@
     <Compile Include="Assets\CraftingTable.cs" />
     <Compile Include="Assets\Scripts\Core\Building\MyOwnColorAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementTag.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarUI.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
@@ -159,6 +162,7 @@
     <Compile Include="Assets\Scripts\Core\Building\InstancedBuildingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIGoalSystemComponents.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarSettings.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\StateComponents.cs" />
@@ -175,6 +179,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\StartingInventoryAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Unload\UnloadConditionSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\QuickbarSelectionSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\BuildingComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />
@@ -1221,9 +1226,6 @@
       <Project>{de9a4c3a-a4dd-7f5f-63eb-15be7c7c5921}</Project>
       <Name>Unity.Physics.Custom.Editor</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Assets\Scripts\Core\Inventory\Quickbar\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

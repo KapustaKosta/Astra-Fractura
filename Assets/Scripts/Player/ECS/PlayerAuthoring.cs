@@ -216,6 +216,9 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             isGrounded = true,
         });
 
+        
+        AddComponent(entity, new ActiveQuickbarSlot { Index = 0 }); // Начинаем с первого слота (индекс 0)
+
         AddComponent<InputsData>(entity);
         AddComponent<InventoryInputData>(entity);
         AddComponentObject(entity, new CameraTargetData { ProxyTarget = null });

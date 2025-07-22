@@ -20,6 +20,10 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     [Tooltip("Кнопка, представляющая сам слот. Используется для визуальных состояний.")]
     public Button slotButton;
 
+    // --- НОВОЕ ПОЛЕ ---
+    [Tooltip("Изображение, служащее фоном для слота. Его цвет будет меняться.")]
+    public Image slotBackground;
+
     /// <summary>
     /// Ссылка на ScriptableObject предмета, который в данный момент находится в слоте.
     /// </summary>
@@ -132,6 +136,19 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         if (slotButton != null)
         {
             slotButton.interactable = false;
+        }
+    }
+
+    /// <summary>
+    /// Обновляет визуальное состояние фона слота на основе его активности.
+    /// </summary>
+    /// <param name="isActive">True, если этот слот является активным в квикбаре.</param>
+    /// <param name="settings">Ассет с настройками цветов.</param>
+    public void SetHighlightStatus(bool isActive, QuickbarSettings settings)
+    {
+        if (slotBackground != null && settings != null)
+        {
+            slotBackground.color = isActive ? settings.activeSlotColor : settings.inactiveSlotColor;
         }
     }
 
