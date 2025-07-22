@@ -64,7 +64,6 @@
     <Compile Include="Assets\Scripts\NPC\AISettingsAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Idle\IdleGoalDefinition.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\NPCMovementSystem.cs" />
-    <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\AIPathfindingBridgeSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\CameraTargetInitializationSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\StateTransitionSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\RotationPositionFixingFixingAuthoring.cs" />
@@ -84,6 +83,7 @@
     <Compile Include="Assets\Scripts\ECS\CORE\CursorLockManager.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceItemMapping.cs" />
     <Compile Include="Assets\Scripts\Core\Building\NewlyBuiltTag.cs" />
+    <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\AIPathfindingBridgeSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
@@ -145,6 +145,8 @@
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryUtils.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\AIPhysicsQuery.cs" />
+    <Compile Include="Assets\Scripts\Core\Crafting\PlayerCraftingTimerUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Crafting\ECS\Components\CraftingComponents.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIRequestTags.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\NPCInventoryStatusSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Trade\DragAndDrop\DragAndDropHandler.cs" />
@@ -168,6 +170,7 @@
     <Compile Include="Assets\Scripts\Core\Building\BuildingSettings.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Crafting\CraftingQueueItemUI.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\StartingInventoryAuthoring.cs" />
@@ -175,6 +178,7 @@
     <Compile Include="Assets\Scripts\ECS\CORE\GameBridge.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\BuildingComponents.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />
+    <Compile Include="Assets\Scripts\Core\Crafting\ECS\Systems\CraftingProcessingSystem.cs" />
     <None Include="Assets\ThirdParty\PolygonNatureBiomes\PNB_Core\Shaders\SyntyStudios_CrystalShader.shader" />
     <None Include="Assets\ThirdParty\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\ThirdParty\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
@@ -1217,6 +1221,9 @@
       <Project>{de9a4c3a-a4dd-7f5f-63eb-15be7c7c5921}</Project>
       <Name>Unity.Physics.Custom.Editor</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\Scripts\Core\Inventory\Quickbar\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
