@@ -36,8 +36,11 @@ public partial class InventoryTransferSystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
+                
+                // Добавляем теги обоим инвентарям.
+                ecb.AddComponent<InventoryChangedTag>(request.SourceOwner);
+                ecb.AddComponent<InventoryChangedTag>(request.DestinationOwner);
 
-                // Получаем ссылки на инвентари
                 var sourceInventory = inventoryLookup[request.SourceOwner];
                 var destinationInventory = inventoryLookup[request.DestinationOwner];
 

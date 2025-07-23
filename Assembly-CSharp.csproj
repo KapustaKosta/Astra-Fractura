@@ -113,6 +113,7 @@
     <Compile Include="Assets\Scripts\ECS\Authoring\GameStateAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestGoalExecutionSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\RotationPositionFixingSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\InventoryChangedCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\NPCPropertiesComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\SpawnHybridBuildingTag.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ItemRegistry.cs" />
@@ -160,6 +161,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Systems\TargetDetectorSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Harvest\HarvesterAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\InstancedBuildingAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\QuickbarItemUsageSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIGoalSystemComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarSettings.cs" />

@@ -124,37 +124,21 @@ public class InventoryUI : MonoBehaviour
 
     /// <summary>
     /// Обработчик события, который вызывается при клике на любой слот в инвентаре.
-    /// Определяет действие в зависимости от типа предмета (например, вход в режим строительства).
+    /// Определяет действие в зависимости от типа предмета.
     /// </summary>
-    /// <param name="item">Предмет, который находится в кликнутом слоте.</param>
-    private void OnInventorySlotClicked(Item item)
+    /// <param name="clickedSlot">Слот инвентаря, по которому кликнули.</param>
+    private void OnInventorySlotClicked(InventorySlot clickedSlot)
     {
-        if (item == null) return;
+        if (!isInitialized || clickedSlot == null || clickedSlot.CurrentItem == null) return;
 
-        switch (item.itemType)
+        var item = clickedSlot.CurrentItem;
+        
+        if (item.itemType == ItemType.Building && clickedSlot.slotIndex < 8)
         {
-            case ItemType.Building:
-                // Если кликнули на предмет-здание, создаем ECS-запрос на вход в режим строительства.
-                var buildRequest = entityManager.CreateEntity();
-                entityManager.AddComponentData(buildRequest, new EnterBuildingModeRequest
-                {
-                    ItemID = item.itemID
-                });
-                break;
-
-            case ItemType.Tool:
-            case ItemType.Consumable:
-            case ItemType.Resource:
-            case ItemType.Weapon:
-            case ItemType.Miscellaneous:
-                // Для других типов предметов пока нет действий по клику.
-                break;
-
-            default:
-                #if UNITY_EDITOR
-                Debug.LogWarning($"[InventoryUI] Неизвестный тип предмета: {item.itemType}");
-                #endif
-                break;
+            entityManager.SetComponentData(playerEntity, new ActiveQuickbarSlot { Index = clickedSlot.slotIndex });
+            
+            // Запрашиваем закрытие всех UI, чтобы вернуться в игру и увидеть режим строительства.
+            GameBridge.Instance?.HandleUICloseAction();
         }
     }
 

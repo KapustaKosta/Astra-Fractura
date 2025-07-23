@@ -13,9 +13,10 @@ public partial class InventorySystem : SystemBase
     /// </summary>
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        
-        var inventoryLookup = GetBufferLookup<InventoryItemElement>(); 
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
+        var inventoryLookup = GetBufferLookup<InventoryItemElement>();
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
@@ -31,6 +32,9 @@ public partial class InventorySystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
+
+                // Добавляем тег, так как инвентарь будет изменен.
+                ecb.AddComponent<InventoryChangedTag>(request.TargetInventoryOwner);
 
                 var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
                 int amountToAdd = request.Amount;
@@ -66,7 +70,8 @@ public partial class InventorySystem : SystemBase
 
                         int transferAmount = Mathf.Min(amountToAdd, itemData.maxStack);
                         
-                        inventoryBuffer[i] = new InventoryItemElement { ItemID = request.ItemID, Amount = transferAmount };
+                        inventoryBuffer[i] = new InventoryItemElement 
+                            { ItemID = request.ItemID, Amount = transferAmount };
 
                         amountToAdd -= transferAmount;
                         actuallyAdded += transferAmount;
@@ -88,7 +93,10 @@ public partial class InventorySystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
-                
+
+                // Добавляем тег, так как инвентарь будет изменен.
+                ecb.AddComponent<InventoryChangedTag>(request.TargetInventoryOwner);
+
                 var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
                 int amountToRemove = request.Amount;
 

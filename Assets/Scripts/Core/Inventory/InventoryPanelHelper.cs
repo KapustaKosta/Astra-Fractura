@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using Unity.Entities;
 using System.Collections.Generic;
-using System; // Для Action
+using System;
 
 /// <summary>
 /// Статический класс-помощник, содержащий общую логику для создания и обновления
@@ -25,7 +25,7 @@ public static class InventoryPanelHelper
         Transform slotsParent,
         GameObject slotPrefab,
         List<InventorySlot> slotList,
-        Action<Item> onSlotClickedCallback = null)
+        Action<InventorySlot> onSlotClickedCallback = null)
     {
         // 1. Очистка старых слотов
         foreach (Transform child in slotsParent)
