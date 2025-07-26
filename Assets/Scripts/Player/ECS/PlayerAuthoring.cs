@@ -216,6 +216,7 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             isGrounded = true,
         });
 
+        AddComponent(entity, new AttackState { LastAttackTime = -1f });
         
         AddComponent(entity, new ActiveQuickbarSlot { Index = 0 }); // Начинаем с первого слота (индекс 0)
 

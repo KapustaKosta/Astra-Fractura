@@ -35,6 +35,10 @@ public class NPCAuthoring : MonoBehaviour
     /// Уровень трудолюбия NPC.
     /// </summary>
     public int diligence;
+    
+    [Header("Боевые параметры")]
+    [Tooltip("Максимальное здоровье NPC.")]
+    public float maxHealth = 100f;
 
     class Baker : Baker<NPCAuthoring>
     {
@@ -46,6 +50,7 @@ public class NPCAuthoring : MonoBehaviour
         public override void Bake(NPCAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
+            
 
             // Компонент с данными NPC из системы AI
             AddComponent(entity, new NPCComponent
@@ -57,6 +62,19 @@ public class NPCAuthoring : MonoBehaviour
                 Loyalty = authoring.loyalty,
                 Diligence = authoring.diligence,
                 Target = Entity.Null
+            });
+            
+            // Компонент с данными здоровья
+            AddComponent(entity, new HealthComponent
+            {
+                MaxHealth = authoring.maxHealth,
+                CurrentHealth = authoring.maxHealth
+            });
+            
+            /// Компонент, хранящий прямую ссылку на GameObject
+            AddComponentObject(entity, new GameObjectLink
+            {
+                Value = authoring.gameObject
             });
 
             // Компонент "мозга" из системы AI

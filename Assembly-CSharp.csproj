@@ -74,6 +74,7 @@
     <Compile Include="Assets\Scripts\Player\HarvestingUIController.cs" />
     <Compile Include="Assets\Scripts\Core\Building\BuildingSettingsAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\GoalEvaluationContextBuilder.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\CombatComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewLifecycleSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\NPCTaskArbiterSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerHarvestIntentionSystem.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\AIPathfindingBridgeSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerComponents.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\CombatSystemConfig.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\NPCUISyncSystem.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\RequestComponents.cs" />
@@ -94,6 +96,7 @@
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\ActiveItemSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\ItemToEntityResolver.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Trade\TradeUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\CombatUIController.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourcesNode.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\PlayerTaskAssignmentSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\PlayerAuthoring.cs" />
@@ -118,7 +121,9 @@
     <Compile Include="Assets\Scripts\Core\Building\Components\SpawnHybridBuildingTag.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ItemRegistry.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\CleanupTag.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\NPCTaskCleanupSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\GameObjectLink.cs" />
     <Compile Include="Assets\Scripts\Core\Harvest\Systems\HarvestingSystems.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\HybridBuildingSpawner.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\InputSystem\StarterAsstesInputs2.cs" />
@@ -131,6 +136,7 @@
     <Compile Include="Assets\Scripts\Core\Building\BuildingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Harvest\Components\HarvestingComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\DamageSystem.cs" />
     <Compile Include="Assets\CraftingTable.cs" />
     <Compile Include="Assets\Scripts\Core\Building\MyOwnColorAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementTag.cs" />
@@ -138,13 +144,16 @@
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\CombatUITriggerSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\GoalEvaluationContext.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerTag.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\PlayerAttackIntentionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\PlayerInventoryUi\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\NPCPathfindingSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestGoalDefinition.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\CombatStateSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCMovementAuthoring.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerCameraSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryUtils.cs" />
@@ -163,10 +172,12 @@
     <Compile Include="Assets\Scripts\Core\Building\InstancedBuildingAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\QuickbarItemUsageSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerGroundedState.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\CorpseCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIGoalSystemComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarSettings.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingRecipe.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\CombatSystemConfigAuthoring.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\StateComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventorySlot.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Components\InventoryComponents.cs" />
@@ -178,6 +189,7 @@
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingQueueItemUI.cs" />
     <Compile Include="Assets\Scripts\Data\ScriptableObjects\Item.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\DeathSystem.cs" />
     <Compile Include="Assets\Scripts\Player\ECS\Components\CameraProxyData.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\StartingInventoryAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Unload\UnloadConditionSystem.cs" />

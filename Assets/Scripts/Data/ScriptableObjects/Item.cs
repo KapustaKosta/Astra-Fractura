@@ -42,6 +42,11 @@ public class Item : ScriptableObject
     [Header("Durability (Optional)")]
     public bool hasDurability = false;
     public int maxDurability = 100;
+    [Header("Weapon Settings")]
+    [Tooltip("Урон, наносимый оружием.")]
+    public float weaponDamage = 15f;
+    [Tooltip("Время в секундах между атаками (кулдаун).")]
+    public float attackCooldown = 0.8f;
     [Header("Building Settings")]
     public GameObject buildingPrefab;
     public Vector2 footprintSize = new Vector2(1, 1); // Размер основания в метрах
