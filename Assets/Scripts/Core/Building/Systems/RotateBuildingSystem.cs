@@ -4,27 +4,41 @@ using Unity.Mathematics;
 
 /// <summary>
 /// Система, которая обрабатывает запросы на поворот здания в режиме строительства.
+/// <para>
+/// - Получает сущность превью здания (BuildingPreviewTag).
+/// - Обрабатывает все запросы на поворот (RotateRequest).
+/// - Поворачивает превью здания на ROTATE_SPEED градусов по оси Y за кадр.
+/// - После обработки удаляет компонент RotateRequest у соответствующих сущностей.
+/// </para>
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(BuildingPlacementSystem))]
 public partial class RotateBuildingSystem : SystemBase
 {
-    private const float ROTATE_SPEED = 2.5f; // градусов за кадр
+    /// <summary>
+    /// Скорость поворота превью здания (градусов за кадр).
+    /// </summary>
+    private const float ROTATE_SPEED = 2.5f;
+    /// <summary>
+    /// Обрабатывает все запросы на поворот здания в режиме строительства.
+    /// </summary>
     protected override void OnUpdate()
     {
-        // Получаем сущность превью здания
+        /*
+         * 1. Получает сущность превью здания (BuildingPreviewTag).
+         * 2. Обрабатывает все запросы на поворот (RotateRequest).
+         * 3. Поворачивает превью здания на ROTATE_SPEED градусов по оси Y за кадр.
+         * 4. После обработки удаляет компонент RotateRequest у соответствующих сущностей.
+         */
         if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity)) return;
 
-        // Проверяем наличие запроса на поворот
         foreach (var reqEntity in SystemAPI.QueryBuilder().WithAll<RotateRequest>().Build().ToEntityArray(Unity.Collections.Allocator.Temp))
         {
-            // Поворачиваем превью здания
             if (SystemAPI.HasComponent<LocalTransform>(previewEntity))
             {
                 var transform = SystemAPI.GetComponentRW<LocalTransform>(previewEntity);
                 transform.ValueRW.Rotation = math.mul(transform.ValueRW.Rotation, quaternion.RotateY(math.radians(ROTATE_SPEED)));
             }
-            // Удаляем только компонент RotateRequest
             EntityManager.RemoveComponent<RotateRequest>(reqEntity);
         }
     }

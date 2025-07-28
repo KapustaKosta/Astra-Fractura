@@ -3,7 +3,14 @@ using Unity.Transforms;
 using Unity.Mathematics;
 
 /// <summary>
-/// Система, которая финализирует размещение конвеера, создаёт сущность конвеера и соединяет его с точками зданий.
+/// Система, которая финализирует размещение конвеера.
+/// <para>
+/// - Обрабатывает только запросы на размещение конвеера (PlaceBuildingRequest для ConveyorBeltTag).
+/// - Находит ближайшие точки подключения (endpoints) для старта и конца конвеера.
+/// - Инстанцирует сущность конвеера, соединяет её с найденными точками.
+/// - Помечает точки как занятые тегом ConveyorEndpointOccupiedTag.
+/// - Удаляет запрос на размещение после обработки.
+/// </para>
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup), OrderLast = true)]
 [UpdateAfter(typeof(FinalizeBuildingSystem))]
@@ -11,17 +18,12 @@ public partial class ConveyorFinalizeSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        // Обрабатываем только запросы на размещение конвеера
         foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<PlaceBuildingRequest>>().WithEntityAccess())
         {
             var reqData = request.ValueRO;
-            // Проверяем, что это префаб конвеера (по тегу ConveyorBeltTag)
             if (!SystemAPI.HasComponent<ConveyorBeltTag>(reqData.BuildingPrefabToPlace))
                 continue;
 
-            // Получаем точки подключения (должны быть определены в BuildingState или через отдельный запрос)
-            // Здесь предполагается, что в PlaceBuildingRequest можно добавить поля StartEndpoint/EndEndpoint
-            // Для простоты примера ? ищем ближайшие точки
             Entity start = Entity.Null, end = Entity.Null;
             float minStart = float.MaxValue, minEnd = float.MaxValue;
             foreach (var (endpoint, entity) in SystemAPI.Query<RefRO<ConveyorEndpoint>>().WithEntityAccess())
@@ -41,12 +43,13 @@ public partial class ConveyorFinalizeSystem : SystemBase
             }
             if (start == Entity.Null || end == Entity.Null || start == end)
             {
-                // Не удалось найти валидные точки ? пропускаем
                 continue;
             }
 
-            // Инстанцируем конвеер
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+            ecb.AddComponent<ConveyorEndpointOccupiedTag>(start);
+            ecb.AddComponent<ConveyorEndpointOccupiedTag>(end);
+
             var conveyor = ecb.Instantiate(reqData.BuildingPrefabToPlace);
             ecb.SetComponent(conveyor, LocalTransform.FromPositionRotation(reqData.Position, reqData.Rotation));
             var startTransform = SystemAPI.GetComponent<LocalTransform>(start);
@@ -60,7 +63,6 @@ public partial class ConveyorFinalizeSystem : SystemBase
             });
             ecb.AddBuffer<ConveyorResourceBuffer>(conveyor);
             ecb.AddComponent<NewlyBuiltTag>(conveyor);
-            // Удаляем запрос
             ecb.DestroyEntity(requestEntity);
         }
     }

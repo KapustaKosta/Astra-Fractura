@@ -8,21 +8,57 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Система, расширяющая валидацию и размещение для конвееров, интегрированная с BuildingPlacementSystem.
+/// <para>
+/// - Находит превью конвеера и его дочерние сущности (ConveyorBeltTag, ConveyorEndpoint).
+/// - Для каждого endpoint превью ищет ближайшие валидные точки входа/выхода зданий (endpoints), пропуская занятые.
+/// - Проверяет угол соединения, расстояние, отсутствие пересечений с препятствиями (overlap).
+/// - Управляет snapping превью к endpoint-у с гистерезисом по мыши и расстоянию.
+/// - Добавляет/удаляет SnapToEndpointTag, PlacementValidTag, PlacementInvalidTag.
+/// </para>
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(BuildingPlacementSystem))]
 public partial class ConveyorPlacementSystem : SystemBase
 {
+    /// <summary>
+    /// Максимально допустимый изгиб (градусы) между конвеерами для соединения.
+    /// </summary>
+    const float MaxBendDegrees = 25f;
+    /// <summary>
+    /// Дистанция, при которой включается snapping к endpoint.
+    /// </summary>
+    const float SnapEnableThreshold = 2.5f;
+    /// <summary>
+    /// Дистанция, при которой snapping отключается (гистерезис).
+    /// </summary>
+    const float SnapDisableThreshold = 3f;
+    /// <summary>
+    /// Максимальная дистанция поиска output endpoint.
+    /// </summary>
+    const float MaxStartDist = 3f;
+    /// <summary>
+    /// Максимальная дистанция поиска input endpoint.
+    /// </summary>
+    const float MaxEndDist = 3f;
     protected override void OnUpdate()
     {
-        // Проверяем, есть ли превью конвеера
+        /*
+         * Логика метода OnUpdate:
+         * 1. Проверяет наличие превью конвеера (BuildingPreviewTag).
+         * 2. Находит дочерние сущности превью (через LinkedEntityGroup или Child).
+         * 3. Ищет ConveyorBeltTag и ConveyorEndpoint среди дочерних.
+         * 4. Для каждого endpoint превью ищет ближайшие валидные точки входа/выхода зданий (endpoints), пропуская занятые.
+         * 5. Проверяет угол соединения, расстояние, отсутствие пересечений с препятствиями (overlap).
+         * 6. Управляет snapping превью к endpoint-у с гистерезисом по мыши и расстоянию.
+         * 7. Добавляет/удаляет SnapToEndpointTag, PlacementValidTag, PlacementInvalidTag.
+         */
+        // ...existing code...
         if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity)) return;
         if (!SystemAPI.Exists(previewEntity)) return;
 
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         var settings = SystemAPI.GetSingleton<BuildingSettings>();
 
-        // Поиск дочерних сущностей превью, чтобы найти ConveyorBeltTag и ConveyorEndpoint
         List<Entity> previewChildren = null;
         if (SystemAPI.HasBuffer<LinkedEntityGroup>(previewEntity))
         {
@@ -40,11 +76,9 @@ public partial class ConveyorPlacementSystem : SystemBase
         }
         else
         {
-            // Нет дочерних сущностей ? не конвеер
             return;
         }
 
-        // Ищем ConveyorBeltTag среди дочерних
         Entity beltEntity = Entity.Null;
         foreach (var child in previewChildren)
         {
@@ -56,7 +90,6 @@ public partial class ConveyorPlacementSystem : SystemBase
         }
         if (beltEntity == Entity.Null) return;
 
-        // Ищем все ConveyorEndpoint среди дочерних
         List<Entity> previewEndpoints = new List<Entity>();
         List<ConveyorEndpoint> previewEndpointData = new List<ConveyorEndpoint>();
         foreach (var child in previewChildren)
@@ -69,10 +102,9 @@ public partial class ConveyorPlacementSystem : SystemBase
         }
         if (previewEndpoints.Count == 0) return;
 
-        // Поиск ближайших валидных точек входа/выхода зданий
+
         bool validConnection = false;
         bool validAngle = false;
-        float maxBend = 25f; // Можно вынести в настройки
         float debugAngle = 0f;
         for (int i = 0; i < previewEndpoints.Count; i++)
         {
@@ -80,21 +112,19 @@ public partial class ConveyorPlacementSystem : SystemBase
             ConveyorEndpoint previewEndpoint = previewEndpointData[i];
             float3 previewPos = SystemAPI.GetComponent<LocalToWorld>(previewEndpointEntity).Position;
 
-            // Поиск ближайших точек для этого endpoint-а
             Entity closestOutput = Entity.Null;
             Entity closestInput = Entity.Null;
-            float maxStartDist = 3f;
-            float maxEndDist = 3f;
             foreach (var (endpoint, entity) in SystemAPI.Query<RefRO<ConveyorEndpoint>>().WithEntityAccess())
             {
                 if (endpoint.ValueRO.ParentEntity == previewEndpoint.ParentEntity) continue;
+                if (SystemAPI.HasComponent<ConveyorEndpointOccupiedTag>(entity)) continue;
                 float3 endpointGlobalPos = SystemAPI.GetComponent<LocalToWorld>(entity).Position;
                 float dist = math.distance(endpointGlobalPos, previewPos);
-                if (!endpoint.ValueRO.IsInput && dist < maxStartDist)
+                if (!endpoint.ValueRO.IsInput && dist < MaxStartDist)
                 {
                     closestOutput = entity;
                 }
-                if (endpoint.ValueRO.IsInput && dist < maxEndDist)
+                if (endpoint.ValueRO.IsInput && dist < MaxEndDist)
                 {
                     closestInput = entity;
                 }
@@ -121,7 +151,6 @@ public partial class ConveyorPlacementSystem : SystemBase
             {
                 targetEntity = closestInput;
             }
-            // Проверка на существование targetEntity
             if (targetEntity == Entity.Null || !SystemAPI.Exists(targetEntity))
                 continue;
             var targetLocalToWorld = SystemAPI.GetComponent<LocalToWorld>(targetEntity);
@@ -131,13 +160,8 @@ public partial class ConveyorPlacementSystem : SystemBase
             targetVec = math.normalize(targetVec);
 
             debugAngle = math.degrees(math.acos(math.clamp(math.dot(previewVec, targetVec), -1f, 1f)));
-            bool localValidAngle = math.abs(debugAngle - 90f) <= maxBend;
+            bool localValidAngle = math.abs(debugAngle - 90f) <= MaxBendDegrees;
 
-            // если уже есть SnapToEndpointTag, но мышка ушла далеко, снимаем тег (гистерезис)
-            float snapEnableThreshold = 2.5f; // включать snapping, если ближе
-            float snapDisableThreshold = 3f;  // снимать snapping, если дальше
-
-            // Получаем world-позицию мыши через raycast (как в BuildingPlacementSystem)
             float3 mouseWorldPos = float3.zero;
             bool gotMouseWorld = false;
             if (Camera.main != null)
@@ -162,10 +186,10 @@ public partial class ConveyorPlacementSystem : SystemBase
                 if (gotMouseWorld)
                 {
                     float mouseDist = math.distance(targetPos, mouseWorldPos);
-                    if (mouseDist > snapDisableThreshold)
+                    if (mouseDist > SnapDisableThreshold)
                     {
                         ecb.RemoveComponent<SnapToEndpointTag>(previewEntity);
-                        Debug.Log($"[ConveyorPlacementSystem] SNAPPING DISABLED BY MOUSE: mouseDist={mouseDist}, snapDisableThreshold={snapDisableThreshold}");
+                        Debug.Log($"[ConveyorPlacementSystem] SNAPPING DISABLED BY MOUSE: mouseDist={mouseDist}, snapDisableThreshold={SnapDisableThreshold}");
                         return;
                     }
                 }
@@ -176,7 +200,6 @@ public partial class ConveyorPlacementSystem : SystemBase
                 validConnection = true;
                 validAngle = true;
 
-                // --- Проверка на пересечение с препятствиями (overlap) перед snapping ---
                 bool noOverlap = true;
                 if (previewChildren != null)
                 {
@@ -189,7 +212,6 @@ public partial class ConveyorPlacementSystem : SystemBase
                         {
                             var collider = SystemAPI.GetComponent<PhysicsCollider>(child);
                             var childTransform = SystemAPI.GetComponent<LocalTransform>(child);
-                            // Смещаем по XZ в позицию snapping-а, Y оставляем как есть
                             float3 overlapCheckPos = new float3(
                                 childTransform.Position.x + (targetPos.x - rootTransform.Position.x),
                                 childTransform.Position.y,
@@ -215,15 +237,14 @@ public partial class ConveyorPlacementSystem : SystemBase
 
                 float endpointDist = math.distance(targetPos, previewPos);
                 float mouseDist = gotMouseWorld ? math.distance(targetPos, mouseWorldPos) : float.MaxValue;
-                Debug.Log($"[ConveyorPlacementSystem] endpointDist={endpointDist}, mouseDist={mouseDist}, snapEnableThreshold={snapEnableThreshold}, noOverlap={noOverlap}");
-                if (endpointDist < snapEnableThreshold && mouseDist < snapEnableThreshold && noOverlap)
+                Debug.Log($"[ConveyorPlacementSystem] endpointDist={endpointDist}, mouseDist={mouseDist}, snapEnableThreshold={SnapEnableThreshold}, noOverlap={noOverlap}");
+                if (endpointDist < SnapEnableThreshold && mouseDist < SnapEnableThreshold && noOverlap)
                 {
                     if (!SystemAPI.HasComponent<SnapToEndpointTag>(previewEntity))
                     {
                         ecb.AddComponent<SnapToEndpointTag>(previewEntity);
                         Debug.Log($"[ConveyorPlacementSystem] SNAPPING ENABLED: preview snapped to endpoint at {targetPos}, dist={endpointDist}");
                     }
-                    // Сам snapping: смещаем превью так, чтобы previewPos совпал с targetPos
                     if (SystemAPI.HasComponent<LocalTransform>(previewEntity))
                     {
                         var rootTransform = SystemAPI.GetComponentRW<LocalTransform>(previewEntity);
@@ -244,7 +265,6 @@ public partial class ConveyorPlacementSystem : SystemBase
             }
         }
 
-        // Добавляем/удаляем PlacementValidTag/PlacementInvalidTag
         if (validConnection && validAngle)
         {
             ecb.AddComponent<PlacementValidTag>(previewEntity);
