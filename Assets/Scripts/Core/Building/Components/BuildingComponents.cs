@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Mathematics;
 
 /// <summary>
 /// Тег, который добавляется к "призраку" здания в режиме строительства,
@@ -20,3 +21,11 @@ public struct PlacementInvalidTag : IComponentData { }
 /// Тег, указывающий, что превью-сущность нуждается в первичной настройке (например, коллайдера).
 /// </summary>
 public struct NeedsPreviewSetupTag : IComponentData {}
+
+/// <summary>
+/// Компонент, хранящий локальное смещение для точки прибытия NPC.
+/// </summary>
+public struct ArrivalPointOffset : IComponentData
+{
+    public float3 Value;
+}

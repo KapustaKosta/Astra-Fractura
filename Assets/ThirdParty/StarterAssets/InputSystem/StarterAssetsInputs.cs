@@ -45,6 +45,16 @@ namespace StarterAssets
         /// Событие, вызываемое при изменении состояния основного действия (например, ЛКМ).
         /// </summary>
         public static event Action<bool> onPrimaryAction; 
+        
+        /// <summary>
+        /// Событие, вызываемое при прокрутке колеса мыши. Передает значение Y.
+        /// </summary>
+        public static event Action<float> onQuickbarScroll;
+        
+        /// <summary>
+        /// Событие, вызываемое при нажатии цифровой клавиши (1-8). Передает номер клавиши.
+        /// </summary>
+        public static event Action<int> onQuickbarDigit;
 
         /// <summary>
         /// Событие, вызываемое при изменении состояния кнопки поворота.
@@ -136,6 +146,30 @@ namespace StarterAssets
         {
             onPrimaryAction?.Invoke(value.isPressed);
         }
+        
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки скролла.
+        /// </summary>
+        public void OnQuickbarScroll(InputValue value)
+        {
+            float scrollValue = value.Get<Vector2>().y;
+            if (scrollValue != 0)
+            {
+                onQuickbarScroll?.Invoke(scrollValue);
+            }
+        }
+        
+        /// <summary>
+        /// Методы, вызываемые компонентом Player Input для обработки нажатий цифровых клавиш.
+        /// </summary>
+        public void OnQuickbarAlpha1(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(1); }
+        public void OnQuickbarAlpha2(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(2); }
+        public void OnQuickbarAlpha3(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(3); }
+        public void OnQuickbarAlpha4(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(4); }
+        public void OnQuickbarAlpha5(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(5); }
+        public void OnQuickbarAlpha6(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(6); }
+        public void OnQuickbarAlpha7(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(7); }
+        public void OnQuickbarAlpha8(InputValue value) { if (value.isPressed) onQuickbarDigit?.Invoke(8); }
 
 #endif
     }

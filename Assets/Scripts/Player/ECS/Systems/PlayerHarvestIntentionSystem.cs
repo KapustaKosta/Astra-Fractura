@@ -2,12 +2,12 @@
 
 /// <summary>
 /// Система, отвечающая за определение намерения ИГРОКА начать добычу ресурсов.
-/// Она проверяет условия, такие как нажатие кнопки действия и наличие цели-ресурса,
-/// и добавляет игроку тег <c>WantsToHarvestTag</c>, если все условия выполнены.
+/// Она проверяет условия, такие как нажатие кнопки действия, наличие цели-ресурса,
+/// а также наличие в руках игрока подходящего инструмента.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(TargetDetectorSystem))]
-[UpdateAfter(typeof(InputsSystem))]
+[UpdateBefore(typeof(HarvestingSystem))]
 public partial class PlayerHarvestIntentionSystem : SystemBase
 {
     /// <summary>
@@ -17,31 +17,71 @@ public partial class PlayerHarvestIntentionSystem : SystemBase
     {
         var ecbSystem = World.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>();
         var ecb = ecbSystem.CreateCommandBuffer();
+        var itemRegistry = ItemRegistry.Instance;
+
+        if (itemRegistry == null) return;
         
-        if (SystemAPI.TryGetSingleton<InputsData>(out var inputs))
-        {
+        Entities
+            .WithoutBurst()
             // Запрос для игрока: ищем сущность с тегом игрока и активной целью.
-            foreach (var (activeTarget, entity) in 
-                     SystemAPI.Query<RefRO<ActiveTarget>>()
-                         .WithAll<PlayerTag>()
-                         .WithEntityAccess())
+            .ForEach((Entity playerEntity, in InputsData inputs) =>
             {
-                bool targetIsResource = SystemAPI.HasComponent<ResourceNode>(activeTarget.ValueRO.Value);
-                bool alreadyWantsToHarvest = SystemAPI.HasComponent<WantsToHarvestTag>(entity);
+                bool alreadyWantsToHarvest = SystemAPI.HasComponent<WantsToHarvestTag>(playerEntity);
 
                 // Добавляем намерение, если нажата кнопка, цель - ресурс, и намерения еще нет.
-                if (inputs.PrimaryAction && targetIsResource && !alreadyWantsToHarvest)
+                if (!inputs.PrimaryAction)
                 {
-                    ecb.AddComponent<WantsToHarvestTag>(entity);
+                    if (alreadyWantsToHarvest)
+                    {
+                        ecb.RemoveComponent<WantsToHarvestTag>(playerEntity);
+                    }
+                    return;
                 }
                 
-                // Удаляем намерение, если кнопка отпущена или цель перестала быть ресурсом,
-                // а намерение все еще было.
-                if ((!inputs.PrimaryAction || !targetIsResource) && alreadyWantsToHarvest)
+                if (!SystemAPI.HasComponent<ActiveTarget>(playerEntity))
                 {
-                    ecb.RemoveComponent<WantsToHarvestTag>(entity);
+                    if (alreadyWantsToHarvest) ecb.RemoveComponent<WantsToHarvestTag>(playerEntity);
+                    return;
                 }
-            }
-        }
+                
+                var targetEntity = SystemAPI.GetComponent<ActiveTarget>(playerEntity).Value;
+                if (!SystemAPI.HasComponent<ResourceNode>(targetEntity))
+                {
+                    if (alreadyWantsToHarvest) ecb.RemoveComponent<WantsToHarvestTag>(playerEntity);
+                    return;
+                }
+                
+                bool hasValidTool = false;
+                if (SystemAPI.HasComponent<ActiveEquippedItem>(playerEntity))
+                {
+                    var equippedItemID = SystemAPI.GetComponent<ActiveEquippedItem>(playerEntity).ItemID;
+                    var equippedItemData = itemRegistry.GetItemData(equippedItemID);
+                    
+                    if (equippedItemData != null && equippedItemData.itemType == ItemType.Tool)
+                    {
+                        var resourceNode = SystemAPI.GetComponent<ResourceNode>(targetEntity);
+                        
+                        // Приводим enum к числовому значению для побитовой проверки флага.
+                        // ResourceCollectionType.Wood (0) -> 1 << 0 -> флаг 1 (Wood)
+                        // ResourceCollectionType.Stone (1) -> 1 << 1 -> флаг 2 (Stone) и т.д.
+                        var resourceFlag = (ResourceType)(1 << (int)resourceNode.resourceType);
+                        
+                        if (equippedItemData.canHarvest.HasFlag(resourceFlag))
+                        {
+                            hasValidTool = true;
+                        }
+                    }
+                }
+                
+                if (inputs.PrimaryAction && hasValidTool && !alreadyWantsToHarvest)
+                {
+                    ecb.AddComponent<WantsToHarvestTag>(playerEntity);
+                }
+                else if (!hasValidTool && alreadyWantsToHarvest)
+                {
+                     ecb.RemoveComponent<WantsToHarvestTag>(playerEntity);
+                }
+                
+            }).Run();
     }
 }

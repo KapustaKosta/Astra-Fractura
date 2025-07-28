@@ -17,3 +17,4 @@ MonoBehaviour:
   requiredItems:
   - {fileID: 11400000, guid: 8201f26f9429a5345b8190e6a994ecb1, type: 2}
   requiredAmounts: 14000000
+  craftingTime: 5

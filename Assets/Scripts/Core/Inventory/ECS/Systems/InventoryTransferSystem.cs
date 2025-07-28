@@ -2,33 +2,44 @@
 using UnityEngine;
 
 /// <summary>
-/// Централизованная система, отвечающая за обработку запросов на перенос
-/// всех предметов из одного инвентаря в другой.
+/// Система обработки запросов на перенос предметов между инвентарями.
+/// Реализует логику перемещения предметов из одного инвентаря в другой,
+/// включая работу со стаками и обработку ситуаций с переполнением.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class InventoryTransferSystem : SystemBase
 {
     protected override void OnUpdate()
     {
+        // Получаем буфер команд для изменения сущностей
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(World.Unmanaged);
-            
-        var inventoryLookup = GetBufferLookup<InventoryItemElement>();
+
+        // Получаем доступ к буферам инвентаря с возможностью записи
+        var inventoryLookup = GetBufferLookup<InventoryItemElement>(false);
+        
+        // Получаем экземпляр реестра предметов
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
+        // Обрабатываем все запросы на перенос
         Entities
             .WithoutBurst()
             .WithAll<TransferItemsRequest>()
-            .WithNativeDisableContainerSafetyRestriction(inventoryLookup)
+            .WithNativeDisableContainerSafetyRestriction(inventoryLookup) 
             .ForEach((Entity requestEntity, in TransferItemsRequest request) =>
             {
                 // Убеждаемся, что оба инвентаря существуют
-                if (!inventoryLookup.HasBuffer(request.SourceOwner) || !inventoryLookup.HasBuffer(request.DestinationOwner))
+                if (!inventoryLookup.HasBuffer(request.SourceOwner) ||
+                    !inventoryLookup.HasBuffer(request.DestinationOwner))
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
+                
+                // Добавляем теги обоим инвентарям.
+                ecb.AddComponent<InventoryChangedTag>(request.SourceOwner);
+                ecb.AddComponent<InventoryChangedTag>(request.DestinationOwner);
 
                 var sourceInventory = inventoryLookup[request.SourceOwner];
                 var destinationInventory = inventoryLookup[request.DestinationOwner];
@@ -37,8 +48,10 @@ public partial class InventoryTransferSystem : SystemBase
                 for (int i = 0; i < sourceInventory.Length; i++)
                 {
                     var itemToTransfer = sourceInventory[i];
+                    // Пропускаем пустые слоты
                     if (itemToTransfer.ItemID == 0 || itemToTransfer.Amount == 0) continue;
 
+                    // Получаем данные о предмете
                     var itemData = itemRegistry.GetItemData(itemToTransfer.ItemID);
                     if (itemData == null) continue;
 
@@ -101,6 +114,7 @@ public partial class InventoryTransferSystem : SystemBase
                     ecb.AddComponent<TransferSuccessTag>(request.SourceOwner);
                 }
 
+                // Удаляем запрос после обработки
                 ecb.DestroyEntity(requestEntity);
             }).Run();
     }

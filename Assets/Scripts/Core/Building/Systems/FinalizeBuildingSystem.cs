@@ -32,11 +32,16 @@ public partial class FinalizeBuildingSystem : SystemBase
                 ecb.DestroyEntity(requestEntity);
                 continue;
             }
-
+            
             // Инстанцирование здания
             var newBuilding = ecb.Instantiate(reqData.BuildingPrefabToPlace);
             ecb.SetComponent(newBuilding, LocalTransform.FromPositionRotation(reqData.Position, reqData.Rotation));
             ecb.AddComponent<NewlyBuiltTag>(newBuilding);
+            // Новый тег для гибридного спавна GameObject
+            ecb.AddComponent(newBuilding, new SpawnHybridBuildingTag
+            {
+                BuildingItemID = reqData.ItemIDToConsume
+            });
 
             // Создаем запрос на удаление предмета
             // Вместо прямого вызова inventory.Remove()
@@ -47,7 +52,6 @@ public partial class FinalizeBuildingSystem : SystemBase
                 ItemID = reqData.ItemIDToConsume,
                 Amount = 1
             });
-            
 
             // Уничтожаем обработанный запрос на постройку
             ecb.DestroyEntity(requestEntity);

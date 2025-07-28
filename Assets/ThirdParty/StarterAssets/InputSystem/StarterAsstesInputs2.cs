@@ -162,6 +162,87 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarScroll"",
+                    ""type"": ""Value"",
+                    ""id"": ""50555a10-e8fa-4384-9398-c3df429f3ebc"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""QuickbarAlpha1"",
+                    ""type"": ""Button"",
+                    ""id"": ""a69c2f45-eaaf-4420-9bc6-95186afdfd06"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha2"",
+                    ""type"": ""Button"",
+                    ""id"": ""49ca39d3-1797-46c7-a873-751b9a641ca8"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha3"",
+                    ""type"": ""Button"",
+                    ""id"": ""94ed95b2-576d-4707-9342-7eccfcb5f3ee"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha4"",
+                    ""type"": ""Button"",
+                    ""id"": ""01e3b823-787a-4a82-9594-1e908583953e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha5"",
+                    ""type"": ""Button"",
+                    ""id"": ""17f243dc-0a25-4dfc-adac-414bf27eebca"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha6"",
+                    ""type"": ""Button"",
+                    ""id"": ""5105c7a5-b4f6-4ccf-9b4b-e907b000c98e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha7"",
+                    ""type"": ""Button"",
+                    ""id"": ""0e6869da-db00-471b-b791-61c8c44d7311"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""QuickbarAlpha8"",
+                    ""type"": ""Button"",
+                    ""id"": ""897db1a7-ca7b-4646-8543-64907930b97f"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -384,6 +465,105 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
                     ""action"": ""Rotate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                }, 
+                {
+                    ""name"": """",
+                    ""id"": ""00016959-a73b-4858-bf2a-68ce1ed10a05"",
+                    ""path"": ""<Mouse>/scroll"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarScroll"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b28a0735-1f50-4cbf-b4e0-a47f86d64e53"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""27407049-61ea-47c4-ae34-6060b8ce568b"",
+                    ""path"": ""<Keyboard>/2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2e21f5d1-6a59-4e5d-96ae-48b08bd82269"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha3"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e58e6de0-8b05-4255-b536-e067805b8d15"",
+                    ""path"": ""<Keyboard>/4"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha4"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f2872a7e-6030-4f78-96c4-8fff0a68d2e3"",
+                    ""path"": ""<Keyboard>/5"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha5"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""88caa7ff-f9de-4f20-bd6f-97c0bdab9825"",
+                    ""path"": ""<Keyboard>/6"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha6"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c1b4c6ca-e518-41d5-9a45-3cce0807c3d7"",
+                    ""path"": ""<Keyboard>/7"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha7"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""56771d5b-795d-4fef-945b-d9b389c11977"",
+                    ""path"": ""<Keyboard>/8"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""QuickbarAlpha8"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -447,7 +627,17 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         m_Player_Inventory = m_Player.FindAction("Inventory", throwIfNotFound: true);
         m_Player_RightClick = m_Player.FindAction("RightClick", throwIfNotFound: true);
         m_Player_Fire = m_Player.FindAction("Fire", throwIfNotFound: true);
+
         m_Player_Rotate = m_Player.FindAction("Rotate", throwIfNotFound: true);
+        m_Player_QuickbarScroll = m_Player.FindAction("QuickbarScroll", throwIfNotFound: true);
+        m_Player_QuickbarAlpha1 = m_Player.FindAction("QuickbarAlpha1", throwIfNotFound: true);
+        m_Player_QuickbarAlpha2 = m_Player.FindAction("QuickbarAlpha2", throwIfNotFound: true);
+        m_Player_QuickbarAlpha3 = m_Player.FindAction("QuickbarAlpha3", throwIfNotFound: true);
+        m_Player_QuickbarAlpha4 = m_Player.FindAction("QuickbarAlpha4", throwIfNotFound: true);
+        m_Player_QuickbarAlpha5 = m_Player.FindAction("QuickbarAlpha5", throwIfNotFound: true);
+        m_Player_QuickbarAlpha6 = m_Player.FindAction("QuickbarAlpha6", throwIfNotFound: true);
+        m_Player_QuickbarAlpha7 = m_Player.FindAction("QuickbarAlpha7", throwIfNotFound: true);
+        m_Player_QuickbarAlpha8 = m_Player.FindAction("QuickbarAlpha8", throwIfNotFound: true);
     }
 
     ~@StarterAsstesInputs2()
@@ -535,7 +725,17 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Inventory;
     private readonly InputAction m_Player_RightClick;
     private readonly InputAction m_Player_Fire;
+
     private readonly InputAction m_Player_Rotate;
+    private readonly InputAction m_Player_QuickbarScroll;
+    private readonly InputAction m_Player_QuickbarAlpha1;
+    private readonly InputAction m_Player_QuickbarAlpha2;
+    private readonly InputAction m_Player_QuickbarAlpha3;
+    private readonly InputAction m_Player_QuickbarAlpha4;
+    private readonly InputAction m_Player_QuickbarAlpha5;
+    private readonly InputAction m_Player_QuickbarAlpha6;
+    private readonly InputAction m_Player_QuickbarAlpha7;
+    private readonly InputAction m_Player_QuickbarAlpha8;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -576,9 +776,46 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Fire => m_Wrapper.m_Player_Fire;
         /// <summary>
+
         /// Provides access to the underlying input action "Player/Rotate".
         /// </summary>
         public InputAction @Rotate => m_Wrapper.m_Player_Rotate;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarScroll".
+        /// </summary>
+        public InputAction @QuickbarScroll => m_Wrapper.m_Player_QuickbarScroll;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha1".
+        /// </summary>
+        public InputAction @QuickbarAlpha1 => m_Wrapper.m_Player_QuickbarAlpha1;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha2".
+        /// </summary>
+        public InputAction @QuickbarAlpha2 => m_Wrapper.m_Player_QuickbarAlpha2;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha3".
+        /// </summary>
+        public InputAction @QuickbarAlpha3 => m_Wrapper.m_Player_QuickbarAlpha3;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha4".
+        /// </summary>
+        public InputAction @QuickbarAlpha4 => m_Wrapper.m_Player_QuickbarAlpha4;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha5".
+        /// </summary>
+        public InputAction @QuickbarAlpha5 => m_Wrapper.m_Player_QuickbarAlpha5;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha6".
+        /// </summary>
+        public InputAction @QuickbarAlpha6 => m_Wrapper.m_Player_QuickbarAlpha6;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha7".
+        /// </summary>
+        public InputAction @QuickbarAlpha7 => m_Wrapper.m_Player_QuickbarAlpha7;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/QuickbarAlpha8".
+        /// </summary>
+        public InputAction @QuickbarAlpha8 => m_Wrapper.m_Player_QuickbarAlpha8;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -626,9 +863,37 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @Fire.started += instance.OnFire;
             @Fire.performed += instance.OnFire;
             @Fire.canceled += instance.OnFire;
+
             @Rotate.started += instance.OnRotate;
             @Rotate.performed += instance.OnRotate;
             @Rotate.canceled += instance.OnRotate;
+            @QuickbarScroll.started += instance.OnQuickbarScroll;
+            @QuickbarScroll.performed += instance.OnQuickbarScroll;
+            @QuickbarScroll.canceled += instance.OnQuickbarScroll;
+            @QuickbarAlpha1.started += instance.OnQuickbarAlpha1;
+            @QuickbarAlpha1.performed += instance.OnQuickbarAlpha1;
+            @QuickbarAlpha1.canceled += instance.OnQuickbarAlpha1;
+            @QuickbarAlpha2.started += instance.OnQuickbarAlpha2;
+            @QuickbarAlpha2.performed += instance.OnQuickbarAlpha2;
+            @QuickbarAlpha2.canceled += instance.OnQuickbarAlpha2;
+            @QuickbarAlpha3.started += instance.OnQuickbarAlpha3;
+            @QuickbarAlpha3.performed += instance.OnQuickbarAlpha3;
+            @QuickbarAlpha3.canceled += instance.OnQuickbarAlpha3;
+            @QuickbarAlpha4.started += instance.OnQuickbarAlpha4;
+            @QuickbarAlpha4.performed += instance.OnQuickbarAlpha4;
+            @QuickbarAlpha4.canceled += instance.OnQuickbarAlpha4;
+            @QuickbarAlpha5.started += instance.OnQuickbarAlpha5;
+            @QuickbarAlpha5.performed += instance.OnQuickbarAlpha5;
+            @QuickbarAlpha5.canceled += instance.OnQuickbarAlpha5;
+            @QuickbarAlpha6.started += instance.OnQuickbarAlpha6;
+            @QuickbarAlpha6.performed += instance.OnQuickbarAlpha6;
+            @QuickbarAlpha6.canceled += instance.OnQuickbarAlpha6;
+            @QuickbarAlpha7.started += instance.OnQuickbarAlpha7;
+            @QuickbarAlpha7.performed += instance.OnQuickbarAlpha7;
+            @QuickbarAlpha7.canceled += instance.OnQuickbarAlpha7;
+            @QuickbarAlpha8.started += instance.OnQuickbarAlpha8;
+            @QuickbarAlpha8.performed += instance.OnQuickbarAlpha8;
+            @QuickbarAlpha8.canceled += instance.OnQuickbarAlpha8;
         }
 
         /// <summary>
@@ -661,9 +926,37 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @Fire.started -= instance.OnFire;
             @Fire.performed -= instance.OnFire;
             @Fire.canceled -= instance.OnFire;
+
             @Rotate.started -= instance.OnRotate;
             @Rotate.performed -= instance.OnRotate;
             @Rotate.canceled -= instance.OnRotate;
+            @QuickbarScroll.started -= instance.OnQuickbarScroll;
+            @QuickbarScroll.performed -= instance.OnQuickbarScroll;
+            @QuickbarScroll.canceled -= instance.OnQuickbarScroll;
+            @QuickbarAlpha1.started -= instance.OnQuickbarAlpha1;
+            @QuickbarAlpha1.performed -= instance.OnQuickbarAlpha1;
+            @QuickbarAlpha1.canceled -= instance.OnQuickbarAlpha1;
+            @QuickbarAlpha2.started -= instance.OnQuickbarAlpha2;
+            @QuickbarAlpha2.performed -= instance.OnQuickbarAlpha2;
+            @QuickbarAlpha2.canceled -= instance.OnQuickbarAlpha2;
+            @QuickbarAlpha3.started -= instance.OnQuickbarAlpha3;
+            @QuickbarAlpha3.performed -= instance.OnQuickbarAlpha3;
+            @QuickbarAlpha3.canceled -= instance.OnQuickbarAlpha3;
+            @QuickbarAlpha4.started -= instance.OnQuickbarAlpha4;
+            @QuickbarAlpha4.performed -= instance.OnQuickbarAlpha4;
+            @QuickbarAlpha4.canceled -= instance.OnQuickbarAlpha4;
+            @QuickbarAlpha5.started -= instance.OnQuickbarAlpha5;
+            @QuickbarAlpha5.performed -= instance.OnQuickbarAlpha5;
+            @QuickbarAlpha5.canceled -= instance.OnQuickbarAlpha5;
+            @QuickbarAlpha6.started -= instance.OnQuickbarAlpha6;
+            @QuickbarAlpha6.performed -= instance.OnQuickbarAlpha6;
+            @QuickbarAlpha6.canceled -= instance.OnQuickbarAlpha6;
+            @QuickbarAlpha7.started -= instance.OnQuickbarAlpha7;
+            @QuickbarAlpha7.performed -= instance.OnQuickbarAlpha7;
+            @QuickbarAlpha7.canceled -= instance.OnQuickbarAlpha7;
+            @QuickbarAlpha8.started -= instance.OnQuickbarAlpha8;
+            @QuickbarAlpha8.performed -= instance.OnQuickbarAlpha8;
+            @QuickbarAlpha8.canceled -= instance.OnQuickbarAlpha8;
         }
 
         /// <summary>
@@ -805,6 +1098,7 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnFire(InputAction.CallbackContext context);
+
         /// <summary>
         /// Method invoked when associated input action "Rotate" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
@@ -812,5 +1106,68 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnRotate(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarScroll" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarScroll(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha1" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha1(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha2" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha2(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha3" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha3(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha4" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha4(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha5" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha5(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha6" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha6(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha7" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha7(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuickbarAlpha8" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuickbarAlpha8(InputAction.CallbackContext context);
     }
 }

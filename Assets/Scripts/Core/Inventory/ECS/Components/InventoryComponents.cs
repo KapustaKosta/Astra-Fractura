@@ -34,3 +34,10 @@ public struct InventoryProperties : IComponentData
     /// </summary>
     public int Capacity;
 }
+
+/// <summary>
+/// Тег-компонент, который временно добавляется к сущности,
+/// чей инвентарь был изменен в текущем кадре.
+/// Используется для запуска систем, которые должны реагировать на изменения в инвентаре.
+/// </summary>
+public struct InventoryChangedTag : IComponentData { }

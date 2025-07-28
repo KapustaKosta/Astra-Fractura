@@ -19,6 +19,9 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
 
     [Tooltip("Кнопка, представляющая сам слот. Используется для визуальных состояний.")]
     public Button slotButton;
+    
+    [Tooltip("Изображение, служащее фоном для слота. Его цвет будет меняться.")]
+    public Image slotBackground;
 
     /// <summary>
     /// Ссылка на ScriptableObject предмета, который в данный момент находится в слоте.
@@ -41,7 +44,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     /// <summary>
     /// Событие, вызываемое при клике левой кнопкой мыши по слоту.
     /// </summary>
-    public event Action<Item> OnSlotClicked;
+    public event Action<InventorySlot> OnSlotClicked;
     
     private Item currentItem;
     private int currentAmount;
@@ -92,8 +95,8 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
             #if UNITY_EDITOR
             Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID})" +
                              $" в ассете не назначен спрайт. Иконка будет скрыта.");
-            icon.enabled = false;
             #endif
+            icon.enabled = false;
         }
         else
         {
@@ -136,6 +139,19 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     }
 
     /// <summary>
+    /// Обновляет визуальное состояние фона слота на основе его активности.
+    /// </summary>
+    /// <param name="isActive">True, если этот слот является активным в квикбаре.</param>
+    /// <param name="settings">Ассет с настройками цветов.</param>
+    public void SetHighlightStatus(bool isActive, QuickbarSettings settings)
+    {
+        if (slotBackground != null && settings != null)
+        {
+            slotBackground.color = isActive ? settings.activeSlotColor : settings.inactiveSlotColor;
+        }
+    }
+
+    /// <summary>
     /// Обрабатывает клик по слоту (реализация IPointerClickHandler).
     /// Вызывает событие OnSlotClicked при клике левой кнопкой мыши.
     /// </summary>
@@ -143,10 +159,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     {
         if (eventData.button == PointerEventData.InputButton.Left && !eventData.dragging)
         {
-            if (currentItem != null)
-            {
-                OnSlotClicked?.Invoke(currentItem);
-            }
+            OnSlotClicked?.Invoke(this);
         }
     }
 

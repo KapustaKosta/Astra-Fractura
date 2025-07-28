@@ -2,6 +2,10 @@ using Unity.Entities;
 using UnityEngine;
 using Unity.Collections;
 
+/// <summary>
+/// Authoring-компонент для определения NPC в ECS.
+/// Позволяет настраивать начальные параметры NPC и добавляет все необходимые компоненты AI и PF.
+/// </summary>
 public class NPCAuthoring : MonoBehaviour
 {
     [Header("Базовая информация о NPC")]
@@ -32,7 +36,11 @@ public class NPCAuthoring : MonoBehaviour
     /// </summary>
     public int diligence;
     
-    public class Baker : Baker<NPCAuthoring>
+    [Header("Боевые параметры")]
+    [Tooltip("Максимальное здоровье NPC.")]
+    public float maxHealth = 100f;
+
+    class Baker : Baker<NPCAuthoring>
     {
         /// <summary>
         /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
@@ -42,7 +50,9 @@ public class NPCAuthoring : MonoBehaviour
         public override void Bake(NPCAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
+            
 
+            // Компонент с данными NPC из системы AI
             AddComponent(entity, new NPCComponent
             {
                 Name = new FixedString64Bytes(authoring.npcName ?? string.Empty),
@@ -53,9 +63,26 @@ public class NPCAuthoring : MonoBehaviour
                 Diligence = authoring.diligence,
                 Target = Entity.Null
             });
+            
+            // Компонент с данными здоровья
+            AddComponent(entity, new HealthComponent
+            {
+                MaxHealth = authoring.maxHealth,
+                CurrentHealth = authoring.maxHealth
+            });
+            
+            /// Компонент, хранящий прямую ссылку на GameObject
+            AddComponentObject(entity, new GameObjectLink
+            {
+                Value = authoring.gameObject
+            });
 
+            // Компонент "мозга" из системы AI
             AddComponent<NPCBrain>(entity);
             
+            // Компоненты, необходимые для системы Pathfinding (PF)
+            AddComponent<NPCPathfindingComponent>(entity);
+            AddBuffer<NPCPathBufferElement>(entity);
         }
     }
 }

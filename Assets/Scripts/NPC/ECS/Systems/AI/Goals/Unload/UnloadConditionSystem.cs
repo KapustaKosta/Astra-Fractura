@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using UnityEngine; 
 
 /// <summary>
 /// Система условий разгрузки инвентаря NPC.
@@ -18,22 +19,22 @@ public partial class UnloadConditionSystem : SystemBase
         // Получаем командный буфер для изменения сущностей
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
-        // Обрабатываем неудачные попытки разгрузки
+        // 1. Обрабатываем НЕУДАЧНЫЕ попытки разгрузки
         Entities
             .WithAll<TransferFailedTag>()
-            .WithoutBurst() // Требуется для немедленного выполнения через .Run()
+            .WithoutBurst() 
             .ForEach((Entity entity) =>
             {
                 // Блокируем дальнейшие попытки разгрузки из-за ошибки
                 ecb.AddComponent<UnloadingBlockedTag>(entity);
                 // Очищаем метку неудачи
                 ecb.RemoveComponent<TransferFailedTag>(entity);
-            }).Run(); 
+            }).Schedule();
             
-        // Обрабатываем успешные попытки разгрузки
+        // 2. Обрабатываем успешные попытки разгрузки
         Entities
             .WithAll<TransferSuccessTag>()
-            .WithoutBurst() // Требуется для немедленного выполнения через .Run()
+            .WithoutBurst() 
             .ForEach((Entity entity) =>
             {
                 // Снимаем блокировку, если она была
@@ -45,14 +46,16 @@ public partial class UnloadConditionSystem : SystemBase
                 // Очищаем активную цель после успешной разгрузки
                 if(SystemAPI.HasComponent<ActiveGoal>(entity))
                 {
+                    var oldGoal = SystemAPI.GetComponent<ActiveGoal>(entity);
+                    ecb.AddComponent(entity, new CleanupGoalRequest { OldGoalType = oldGoal.Type });
                     ecb.RemoveComponent<ActiveGoal>(entity);
                 }
                 
                 // Очищаем метку успешной передачи
                 ecb.RemoveComponent<TransferSuccessTag>(entity);
-            }).Run();
+            }).Schedule();
 
-        // Проверяем наличие свободного места на складе
+        // 3. Проверяем, не освободилось ли место на складе
         if (SystemAPI.TryGetSingletonEntity<PlayerSettlementTag>(out Entity settlementEntity))
         {
             // Если склад не переполнен

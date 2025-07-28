@@ -10,6 +10,9 @@ using UnityEngine;
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class MoveItemSystem : SystemBase
 {
+    /// <summary>
+    /// Вызывается каждый кадр для обработки запросов на перемещение.
+    /// </summary>
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
@@ -36,6 +39,10 @@ public partial class MoveItemSystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
+
+                // Добавляем теги обоим инвентарям, так как они оба меняются.
+                ecb.AddComponent<InventoryChangedTag>(request.SourceInventoryOwner);
+                ecb.AddComponent<InventoryChangedTag>(request.DestinationInventoryOwner);
 
                 var sourceBuffer = bufferLookup[request.SourceInventoryOwner];
                 var destBuffer = bufferLookup[request.DestinationInventoryOwner];

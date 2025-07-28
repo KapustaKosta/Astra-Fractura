@@ -94,6 +94,7 @@ MonoBehaviour:
   icon: {fileID: 1895008156067117714}
   amountText: {fileID: 8753967181483057778}
   slotButton: {fileID: 1853680045650391753}
+  slotBackground: {fileID: 8804647155772982185}
 --- !u!1 &3274772727258682530
 GameObject:
   m_ObjectHideFlags: 0

@@ -8,6 +8,9 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(MoveItemSystem))]
 public partial class SplitStackSystem : SystemBase
 {
+    /// <summary>
+    /// Вызывается каждый кадр для обработки запросов на разделение стаков.
+    /// </summary>
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
@@ -27,6 +30,10 @@ public partial class SplitStackSystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
+
+                // Добавляем теги обоим инвентарям.
+                ecb.AddComponent<InventoryChangedTag>(request.SourceInventoryOwner);
+                ecb.AddComponent<InventoryChangedTag>(request.DestinationInventoryOwner);
 
                 var sourceBuffer = bufferLookup[request.SourceInventoryOwner];
                 var destBuffer = bufferLookup[request.DestinationInventoryOwner];

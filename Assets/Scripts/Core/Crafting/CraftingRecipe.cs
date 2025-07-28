@@ -21,7 +21,9 @@ public class CraftingRecipe : ScriptableObject
     [Tooltip("Список соответствующего количества для каждого предмета из requiredItems.")]
     public List<int> requiredAmounts;
     
-    // Методы CanCraft() и Craft() были удалены, так как класс Inventory больше не существует.
-    // Эту логику теперь выполняет CraftingUI, который читает ECS-инвентарь игрока
-    // и создает ECS-запросы на добавление/удаление предметов.
+    [Header("Crafting Time")]
+    [Tooltip("Время, необходимое для крафта предмета в секундах.")]
+    [Min(0.1f)]
+    public float craftingTime = 1.0f;
+    
 }

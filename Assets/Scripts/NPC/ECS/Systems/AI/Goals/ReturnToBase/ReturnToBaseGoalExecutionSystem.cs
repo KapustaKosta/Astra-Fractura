@@ -1,6 +1,5 @@
 ﻿using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
+using UnityEngine; 
 
 /// <summary>
 /// Система выполнения цели "Вернуться на базу" для ИИ.
@@ -18,56 +17,39 @@ public partial class ReturnToBaseGoalExecutionSystem : SystemBase
     protected override void OnUpdate()
     {
         // Получаем командный буфер для изменения сущностей
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
         // Получаем глобальные настройки AI
         var settings = SystemAPI.GetSingleton<AISettings>();
         
+        // Обрабатываем всех ИИ-агентов с активной целью возврата к базе
         Entities
-            .ForEach((Entity entity, in ActiveGoal goal, in NPCMovementComponent movementSettings) =>
+            .ForEach((Entity entity, in ActiveGoal goal, in NPCMovementComponent movement, 
+                     in NPCPathfindingComponent pathfinding) =>
             {
                 // Проверяем, что это цель на возврат на базу
                 if (goal.Type != GoalType.ReturnToBase) return;
                 
-                // Проверяем, существует ли цель (поселение)
-                if (!SystemAPI.HasComponent<LocalToWorld>(goal.Target)) return;
+                // Определяем условия прибытия к базе:
+                // 1. Движение завершено
+                bool hasArrived = !movement.HasTarget;
                 
-                // Получаем позиции NPC и цели
-                var npcTransform = SystemAPI.GetComponent<LocalToWorld>(entity);
-                var targetTransform = SystemAPI.GetComponent<LocalToWorld>(goal.Target);
-                
-                // Рассчитываем квадрат расстояния до цели
-                float distanceSq = math.distancesq(npcTransform.Position, targetTransform.Position);
-                // Проверяем, находится ли NPC в зоне остановки
-                bool isInRange = distanceSq <= movementSettings.StoppingDistance * movementSettings.StoppingDistance;
+                // 2. Цель завершенного движения совпадает с целевой базой
+                bool arrivedAtCorrectPlace = pathfinding.CurrentGoalTarget == goal.Target;
 
-                if (!isInRange)
+                // Проверяем выполнение обоих условий прибытия
+                if (hasArrived && arrivedAtCorrectPlace)
                 {
-                    // NPC не в зоне - запрашиваем движение к цели
-                    if (!SystemAPI.HasComponent<MoveToRequest>(entity))
-                    {
-                        // Уменьшаем дистанцию остановки с учётом буфера, но не меньше 0.1
-                        float targetStoppingDistance = movementSettings.StoppingDistance - settings.ReturnToBaseStoppingDistanceBuffer; 
-                        ecb.AddComponent(entity, new MoveToRequest 
-                        { 
-                            TargetEntity = goal.Target, 
-                            StoppingDistance = math.max(0.1f, targetStoppingDistance) // Минимальная дистанция 0.1
-                        });
-                    }
-                }
-                else
-                {
-                    // NPC в зоне - останавливаем движение
-                    if (SystemAPI.HasComponent<MoveToRequest>(entity))
-                    {
-                        ecb.RemoveComponent<MoveToRequest>(entity);
-                    }
-                    
-                    // Используем новый тег UnloadRequestTag для инициации разгрузки
+                    // Проверяем, не был ли уже отправлен запрос на разгрузку
                     if (!SystemAPI.HasComponent<UnloadRequestTag>(entity))
                     {
-                       ecb.AddComponent<UnloadRequestTag>(entity);
+                        #if UNITY_EDITOR
+                        Debug.Log($"<color=green>[ReturnToBaseGoalSystem]</color> NPC {entity.Index} прибыл к правильной цели ({goal.Target.Index}). Добавление UnloadRequestTag.");
+                        #endif
+                        // Добавляем метку запроса разгрузки для инициации следующего этапа
+                        ecb.AddComponent<UnloadRequestTag>(entity);
                     }
                 }
-            }).Schedule();
+            }).Run();
     }
 }

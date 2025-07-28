@@ -26,8 +26,10 @@ public partial class SettlementActionsSystem : SystemBase
         // Используем один CommandBuffer для всех операций.
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         
+        var playerSettlementEntity = SystemAPI.GetSingletonEntity<PlayerSettlementTag>();
         // Получаем прямой доступ на запись к компоненту нашего синглтона.
-        var settlementData = SystemAPI.GetSingletonRW<SettlementComponent>();
+        var settlementData = SystemAPI.
+            GetComponentRW<SettlementComponent>(playerSettlementEntity);
 
         // Обработка запросов на найм NPC
         Entities
