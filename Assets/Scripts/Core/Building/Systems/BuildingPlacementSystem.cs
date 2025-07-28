@@ -41,10 +41,73 @@ public partial class BuildingPlacementSystem : SystemBase
 
         bool isPlacementValid = false;
         
-        if (Camera.main != null)
+        // Если у превью есть SnapToEndpointTag — не обновляем позицию по мышке
+        if (SystemAPI.HasComponent<SnapToEndpointTag>(previewEntity))
+        {
+            // Просто используем текущую позицию превью для проверки валидности
+            var currentTransform = SystemAPI.GetComponent<LocalTransform>(previewEntity);
+            float3 hitPosition = currentTransform.Position;
+            float maxPlacementSlopeAngle = settings.MaxPlacementSlopeAngle;
+            bool slopeOk = true;
+            bool noOverlap = true;
+            bool allBottomSupported = true;
+            if (SystemAPI.HasComponent<PhysicsCollider>(previewEntity))
+            {
+                var collider = SystemAPI.GetComponent<PhysicsCollider>(previewEntity);
+                var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(Unity.Mathematics.quaternion.identity, hitPosition));
+                uint obstacleLayerMask = (uint)settings.ObstacleLayerMask;
+                var overlapInput = new OverlapAabbInput
+                {
+                    Aabb = aabb,
+                    Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = obstacleLayerMask, GroupIndex = 0 }
+                };
+                var overlappingBodies = new NativeList<int>(Allocator.Temp);
+                noOverlap = !physicsWorld.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies);
+                overlappingBodies.Dispose();
+
+                float3 min = aabb.Min;
+                float3 max = aabb.Max;
+                float y = min.y + 0.01f;
+                float3[] bottomPoints = new float3[5];
+                bottomPoints[0] = new float3(min.x, y, min.z);
+                bottomPoints[1] = new float3(max.x, y, min.z);
+                bottomPoints[2] = new float3(min.x, y, max.z);
+                bottomPoints[3] = new float3(max.x, y, max.z);
+                bottomPoints[4] = new float3((min.x+max.x)*0.5f, y, (min.z+max.z)*0.5f);
+
+                float checkDepth = 0.6f;
+                float upCheck = 1f;
+                for (int i = 0; i < bottomPoints.Length; i++)
+                {
+                    var downRay = new RaycastInput
+                    {
+                        Start = bottomPoints[i],
+                        End = bottomPoints[i] + new float3(0, -checkDepth, 0),
+                        Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 }
+                    };
+                    if (!physicsWorld.CollisionWorld.CastRay(downRay, out var _))
+                    {
+                        allBottomSupported = false;
+                        break;
+                    }
+                    var upRay = new RaycastInput
+                    {
+                        Start = bottomPoints[i],
+                        End = bottomPoints[i] + new float3(0, upCheck, 0),
+                        Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 }
+                    };
+                    if (physicsWorld.CollisionWorld.CastRay(upRay, out var _))
+                    {
+                        allBottomSupported = false;
+                        break;
+                    }
+                }
+            }
+            isPlacementValid = slopeOk && noOverlap && allBottomSupported;
+        }
+        else if (Camera.main != null)
         {
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            
             // Используем настроенные маски слоев для рейкаста.
             uint buildableSurfaceLayerMask = (uint)settings.BuildableSurfaceLayerMask;
             uint obstacleLayerMask = (uint)settings.ObstacleLayerMask;
@@ -58,7 +121,13 @@ public partial class BuildingPlacementSystem : SystemBase
 
             if (physicsWorld.CollisionWorld.CastRay(rayInput, out var hit))
             {
-                SystemAPI.SetComponent(previewEntity, LocalTransform.FromPosition(hit.Position));
+                // Сохраняем rotation и scale при обновлении позиции превью
+                var currentTransform = SystemAPI.GetComponent<LocalTransform>(previewEntity);
+                SystemAPI.SetComponent(previewEntity, LocalTransform.FromPositionRotationScale(
+                    hit.Position,
+                    currentTransform.Rotation,
+                    currentTransform.Scale
+                ));
 
                 // Расчет угла наклона поверхности и проверка на допустимость.
                 float maxPlacementSlopeAngle = settings.MaxPlacementSlopeAngle;
@@ -66,23 +135,64 @@ public partial class BuildingPlacementSystem : SystemBase
                 bool slopeOk = slope <= maxPlacementSlopeAngle;
 
                 bool noOverlap = true;
+                bool allBottomSupported = true;
                 if (SystemAPI.HasComponent<PhysicsCollider>(previewEntity))
                 {
                     var collider = SystemAPI.GetComponent<PhysicsCollider>(previewEntity);
-                    
+                    var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(Unity.Mathematics.quaternion.identity, hit.Position));
                     // Проверка на пересечение AABB превью с препятствиями.
                     var overlapInput = new OverlapAabbInput
                     {
-                        Aabb = collider.Value.Value.CalculateAabb(new RigidTransform(Unity.Mathematics.quaternion.identity, hit.Position)),
+                        Aabb = aabb,
                         Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = obstacleLayerMask, GroupIndex = 0 }
                     };
-                    
                     var overlappingBodies = new NativeList<int>(Allocator.Temp);
                     noOverlap = !physicsWorld.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies);
                     overlappingBodies.Dispose();
+
+                    // Проверка: точки дна берём напрямую из AABB (world space), offset не нужен
+                    float3 min = aabb.Min;
+                    float3 max = aabb.Max;
+                    float y = min.y + 0.01f; // чуть выше дна, чтобы гарантировать попадание
+                    float3[] bottomPoints = new float3[5];
+                    bottomPoints[0] = new float3(min.x, y, min.z);
+                    bottomPoints[1] = new float3(max.x, y, min.z);
+                    bottomPoints[2] = new float3(min.x, y, max.z);
+                    bottomPoints[3] = new float3(max.x, y, max.z);
+                    bottomPoints[4] = new float3((min.x+max.x)*0.5f, y, (min.z+max.z)*0.5f);
+
+                    float checkDepth = 0.6f;
+                    float upCheck = 1f; // высота проверки вверх
+                    for (int i = 0; i < bottomPoints.Length; i++)
+                    {
+                        // Проверка: есть ли поверхность под точкой
+                        var downRay = new RaycastInput
+                        {
+                            Start = bottomPoints[i],
+                            End = bottomPoints[i] + new float3(0, -checkDepth, 0),
+                            Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = buildableSurfaceLayerMask, GroupIndex = 0 }
+                        };
+                        if (!physicsWorld.CollisionWorld.CastRay(downRay, out var _))
+                        {
+                            allBottomSupported = false;
+                            break;
+                        }
+                        // Проверка: не находится ли точка уже внутри поверхности (например, угол утоплен)
+                        var upRay = new RaycastInput
+                        {
+                            Start = bottomPoints[i],
+                            End = bottomPoints[i] + new float3(0, upCheck, 0),
+                            Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = buildableSurfaceLayerMask, GroupIndex = 0 }
+                        };
+                        if (physicsWorld.CollisionWorld.CastRay(upRay, out var _))
+                        {
+                            allBottomSupported = false;
+                            break;
+                        }
+                    }
                 }
 
-                isPlacementValid = slopeOk && noOverlap;
+                isPlacementValid = slopeOk && noOverlap && allBottomSupported;
             }
         }
         

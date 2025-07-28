@@ -193,7 +193,7 @@ MonoBehaviour:
     m_SimplificationTolerance: 0.015
     m_BevelRadius: 0.05
     m_MinimumAngle: 2.5000002
-  m_CustomMesh: {fileID: 4300000, guid: 9dcd498d93a73724fa9249296c4a0944, type: 2}
+  m_CustomMesh: {fileID: 4300000, guid: 092dbb5f5db8dab48a5fc4295ecd8740, type: 2}
   m_ForceUnique: 0
   m_Material:
     m_SupportsTemplate: 1
@@ -294,6 +294,52 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!1 &101270681
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 101270683}
+  - component: {fileID: 101270682}
+  m_Layer: 0
+  m_Name: BuildingRegistry_Conveyor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &101270682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 101270681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 231ca5e0b192fde4a951eb28b386bd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingPrefab: {fileID: 6801349528839152945, guid: 1de430edafc849248b3a8c8aacc77b40, type: 3}
+  item: {fileID: 11400000, guid: 01e14991c4912f44b999b66a6ddb2582, type: 2}
+--- !u!4 &101270683
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 101270681}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &277882382
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -685,6 +731,52 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 124330, guid: 40b20037846dab6479dcf6cc87d914c1, type: 3}
   m_PrefabInstance: {fileID: 277882382}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1040563354
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1040563356}
+  - component: {fileID: 1040563355}
+  m_Layer: 0
+  m_Name: BuildingRegistry_Machine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1040563355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1040563354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 231ca5e0b192fde4a951eb28b386bd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingPrefab: {fileID: 5592962962919423203, guid: 29f2b75ef153fa94baf9f644f0391e9f, type: 3}
+  item: {fileID: 11400000, guid: ad40185727c496d4c8f61952bf56abcf, type: 2}
+--- !u!4 &1040563356
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1040563354}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1051485453
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1261,6 +1353,12 @@ MonoBehaviour:
     amount: 1
   - item: {fileID: 11400000, guid: 953c5c60a280c294db3b9cc4b8e1d9c4, type: 2}
     amount: 1
+  - item: {fileID: 11400000, guid: ad40185727c496d4c8f61952bf56abcf, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: ad40185727c496d4c8f61952bf56abcf, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 01e14991c4912f44b999b66a6ddb2582, type: 2}
+    amount: 16
 --- !u!114 &1313986276
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1349,7 +1447,7 @@ MonoBehaviour:
     m_SimplificationTolerance: 0.015
     m_BevelRadius: 0.05
     m_MinimumAngle: 2.5000002
-  m_CustomMesh: {fileID: 4300000, guid: c45fa92055028c744bec81d1bb1f1206, type: 2}
+  m_CustomMesh: {fileID: 4300000, guid: 0a4d4b323d5072f4db5755ba70d15280, type: 2}
   m_ForceUnique: 0
   m_Material:
     m_SupportsTemplate: 1
@@ -1734,7 +1832,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1914254394}
-  - component: {fileID: 1914254395}
+  - component: {fileID: 1914254396}
   m_Layer: 3
   m_Name: _TerrainColliderProxy_1
   m_TagString: Untagged
@@ -1757,7 +1855,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1914254395
+--- !u!114 &1914254396
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1780,7 +1878,7 @@ MonoBehaviour:
     z: 1000
   m_PrimitiveOrientation:
     Value:
-      x: -0
+      x: 0
       y: 0
       z: 0
     RotationOrder: 4
@@ -1796,10 +1894,10 @@ MonoBehaviour:
   m_SphereRadius: 500
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
-    m_SimplificationTolerance: 15
+    m_SimplificationTolerance: 0.015
     m_BevelRadius: 0.05
     m_MinimumAngle: 2.5000002
-  m_CustomMesh: {fileID: 4300000, guid: a7c45f0dce756914fa45df199412f95b, type: 2}
+  m_CustomMesh: {fileID: 4300000, guid: 5d18359e05f321546bbe230fb7376515, type: 2}
   m_ForceUnique: 0
   m_Material:
     m_SupportsTemplate: 1
@@ -2382,6 +2480,8 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1078167128}
+  - {fileID: 1040563356}
+  - {fileID: 101270683}
   - {fileID: 801772936}
   - {fileID: 326795452}
   - {fileID: 1313986269}

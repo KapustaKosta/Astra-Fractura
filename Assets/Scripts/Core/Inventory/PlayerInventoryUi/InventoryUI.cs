@@ -142,6 +142,15 @@ public class InventoryUI : MonoBehaviour
                 });
                 break;
 
+            case ItemType.Conveyor:
+                // Если кликнули на предмет-конвеер, создаем ECS-запрос на вход в режим строительства конвеера.
+                var conveyorRequest = entityManager.CreateEntity();
+                entityManager.AddComponentData(conveyorRequest, new EnterBuildingModeRequest
+                {
+                    ItemID = item.itemID
+                });
+                break;
+
             case ItemType.Tool:
             case ItemType.Consumable:
             case ItemType.Resource:

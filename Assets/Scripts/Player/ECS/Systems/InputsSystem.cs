@@ -20,6 +20,7 @@ public partial class InputsSystem : SystemBase
     private bool rightClickRequested;
     private double lastJumpTime;
     private bool primaryActionInput;
+    private bool rotateHeld;
 
     /// <summary>
     /// Вызывается при создании системы. Гарантирует, что синглтон GameState и игрок существуют.
@@ -42,6 +43,7 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onInventory += OnInventory;
         StarterAssetsInputs.onRightClick += OnRightClick;
         StarterAssetsInputs.onPrimaryAction += OnPrimaryAction;
+        StarterAssetsInputs.onRotate += OnRotate;
         
         inventoryRequested = false;
         rightClickRequested = false;
@@ -62,6 +64,7 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onInventory -= OnInventory;
         StarterAssetsInputs.onRightClick -= OnRightClick;
         StarterAssetsInputs.onPrimaryAction -= OnPrimaryAction;
+        StarterAssetsInputs.onRotate -= OnRotate;
     }
 
     /// <summary>
@@ -100,12 +103,17 @@ public partial class InputsSystem : SystemBase
     private void OnPrimaryAction(bool isPressed) => primaryActionInput = isPressed;
 
     /// <summary>
+    /// Обработчик события поворота (isPressed: true — кнопка зажата, false — отпущена).
+    /// </summary>
+    private void OnRotate(bool isPressed) => rotateHeld = isPressed;
+
+    /// <summary>
     /// Вызывается каждый кадр. Обновляет InputsData и создает одноразовые запросы для UI.
     /// </summary>
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        
+
         // Создаем одноразовые запросы для действий, которые должны сработать один раз по нажатию
         if (inventoryRequested)
         {
@@ -113,10 +121,28 @@ public partial class InputsSystem : SystemBase
             ecb.AddComponent(invE, new ToggleInventoryRequest());
             inventoryRequested = false;
         }
-        
+
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
-        bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity); 
+        bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity);
+
+        // Пока кнопка поворота удерживается и мы в режиме строительства — добавляем RotateRequest к превью
+        if (rotateHeld && isInBuildingMode)
+        {
+            if (SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity))
+            {
+                if (!SystemAPI.HasComponent<RotateRequest>(previewEntity))
+                    ecb.AddComponent<RotateRequest>(previewEntity);
+            }
+        }
+        else
+        {
+            if (SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity))
+            {
+                if (SystemAPI.HasComponent<RotateRequest>(previewEntity))
+                    ecb.RemoveComponent<RotateRequest>(previewEntity);
+            }
+        }
 
         // Обработка правой кнопки мыши: если в режиме строительства, то это запрос на выход,
         // иначе - запрос на взаимодействие.

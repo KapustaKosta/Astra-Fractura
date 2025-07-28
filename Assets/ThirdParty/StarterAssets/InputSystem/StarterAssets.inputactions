@@ -27,7 +27,7 @@
                     "name": "Jump",
                     "type": "Button",
                     "id": "8c4abdf8-4099-493a-aa1a-129acec7c3df",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -45,7 +45,7 @@
                     "name": "Inventory",
                     "type": "Button",
                     "id": "b8daab8f-3857-4a1f-91fe-08f5a619e77b",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -63,6 +63,15 @@
                     "name": "Fire",
                     "type": "Button",
                     "id": "65c4453f-2b07-4bec-b5b9-c6a4c7a02df2",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Rotate",
+                    "type": "Button",
+                    "id": "43dcec4e-b385-4cd3-9b99-ab16e638ec5b",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -276,6 +285,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "189d29f9-3a11-42a1-b9c3-78ce866b88e3",
+                    "path": "<Keyboard>/r",
+                    "interactions": "Press(behavior=2)",
+                    "processors": "",
+                    "groups": ";KeyboardMouse",
+                    "action": "Rotate",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

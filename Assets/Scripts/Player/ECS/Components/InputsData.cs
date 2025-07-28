@@ -10,6 +10,7 @@ public struct InputsData : IComponentData
     public float2 look;
     public bool jump;
     public bool sprint;
+    public bool rotate;
     public bool analogMovement;
     public bool isMouseControl;
     public bool secondaryActionDown;

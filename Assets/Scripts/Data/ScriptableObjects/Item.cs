@@ -8,6 +8,7 @@ public enum ItemType
     Weapon,     // Оружие
     Consumable, // Еда, аптечки
     Building,   // Строительные блоки
+    Conveyor,   // Конвейеры
     Miscellaneous // Прочее
 }
 

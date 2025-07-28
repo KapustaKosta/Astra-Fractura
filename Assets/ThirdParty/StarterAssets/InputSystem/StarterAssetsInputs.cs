@@ -46,7 +46,22 @@ namespace StarterAssets
         /// </summary>
         public static event Action<bool> onPrimaryAction; 
 
+        /// <summary>
+        /// Событие, вызываемое при изменении состояния кнопки поворота.
+        /// true — кнопка зажата, false — отпущена.
+        /// </summary>
+        public static event Action<bool> onRotate;
+
 #if ENABLE_INPUT_SYSTEM
+
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки ввода поворота.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnRotate(InputValue value)
+        {
+            onRotate?.Invoke(value.isPressed);
+        }
 
         /// <summary>
         /// Метод, вызываемый компонентом Player Input для обработки ввода движения.
