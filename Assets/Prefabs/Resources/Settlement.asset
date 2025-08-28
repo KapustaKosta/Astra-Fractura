@@ -14,13 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemName: Settlement
   itemType: 4
-  icon: {fileID: 21300000, guid: 919ef660b116c9f43bdef7234d812ddd, type: 3}
+  icon: {fileID: 21300000, guid: 01ccf3bcff43adf4fa25fabec2fb5864, type: 3}
   description: 
   maxStack: 1
   toolDamage: 10
   canHarvest: 0
   hasDurability: 0
   maxDurability: 100
+  weaponDamage: 15
+  attackCooldown: 0.8
   buildingPrefab: {fileID: 123924, guid: 4cbd13ce3c35357488d85a111775e0a0, type: 3}
   footprintSize: {x: 1, y: 1}
+  VisualPrefab: {fileID: 0}
   itemID: 3

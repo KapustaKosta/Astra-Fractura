@@ -1,6 +1,8 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
+using UnityEngine;
+using System.Text;
 
 /// <summary>
 /// Система выбора целей для ИИ NPC.
@@ -16,10 +18,8 @@ public partial class NPCTaskArbiterSystem : SystemBase
     // Запрос для выборки всех NPC
     private EntityQuery _npcQuery;
 
-    /// <summary>
-    /// Инициализирует систему, получая доступ к реестру целей и создавая запрос на выборку NPC.
-    /// Требует наличия GoalRegistrySystem.Initialized и PlayerSettlementTag для работы.
-    /// </summary>
+    private const float CURRENT_GOAL_INERTIA_BONUS = 1.1f;
+
     protected override void OnCreate()
     {
         // Получаем доступ к реестру целей
@@ -29,7 +29,7 @@ public partial class NPCTaskArbiterSystem : SystemBase
         RequireForUpdate<PlayerSettlementTag>();
         // Создаем запрос для выборки NPC
         _npcQuery = GetEntityQuery(
-            ComponentType.ReadOnly<NPCBrain>(), 
+            ComponentType.ReadOnly<NPCBrain>(),
             ComponentType.ReadOnly<NPCHiredTag>());
     }
 
@@ -41,7 +41,16 @@ public partial class NPCTaskArbiterSystem : SystemBase
     {
         // Создаем командный буфер для изменений
         var ecb = new EntityCommandBuffer(Allocator.Temp);
-        // Получаем доступ к реестру целей
+
+        Entities
+            .WithAll<ActiveGoal, CurrentGoalInvalidTag>()
+            .ForEach((Entity entity, in ActiveGoal goal) =>
+            {
+                ecb.AddComponent(entity, new CleanupGoalRequest { OldGoalType = goal.Type });
+                ecb.RemoveComponent<ActiveGoal>(entity);
+                ecb.RemoveComponent<CurrentGoalInvalidTag>(entity);
+            }).Run();
+
         var goalDefinitions = _goalRegistry.GoalDefinitionsMap;
         
         // Проверяем, есть ли зарегистрированные цели
@@ -75,35 +84,51 @@ public partial class NPCTaskArbiterSystem : SystemBase
         // Основной цикл оценки целей для каждого NPC
         foreach (var entity in npcEntities)
         {
+            //var log = new StringBuilder($"<b>ARBITER DEBUG FOR NPC {entity} </b>\n");
             GoalDefinition bestGoalDef = null;
             float bestScore = -1f;
 
-            // Перебираем все доступные цели
+            bool hasActiveGoal = SystemAPI.HasComponent<ActiveGoal>(entity);
+            ActiveGoal currentGoal = hasActiveGoal ? SystemAPI.GetComponent<ActiveGoal>(entity) : default;
+
             foreach (var kvp in goalDefinitions)
             {
                 var currentDef = kvp.Value;
-                // Проверяем, доступна ли цель для этого NPC
+                //log.Append($"Considering Goal: <b>{currentDef.Type}</b>. ");
                 if (currentDef.CanBeConsidered(entity, in context))
                 {
                     // Рассчитываем приоритет цели
                     float score = currentDef.ScoreGoal(entity, in context);
-                    // Выбираем цель с максимальным приоритетом
+                    //log.Append($"<color=green>CAN be considered.</color> Initial Score: {score:F2}. ");
+
+                    if (hasActiveGoal && currentDef.Type == currentGoal.Type)
+                    {
+                        score *= CURRENT_GOAL_INERTIA_BONUS;
+                        //log.Append($"Applied inertia bonus. Final Score: <b>{score:F2}</b>.\n");
+                    }
+                    else
+                    {
+                        //log.Append($"Final Score: <b>{score:F2}</b>.\n");
+                    }
+
                     if (score > bestScore)
                     {
                         bestScore = score;
                         bestGoalDef = currentDef;
                     }
                 }
+                else
+                {
+                   //log.Append("<color=red>CANNOT be considered.</color>\n");
+                }
             }
 
-            // Пропускаем, если не найдено подходящих целей
+            //log.Append($"==> BEST GOAL CHOSEN: <b><color=yellow>{(bestGoalDef != null ? bestGoalDef.Type.ToString() : "NONE")}</color></b> with score {bestScore:F2}\n");
+            //Debug.Log(log.ToString());
+
             if (bestGoalDef == null) continue;
-            
-            // Проверяем текущую цель NPC
-            bool hasActiveGoal = SystemAPI.HasComponent<ActiveGoal>(entity);
-            GoalType currentGoalType = hasActiveGoal ? 
-                SystemAPI.GetComponent<ActiveGoal>(entity).Type : 
-                (GoalType)(-1);
+
+            GoalType currentGoalType = hasActiveGoal ? currentGoal.Type : (GoalType)(-1);
 
             // Если выбранная цель отличается от текущей
             if (bestGoalDef.Type != currentGoalType)

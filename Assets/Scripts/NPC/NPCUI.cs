@@ -1,8 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine.UI;
+using System.Text; 
 
 /// <summary>
 /// Вспомогательный класс-расширение для удобной работы с ResourceItemMapping.
@@ -42,7 +43,7 @@ public class NPCUI : MonoBehaviour
     [SerializeField] private Button hireButton;
     [Tooltip("Кнопка для открытия окна торговли с этим NPC.")]
     [SerializeField] private Button tradeButton;
-    
+
     [Header("Task Elements")]
     [SerializeField] private Transform resourceNodeListContainer;
     [SerializeField] private GameObject resourceNodeButtonPrefab;
@@ -56,7 +57,7 @@ public class NPCUI : MonoBehaviour
     private Entity currentNPCEntity;
     private EntityManager entityManager;
     private bool isInitialized = false;
-    
+
 
     /// <summary>
     /// Инициализирует Singleton-экземпляр и проверяет наличие UI-элементов.
@@ -65,14 +66,14 @@ public class NPCUI : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        if (npcMenu == null || npcText == null || closeButton == null || hireButton == null || 
-            tradeButton == null || 
-            resourceNodeListContainer == null || resourceNodeButtonPrefab == null || taskStatusText == null) 
-        { 
-            enabled = false; 
+        if (npcMenu == null || npcText == null || closeButton == null || hireButton == null ||
+            tradeButton == null ||
+            resourceNodeListContainer == null || resourceNodeButtonPrefab == null || taskStatusText == null)
+        {
+            enabled = false;
         }
     }
-    
+
     /// <summary>
     /// Инициализирует EntityManager и подписывается на события кнопок.
     /// </summary>
@@ -85,10 +86,10 @@ public class NPCUI : MonoBehaviour
             hireButton.onClick.AddListener(OnHireButtonPressed);
             tradeButton.onClick.AddListener(OnTradeButtonPressed);
             npcMenu.SetActive(false);
-            if(notificationPanel != null) notificationPanel.SetActive(false);
+            if (notificationPanel != null) notificationPanel.SetActive(false);
         }
     }
-    
+
     /// <summary>
     /// Показывает меню для указанной сущности NPC.
     /// </summary>
@@ -97,7 +98,7 @@ public class NPCUI : MonoBehaviour
         currentNPCEntity = npcEntity;
         npcMenu.SetActive(true);
     }
-    
+
     /// <summary>
     /// Скрывает меню NPC.
     /// </summary>
@@ -106,7 +107,7 @@ public class NPCUI : MonoBehaviour
         npcMenu.SetActive(false);
         currentNPCEntity = Entity.Null;
     }
-    
+
     private void TryInitialize()
     {
         if (isInitialized) return;
@@ -121,20 +122,18 @@ public class NPCUI : MonoBehaviour
     {
         if (!isInitialized) { TryInitialize(); return; }
 
-        // Логика открытия/закрытия окна в зависимости от состояния игры.
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        // Проверяем, должен ли наш UI быть открыт, на основе данных из ECS
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.NPC;
 
-        
+
         if (shouldBeOpen)
         {
             var targetEntity = entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUITarget;
-            
+
             if (!entityManager.Exists(targetEntity))
             {
                 if (npcMenu.activeSelf) Hide();
@@ -151,8 +150,7 @@ public class NPCUI : MonoBehaviour
         {
             if (npcMenu.activeSelf) Hide();
         }
-        
-        // Обработка очереди уведомлений.
+
         HandleNotifications();
     }
 
@@ -161,8 +159,24 @@ public class NPCUI : MonoBehaviour
         if (!entityManager.Exists(npcEntity)) return;
 
         NPCComponent npcData = entityManager.GetComponentData<NPCComponent>(npcEntity);
-        npcText.text = $"Имя: {npcData.Name}\nВозраст: {npcData.Age}\nНавыки: {npcData.Skills}\n" +
-                       $"Организованность: {npcData.Organizedness}\nЛояльность: {npcData.Loyalty}\nТрудолюбие: {npcData.Diligence}";
+
+        
+        var sb = new StringBuilder();
+        sb.AppendLine($"Имя: {npcData.Name}");
+        sb.AppendLine($"Возраст: {npcData.Age}");
+
+        if (entityManager.HasComponent<NPCWorkForce>(npcEntity))
+        {
+            var workForce = entityManager.GetComponentData<NPCWorkForce>(npcEntity);
+            sb.AppendLine($"Эффективность: {workForce.CurrentHammerPool:F0} / {workForce.MaxHammerPool:F0}");
+        }
+
+        sb.AppendLine($"Навыки: {npcData.Skills}");
+        sb.AppendLine($"Организованность: {npcData.Organizedness}");
+        sb.AppendLine($"Лояльность: {npcData.Loyalty}");
+        sb.AppendLine($"Трудолюбие: {npcData.Diligence}");
+
+        npcText.text = sb.ToString();
 
         bool isHired = entityManager.HasComponent<NPCHiredTag>(npcEntity);
         hireButton.gameObject.SetActive(!isHired);
@@ -175,10 +189,8 @@ public class NPCUI : MonoBehaviour
         }
         else
         {
-            // Если NPC нанят, показываем ему доступные для приказа ресурсы.
             ShowResourceNodeOptions();
 
-            // Определяем текстовый статус NPC на основе его компонентов.
             if (entityManager.HasComponent<ActiveGoal>(npcEntity))
             {
                 var goal = entityManager.GetComponentData<ActiveGoal>(npcEntity);
@@ -203,11 +215,11 @@ public class NPCUI : MonoBehaviour
             }
         }
     }
+
     private void HandleNotifications()
     {
         if (!isInitialized || notificationPanel == null) return;
 
-        // Обновляем таймер для скрытия активного уведомления.
         if (notificationPanel.activeSelf)
         {
             notificationTimer -= Time.deltaTime;
@@ -217,43 +229,33 @@ public class NPCUI : MonoBehaviour
             }
         }
 
-        // Ищем новые запросы на уведомления от ECS систем.
         using var query = entityManager.CreateEntityQuery(typeof(UINotificationRequest));
         if (query.IsEmpty) return;
 
         using var requests = query.ToEntityArray(Allocator.Temp);
 
-        // Показываем самое новое уведомление и удаляем все запросы.
         var requestData = entityManager.GetComponentData<UINotificationRequest>(requests[requests.Length - 1]);
-        
+
         notificationText.text = requestData.Message.ToString();
         notificationPanel.SetActive(true);
         notificationTimer = notificationDisplayTime;
-        
+
         entityManager.DestroyEntity(requests);
     }
 
-    /// <summary>
-    /// Обрабатывает нажатие кнопки "Закрыть", отправляя запрос в ECS.
-    /// </summary>
     private void OnCloseButtonPressed()
     {
         if (!isInitialized) return;
         GameBridge.Instance?.HandleUICloseAction();
     }
-    
-    /// <summary>
-    /// Обрабатывает нажатие кнопки "Нанять", создавая ECS-запрос на найм.
-    /// </summary>
+
     private void OnHireButtonPressed()
     {
         if (currentNPCEntity == Entity.Null) return;
         var requestEntity = entityManager.CreateEntity();
         entityManager.AddComponentData(requestEntity, new HireNPCRequest { NPCToHire = currentNPCEntity });
     }
-    /// <summary>
-    /// Обрабатывает нажатие кнопки "Обмен", создавая запрос на открытие TradeUI.
-    /// </summary>
+
     private void OnTradeButtonPressed()
     {
         if (currentNPCEntity == Entity.Null) return;
@@ -261,19 +263,15 @@ public class NPCUI : MonoBehaviour
         entityManager.AddComponentData(requestEntity, new OpenTradeUIRequest { Target = currentNPCEntity });
     }
 
-    /// <summary>
-    /// Отображает список доступных ресурсов для назначения задачи NPC.
-    /// </summary>
     private void ShowResourceNodeOptions()
     {
         if (!isInitialized || resourceNodeListContainer == null || resourceNodeButtonPrefab == null) return;
-        // Оптимизация: не перестраиваем список, если он уже создан.
         if (resourceNodeListContainer.gameObject.activeSelf && resourceNodeListContainer.transform.childCount > 0) return;
 
         foreach (Transform child in resourceNodeListContainer.transform) { Destroy(child.gameObject); }
 
         resourceNodeListContainer.gameObject.SetActive(true);
-        
+
         EntityQuery query = entityManager.CreateEntityQuery(typeof(ResourceNode));
         using var resourceNodeEntities = query.ToEntityArray(Allocator.Temp);
 
@@ -285,20 +283,16 @@ public class NPCUI : MonoBehaviour
 
             var resourceNodeData = entityManager.GetComponentData<ResourceNode>(entity);
             buttonText.text = $"Добывать: {resourceNodeData.resourceType}";
-            
-            // Захватываем сущность в локальную переменную для корректной работы в лямбда-выражении.
+
             Entity capturedEntity = entity;
             button.onClick.AddListener(() => AssignNPCToResourceNode(capturedEntity));
         }
     }
 
-    /// <summary>
-    /// Удаляет все дочерние объекты из контейнера списка ресурсов.
-    /// </summary>
     private void ClearResourceNodeOptions()
     {
         if (resourceNodeListContainer == null || !resourceNodeListContainer.gameObject.activeSelf) return;
-        
+
         foreach (Transform child in resourceNodeListContainer.transform)
         {
             Destroy(child.gameObject);
@@ -306,16 +300,10 @@ public class NPCUI : MonoBehaviour
         resourceNodeListContainer.gameObject.SetActive(false);
     }
 
-    /// <summary>
-    /// Назначает текущего NPC на указанный ресурсный узел и закрывает UI.
-    /// </summary>
-    /// <param name="resourceNodeEntity">Сущность целевого ресурса.</param>
     private void AssignNPCToResourceNode(Entity resourceNodeEntity)
     {
         if (!isInitialized || currentNPCEntity == Entity.Null) return;
 
-        // Вместо прямого изменения цели NPC, мы создаем сущность-запрос.
-        // PlayerTaskAssignmentSystem обработает этот запрос, что является более надежным подходом.
         var requestEntity = entityManager.CreateEntity();
         entityManager.AddComponentData(requestEntity, new PlayerAssignHarvestRequest
         {

@@ -1,5 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
+using Game.Production;
+using Game.Workshop;
 
 /// <summary>
 /// Система, обрабатывающая запросы на разделение стаков (SplitStackRequest).
@@ -14,29 +16,45 @@ public partial class SplitStackSystem : SystemBase
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var bufferLookup = GetBufferLookup<InventoryItemElement>(false);
-        var itemRegistry = ItemRegistry.Instance;
 
+        var elementLookup = GetBufferLookup<InventoryItemElement>(false);
+        var inputLookup = GetBufferLookup<InputInventorySlot>(false);
+        var outputLookup = GetBufferLookup<OutputInventorySlot>(false);
+        var wipLookup = GetBufferLookup<WorkshopWIPBufferElement>(false);
+
+        var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
         Entities
             .WithoutBurst()
             .ForEach((Entity requestEntity, in SplitStackRequest request) =>
             {
-                if (!bufferLookup.HasBuffer(request.SourceInventoryOwner) ||
-                    !bufferLookup.HasBuffer(request.DestinationInventoryOwner) ||
-                    request.AmountToMove <= 0)
+
+                DynamicBuffer<InventoryItemElement> sourceBuffer;
+                DynamicBuffer<InventoryItemElement> destBuffer;
+
+                bool sourceOk = InventoryBufferUtils.TryGetInventoryBuffer(elementLookup, inputLookup, outputLookup, wipLookup, request.SourceInventoryOwner, out sourceBuffer);
+
+                bool destOk;
+                if (EntityManager.HasComponent<DestinationInventoryHint>(requestEntity))
+                {
+                    var hint = EntityManager.GetComponentData<DestinationInventoryHint>(requestEntity);
+                    destOk = InventoryBufferUtils.TryGetInventoryBufferByType(elementLookup, inputLookup, outputLookup, wipLookup, request.DestinationInventoryOwner, hint.Type, out destBuffer);
+                }
+                else
+                {
+                    destOk = InventoryBufferUtils.TryGetInventoryBuffer(elementLookup, inputLookup, outputLookup, wipLookup, request.DestinationInventoryOwner, out destBuffer);
+                }
+
+                if (!sourceOk || !destOk || request.AmountToMove <= 0)
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
 
-                // Добавляем теги обоим инвентарям.
+
                 ecb.AddComponent<InventoryChangedTag>(request.SourceInventoryOwner);
                 ecb.AddComponent<InventoryChangedTag>(request.DestinationInventoryOwner);
-
-                var sourceBuffer = bufferLookup[request.SourceInventoryOwner];
-                var destBuffer = bufferLookup[request.DestinationInventoryOwner];
 
                 if (request.SourceSlotIndex >= sourceBuffer.Length || request.DestinationSlotIndex >= destBuffer.Length)
                 {
@@ -46,13 +64,13 @@ public partial class SplitStackSystem : SystemBase
 
                 var sourceItem = sourceBuffer[request.SourceSlotIndex];
                 var destItem = destBuffer[request.DestinationSlotIndex];
-                
+
                 if (sourceItem.Amount < request.AmountToMove)
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
-                
+
                 var itemData = itemRegistry.GetItemData(sourceItem.ItemID);
                 if (itemData == null)
                 {
@@ -80,7 +98,7 @@ public partial class SplitStackSystem : SystemBase
                     int amountToActuallyMove = math.min(request.AmountToMove, spaceAvailable);
 
                     sourceItem.Amount -= amountToActuallyMove;
-                     if (sourceItem.Amount <= 0)
+                    if (sourceItem.Amount <= 0)
                         sourceBuffer[request.SourceSlotIndex] = new InventoryItemElement();
                     else
                         sourceBuffer[request.SourceSlotIndex] = sourceItem;

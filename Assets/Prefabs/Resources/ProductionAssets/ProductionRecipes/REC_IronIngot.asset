@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e0389562e18a374f8ddd743b7848e1d, type: 3}
+  m_Name: REC_IronIngot
+  m_EditorClassIdentifier: 
+  RecipeID: 454
+  RecipeName: IronIngot
+  RequiredStationType: {fileID: 11400000, guid: 0b3336ed804fd5f468170e5c3db463a9, type: 2}
+  HammerCost: 15
+  BaseTime: 15
+  RequiredKW: 5
+  Ingredients:
+  - Item: {fileID: 11400000, guid: 8201f26f9429a5345b8190e6a994ecb1, type: 2}
+    Amount: 10
+  OutputItem: {fileID: 11400000, guid: 3a10c0be052278f42848ae02fdafcf96, type: 2}
+  OutputAmount: 1

@@ -41,3 +41,62 @@ public struct InventoryProperties : IComponentData
 /// Используется для запуска систем, которые должны реагировать на изменения в инвентаре.
 /// </summary>
 public struct InventoryChangedTag : IComponentData { }
+
+
+
+/// <summary>
+/// Перечисление для указания, какой именно инвентарь нужно отобразить.
+/// </summary>
+public enum InventoryType
+{
+    /// <summary>
+    /// Стандартный инвентарь, использующий буфер InventoryItemElement.
+    /// </summary>
+    General,
+    /// <summary>
+    /// Входной инвентарь производственного здания.
+    /// </summary>
+    Input,
+    /// <summary>
+    /// Выходной инвентарь производственного здания.
+    /// </summary>
+    Output,
+    /// <summary>
+    /// Буферный инвентарь цеха (Work-in-Progress).
+    /// </summary>
+    WIP
+}
+
+/// <summary>
+/// Запрос на открытие UI инвентаря для указанной сущности и типа инвентаря.
+/// </summary>
+public struct OpenInventoryUIRequest : IComponentData
+{
+    public Entity Target;
+    public InventoryType Type;
+}
+
+
+/// <summary>
+/// Хранит вместимость (количество слотов) для ВХОДНОГО инвентаря.
+/// </summary>
+public struct InputInventoryCapacity : IComponentData
+{
+    public int Value;
+}
+
+/// <summary>
+/// Хранит вместимость (количество слотов) для ВЫХОДНОГО инвентаря.
+/// </summary>
+public struct OutputInventoryCapacity : IComponentData
+{
+    public int Value;
+}
+
+/// <summary>
+/// Хранит вместимость (количество слотов) для буферного инвентаря (WIP).
+/// </summary>
+public struct WIPInventoryCapacity : IComponentData
+{
+    public int Value;
+}

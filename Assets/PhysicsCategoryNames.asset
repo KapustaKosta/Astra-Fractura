@@ -24,8 +24,8 @@ MonoBehaviour:
   - Player
   - Building
   - BuildingPreview
-  - 
-  - 
+  - WireConnector
+  - ConveyorConnector
   - 
   - 
   - 

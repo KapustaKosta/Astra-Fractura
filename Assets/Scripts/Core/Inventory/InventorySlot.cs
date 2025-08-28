@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
@@ -19,7 +19,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
 
     [Tooltip("Кнопка, представляющая сам слот. Используется для визуальных состояний.")]
     public Button slotButton;
-    
+
     [Tooltip("Изображение, служащее фоном для слота. Его цвет будет меняться.")]
     public Image slotBackground;
 
@@ -31,6 +31,11 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     /// Текущее количество предметов в слоте.
     /// </summary>
     public int CurrentAmount => currentAmount;
+
+    /// <summary>
+    /// Тип инвентаря, к которому принадлежит этот слот.
+    /// </summary>
+    public InventoryType SlotInventoryType { get; private set; }
 
     /// <summary>
     /// Сущность-владелец инвентаря, к которому относится этот слот.
@@ -45,7 +50,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     /// Событие, вызываемое при клике левой кнопкой мыши по слоту.
     /// </summary>
     public event Action<InventorySlot> OnSlotClicked;
-    
+
     private Item currentItem;
     private int currentAmount;
 
@@ -54,9 +59,9 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         // Эта проверка остается на всякий случай, она срабатывает самой первой.
         if (icon == null || amountText == null || slotButton == null)
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogError($"Одна или несколько ссылок (Icon, AmountText, SlotButton) не установлены для слота '{this.gameObject.name}'!", this.gameObject);
-            #endif
+#endif
         }
     }
 
@@ -68,10 +73,12 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     /// <param name="amount">Количество предмета.</param>
     /// <param name="owner">Сущность-владелец инвентаря.</param>
     /// <param name="index">Индекс слота.</param>
-    public void InitializeSlot(Item newItem, int amount, Entity owner, int index)
+    /// <param name="inventoryType">Тип инвентаря, которому принадлежит этот слот.</param>
+    public void InitializeSlot(Item newItem, int amount, Entity owner, int index, InventoryType inventoryType)
     {
         ownerEntity = owner;
         slotIndex = index;
+        SlotInventoryType = inventoryType;
 
         if (newItem == null || amount <= 0)
         {
@@ -84,18 +91,18 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
 
         if (icon == null || amountText == null)
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogError($"Ссылки на UI элементы (Icon, AmountText) не установлены для '{this.gameObject.name}'.", this.gameObject);
             return;
-            #endif
+#endif
         }
 
         if (currentItem.icon == null)
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID})" +
                              $" в ассете не назначен спрайт. Иконка будет скрыта.");
-            #endif
+#endif
             icon.enabled = false;
         }
         else
@@ -215,12 +222,15 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
     {
         var handler = DragAndDropHandler.Instance;
         if (handler == null) return;
-        
+
         InventorySlot source = handler.GetSourceSlot();
         if (source != null && source != this && source.CurrentItem != null)
         {
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var requestEntity = entityManager.CreateEntity();
+
+            // Добавляем хинт, чтобы системы знали, в какой инвентарь класть предмет.
+            entityManager.AddComponentData(requestEntity, new DestinationInventoryHint { Type = this.SlotInventoryType });
 
             if (handler.IsSplitting())
             {

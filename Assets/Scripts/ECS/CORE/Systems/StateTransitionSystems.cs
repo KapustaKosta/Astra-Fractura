@@ -1,220 +1,393 @@
-﻿using Unity.Entities;
+﻿using Energy.Core;
+using Game.Production;
+using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
+using Wiring;
+using Unity.Collections;
+using Conveyor;
+using Game.Workshop;
 
-/// <summary>
-/// Система, которая обрабатывает запрос на вход в режим строительства.
-/// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+#region Gameplay Mode Transitions
+
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class EnsureDefaultModeOnStartSystem : SystemBase
+{
+    private bool _done;
+
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
+    protected override void OnUpdate()
+    {
+        if (_done || !SystemAPI.TryGetSingletonEntity<GameState>(out var gs))
+            return;
+
+        bool hasAnyMode =
+            SystemAPI.HasComponent<InDefaultMode>(gs) ||
+            SystemAPI.HasComponent<InBuildingMode>(gs) ||
+            SystemAPI.HasComponent<InWirePlacementMode>(gs) ||
+            SystemAPI.HasComponent<InConveyorMode>(gs) ||
+            SystemAPI.HasComponent<InUIMode>(gs);
+
+        if (!hasAnyMode)
+        {
+            var ecb = new EntityCommandBuffer(Allocator.Temp);
+            ecb.AddComponent<InDefaultMode>(gs);
+            ecb.Playback(EntityManager);
+            ecb.Dispose();
+        }
+
+        _done = true;
+    }
+}
+
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
 public partial class EnterBuildingModeSystem : SystemBase
 {
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        
-        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameStateEntity)) return;
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<EnterBuildingModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
 
-        // Используем WithEntityAccess, чтобы получить Entity для логирования
-        foreach (var (request, requestEntity) in 
-                 SystemAPI.Query<RefRO<EnterBuildingModeRequest>>().WithEntityAccess())
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        foreach (var (_, entity) in SystemAPI.Query<RefRO<BuildingPreviewTag>>().WithEntityAccess())
         {
-            #if UNITY_EDITOR
-            Debug.Log($"[EnterBuildingModeSystem] Обнаружен запрос EnterBuildingModeRequest (Entity: {requestEntity.Index}," +
-                      $" ItemID: {request.ValueRO.ItemID}).");
-            #endif
-
-            if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
-            {
-                continue;
-            }
-
-            Entity prefab = ItemToEntityResolver.GetEntityPrefabFromID(EntityManager, request.ValueRO.ItemID);
-            
-            if (prefab != Entity.Null)
-            {
-                #if UNITY_EDITOR
-                Debug.Log($"[EnterBuildingModeSystem] Префаб для ItemID {request.ValueRO.ItemID} успешно найден." +
-                          $" Применяю смену состояния на InBuildingMode.");
-                #endif
-                
-                // Удаляем старые теги и данные
-                ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-                ecb.RemoveComponent<InUIMode>(gameStateEntity);
-                ecb.RemoveComponent<UIState>(gameStateEntity);
-
-                // Добавляем новые
-                ecb.AddComponent<InBuildingMode>(gameStateEntity);
-                ecb.AddComponent(gameStateEntity, new BuildingState
-                {
-                    BuildingPrefabToPlace = prefab,
-                    BuildingItemID = request.ValueRO.ItemID
-                });
-            }
-            // Ошибка об отсутствующем префабе теперь выводится из ItemToEntityResolver
+            ecb.DestroyEntity(entity);
         }
+
+        var req = SystemAPI.GetSingleton<EnterBuildingModeRequest>();
+        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+        ecb.AddComponent<InBuildingMode>(gameState);
+
+        var prefab = ItemToEntityResolver.GetEntityPrefabFromID(EntityManager, req.ItemID);
+        if (prefab != Entity.Null)
+        {
+            ecb.AddComponent(gameState, new BuildingState { BuildingPrefabToPlace = prefab, BuildingItemID = req.ItemID });
+        }
+        else
+        {
+            Debug.LogError($"[EnterBuildingModeSystem] Не удалось найти префаб для ItemID: {req.ItemID}.");
+        }
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
     }
 }
-
-/// <summary>
-/// Система, которая обрабатывает выход из режима строительства (по отмене или постройке).
-/// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
 public partial class ExitBuildingModeSystem : SystemBase
 {
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
     protected override void OnUpdate()
     {
-        var exitRequestQuery = SystemAPI.QueryBuilder().WithAny<ExitBuildingModeRequest, PlaceBuildingRequest>().Build();
-        if (exitRequestQuery.IsEmpty) return;
-        
-        //Debug.Log("[ExitBuildingModeSystem] Обнаружен запрос на выход из режима строительства. Возврат в режим по умолчанию.");
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<ExitBuildingModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
 
-        if (SystemAPI.HasComponent<InBuildingMode>(gameStateEntity))
+        if (SystemAPI.HasComponent<InBuildingMode>(gameState))
         {
-            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity); 
-            ecb.AddComponent<InDefaultMode>(gameStateEntity);
+            foreach (var (_, entity) in SystemAPI.Query<RefRO<BuildingPreviewTag>>().WithEntityAccess())
+            {
+                ecb.DestroyEntity(entity);
+            }
+
+            StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+            ecb.AddComponent<InDefaultMode>(gameState);
         }
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
     }
 }
 
-/// <summary>
-/// Система, которая обрабатывает открытие/закрытие инвентаря.
-/// </summary>
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class EnterWirePlacementModeSystem : SystemBase
+{
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
+    protected override void OnUpdate()
+    {
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<EnterWirePlacementModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        var req = SystemAPI.GetSingleton<EnterWirePlacementModeRequest>();
+        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+        ecb.AddComponent<InWirePlacementMode>(gameState);
+        ecb.AddComponent(gameState, new WireState
+        {
+            SelectedWireLevel = math.clamp(req.WireLevel, 1, 3),
+            StartConnector = Entity.Null,
+            WirePreviewEntity = Entity.Null
+        });
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+}
+
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class ExitWirePlacementModeSystem : SystemBase
+{
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
+    protected override void OnUpdate()
+    {
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<ExitWirePlacementModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        if (SystemAPI.HasComponent<InWirePlacementMode>(gameState))
+        {
+            var previewsQ = GetEntityQuery(ComponentType.ReadOnly<WirePreviewTag>());
+            var pendingQ = GetEntityQuery(ComponentType.ReadOnly<PendingWire>());
+            ecb.DestroyEntity(previewsQ, EntityQueryCaptureMode.AtPlayback);
+            ecb.DestroyEntity(pendingQ, EntityQueryCaptureMode.AtPlayback);
+
+            StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+            ecb.AddComponent<InDefaultMode>(gameState);
+        }
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+}
+
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class EnterConveyorModeSystem : SystemBase
+{
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
+    protected override void OnUpdate()
+    {
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<EnterConveyorModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        var req = SystemAPI.GetSingleton<EnterConveyorModeRequest>();
+        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+        ecb.AddComponent<InConveyorMode>(gameState);
+        ecb.AddComponent(gameState, new ConveyorState
+        {
+            ItemID = req.ItemID,
+            PreviewEntity = Entity.Null,
+            StartConnector = Entity.Null,
+            HasStart = false,
+            SnapRadius = 2.0f
+        });
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+}
+
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class ExitConveyorModeSystem : SystemBase
+{
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
+    protected override void OnUpdate()
+    {
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<ExitConveyorModeRequest>().Build();
+        if (reqQuery.IsEmpty) return;
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        if (SystemAPI.HasComponent<InConveyorMode>(gameState))
+        {
+            StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+            ecb.AddComponent<InDefaultMode>(gameState);
+        }
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+}
+
+#endregion
+
+#region UI Mode Transitions
+
+
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(BeginSimulationEntityCommandBufferSystem))]
 public partial class ToggleInventorySystem : SystemBase
 {
+    protected override void OnCreate()
+    {
+        RequireForUpdate<GameState>();
+    }
+
     protected override void OnUpdate()
     {
-        var requestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
-        if (requestQuery.IsEmpty) return;
+        bool hasAnyOpenRequest =
+            !SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenProductionUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenWorkshopUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenNPCUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenSettlementUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenTradeUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build().IsEmpty;
 
-        
-        //Debug.LogError("[!!!] ToggleInventorySystem сработала для смены состояния.");
+        if (!hasAnyOpenRequest) return;
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-        
-        if (SystemAPI.HasComponent<InUIMode>(gameStateEntity) && 
-            SystemAPI.GetComponent<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory)
+        var ecb = SystemAPI
+            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        if (SystemAPI.HasComponent<InUIMode>(gameState) && !SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build().IsEmpty)
         {
-            ecb.RemoveComponent<InUIMode>(gameStateEntity);
-            ecb.RemoveComponent<UIState>(gameStateEntity);
-            ecb.AddComponent<InDefaultMode>(gameStateEntity);
+            var closeRequest = ecb.CreateEntity();
+            ecb.AddComponent<CloseAllUIRequest>(closeRequest);
+
+            var invRequestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
+            ecb.DestroyEntity(invRequestQuery, EntityQueryCaptureMode.AtPlayback);
+            return;
         }
-        else 
+
+        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+        ecb.AddComponent<InUIMode>(gameState);
+
+        var inventoryRequestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
+        var productionRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenProductionUIRequest>().Build();
+        var workshopRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenWorkshopUIRequest>().Build();
+        var npcRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenNPCUIRequest>().Build();
+        var settlementRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenSettlementUIRequest>().Build();
+        var tradeRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenTradeUIRequest>().Build();
+        var generatorRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build();
+        var batteryRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build();
+        var conveyorRoutesRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build();
+
+        if (!inventoryRequestQuery.IsEmpty)
         {
-            ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity);
-            
-            ecb.AddComponent<InUIMode>(gameStateEntity);
-            ecb.AddComponent(gameStateEntity, new UIState
-            {
-                ActiveUIType = UIType.Inventory,
-                ActiveUITarget = Entity.Null
-            });
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Inventory, ActiveUITarget = Entity.Null });
+            ecb.DestroyEntity(inventoryRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!productionRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenProductionUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Production, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(productionRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!workshopRequestQuery.IsEmpty)
+        {
+            Debug.Log("<color=cyan>[State System]</color> Обнаружен OpenWorkshopUIRequest. Открываю UI цеха.");
+            var req = SystemAPI.GetSingleton<OpenWorkshopUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Workshop, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(workshopRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!conveyorRoutesRequestQuery.IsEmpty)
+        {
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.ConveyorRoutes, ActiveUITarget = Entity.Null });
+            ecb.DestroyEntity(conveyorRoutesRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!npcRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenNPCUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.NPC, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(npcRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!settlementRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenSettlementUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Settlement, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(settlementRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!tradeRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenTradeUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Trade, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(tradeRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!generatorRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenGeneratorUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Generator, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(generatorRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!batteryRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenBatteryUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Battery, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(batteryRequestQuery, EntityQueryCaptureMode.AtPlayback);
         }
     }
 }
 
 
-/// <summary>
-/// Универсальная система для открытия окон UI, требующих цель (NPC, Поселение).
-/// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-public partial class OpenTargetedUISystem : SystemBase
+[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+public partial class CloseUISystem : SystemBase
 {
-    protected override void OnUpdate()
+    protected override void OnCreate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-
-        Entities.ForEach((in OpenNPCUIRequest request) =>
-        {
-            
-            //Debug.LogWarning($"[OpenTargetedUISystem] Обнаружен запрос OpenNPCUIRequest для цели {request.Target}.");
-
-            ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity);
-            
-            ecb.AddComponent<InUIMode>(gameStateEntity);
-            ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.NPC, ActiveUITarget = request.Target });
-
-        }).Run();
-
-        Entities.ForEach((in OpenSettlementUIRequest request) =>
-        {
-             
-            //Debug.LogWarning($"[OpenTargetedUISystem] Обнаружен запрос OpenSettlementUIRequest для цели {request.Target}.");
-
-            ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity);
-
-            ecb.AddComponent<InUIMode>(gameStateEntity);
-            ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.Settlement, ActiveUITarget = request.Target });
-        }).Run();
+        RequireForUpdate<GameState>();
     }
-}
 
-
-/// <summary>
-/// Система для обработки запроса на открытие окна торговли.
-/// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-public partial class OpenTradeUISystem : SystemBase
-{
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameStateEntity)) return;
+        var reqQuery = SystemAPI.QueryBuilder().WithAll<CloseAllUIRequest>().Build();
+        if (reqQuery.IsEmpty) return;
 
-        Entities.ForEach((in OpenTradeUIRequest request) =>
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
+
+        if (SystemAPI.HasComponent<InUIMode>(gameState))
         {
-            ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-            ecb.RemoveComponent<InBuildingMode>(gameStateEntity);
-            ecb.RemoveComponent<BuildingState>(gameStateEntity);
-            ecb.RemoveComponent<UIState>(gameStateEntity); 
-
-            ecb.AddComponent<InUIMode>(gameStateEntity);
-            ecb.AddComponent(gameStateEntity, new UIState { ActiveUIType = UIType.Trade, ActiveUITarget = request.Target });
-
-        }).Run();
-    }
-}
-
-
-/// <summary>
-/// Система, которая обрабатывает универсальный запрос на закрытие всех UI.
-/// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-public partial class CloseAllUISystem : SystemBase
-{
-    protected override void OnUpdate()
-    {
-        var requestQuery = SystemAPI.QueryBuilder().WithAll<CloseAllUIRequest>().Build();
-        if (requestQuery.IsEmpty) return;
-        
-        
-        //Debug.LogError("[!!!] CloseAllUISystem сработала для смены состояния.");
-
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().
-            CreateCommandBuffer(World.Unmanaged);
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-
-        if (SystemAPI.HasComponent<InUIMode>(gameStateEntity))
-        {
-            ecb.RemoveComponent<InUIMode>(gameStateEntity);
-            ecb.RemoveComponent<UIState>(gameStateEntity);
-            ecb.AddComponent<InDefaultMode>(gameStateEntity);
+            StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+            ecb.AddComponent<InDefaultMode>(gameState);
         }
+
+        ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+}
+
+#endregion
+
+public static class StateTransitionHelpers
+{
+    public static void CleanupModes(EntityManager entityManager, EntityCommandBuffer ecb, Entity gameState)
+    {
+        if (entityManager.HasComponent<InDefaultMode>(gameState)) ecb.RemoveComponent<InDefaultMode>(gameState);
+        if (entityManager.HasComponent<InBuildingMode>(gameState)) ecb.RemoveComponent<InBuildingMode>(gameState);
+        if (entityManager.HasComponent<InWirePlacementMode>(gameState)) ecb.RemoveComponent<InWirePlacementMode>(gameState);
+        if (entityManager.HasComponent<InConveyorMode>(gameState)) ecb.RemoveComponent<InConveyorMode>(gameState);
+        if (entityManager.HasComponent<InUIMode>(gameState)) ecb.RemoveComponent<InUIMode>(gameState);
+
+        if (entityManager.HasComponent<BuildingState>(gameState)) ecb.RemoveComponent<BuildingState>(gameState);
+        if (entityManager.HasComponent<WireState>(gameState)) ecb.RemoveComponent<WireState>(gameState);
+        if (entityManager.HasComponent<ConveyorState>(gameState)) ecb.RemoveComponent<ConveyorState>(gameState);
+        if (entityManager.HasComponent<UIState>(gameState)) ecb.RemoveComponent<UIState>(gameState);
     }
 }

@@ -7,7 +7,7 @@ using UnityEngine;
 /// Создает экземпляр через меню Unity и очищает связанные компоненты при смене цели.
 /// </summary>
 [CreateAssetMenu(fileName = "Goal_Harvest", menuName = "AI/Goal Definitions/Harvest")]
-[Cleanup(typeof(AIActiveTarget), typeof(WantsToHarvestTag))] 
+[Cleanup(typeof(AIActiveTarget), typeof(WantsToHarvestTag))]
 public class HarvestGoalDefinition : GoalDefinition
 {
     /// <summary>
@@ -17,7 +17,12 @@ public class HarvestGoalDefinition : GoalDefinition
     public override bool CanBeConsidered(Entity entity, in GoalEvaluationContext context)
     {
         bool isBlocked = context.EntityManager.HasComponent<HarvestingBlockedTag>(entity);
-        return !isBlocked;
+
+
+        bool movementFailed = context.EntityManager.HasComponent<MovementFailedTag>(entity);
+
+        return !isBlocked && !movementFailed;
+
     }
 
     /// <summary>
@@ -52,14 +57,12 @@ public class HarvestGoalDefinition : GoalDefinition
             context.Settings.AISearchRadius,
             in context.CollisionWorld,
             resourceFilter,
-            in context.ResourceNodeLookup
+            in context.ResourceNodeLookup,
+            in context.TransformLookup
         );
 
         if (nearestResource == Entity.Null)
         {
-            #if UNITY_EDITOR
-            Debug.LogWarning($"[HarvestGoalDefinition] Ресурсы не найдены в радиусе {context.Settings.AISearchRadius} для NPC {entity}");
-            #endif
             return default;
         }
         
@@ -77,9 +80,6 @@ public class HarvestGoalDefinition : GoalDefinition
                 CurrentGoalScore = score
             };
         }
-        #if UNITY_EDITOR
-        Debug.LogError($"[HarvestGoalDefinition] Не удалось найти ItemID для ресурса типа {resourceNode.resourceType}.");
-        #endif
         return default;
     }
 }

@@ -14,6 +14,22 @@ public struct NPCComponent : IComponentData
     public int Loyalty;
     public int Diligence;
     public Entity Target; // Используется UI для отображения текущей цели
+    public Entity AssignedWorkshop; // Цех, за который отвечает NPC
+}
+
+/// <summary>
+/// Хранит запас "рабочей силы" (молотков), который NPC может потратить за один рабочий цикл.
+/// </summary>
+public struct NPCWorkForce : IComponentData
+{
+    /// <summary>
+    /// Максимальный запас "молотков", который восстанавливается в начале каждого цикла.
+    /// </summary>
+    public float MaxHammerPool;
+    /// <summary>
+    /// Текущий остаток "молотков" в данном рабочем цикле.
+    /// </summary>
+    public float CurrentHammerPool;
 }
 
 /// <summary>
@@ -21,34 +37,11 @@ public struct NPCComponent : IComponentData
 /// </summary>
 public struct NPCMovementComponent : IComponentData
 {
-    /// <summary>
-    /// Скорость перемещения NPC.
-    /// </summary>
     public float Speed;
-
-    /// <summary>
-    /// Скорость поворота NPC.
-    /// </summary>
     public float RotationSpeed;
-
-    /// <summary>
-    /// Дистанция остановки от цели.
-    /// </summary>
     public float StoppingDistance;
-
-    /// <summary>
-    /// Квадрат порогового значения скорости для обнуления.
-    /// </summary>
     public float VelocityZeroingThresholdSq;
-
-    /// <summary>
-    /// Целевая позиция, к которой движется NPC.
-    /// </summary>
     public float3 TargetPosition;
-
-    /// <summary>
-    /// Флаг, указывающий, есть ли у NPC активная цель для движения.
-    /// </summary>
     public bool HasTarget;
 }
 
@@ -61,7 +54,7 @@ public struct NPCHiredTag : IComponentData { }
 /// Хранит базовые, неизменяемые статы движения NPC, 
 /// заданные в Authoring-компоненте. Используется для восстановления
 /// стандартной дистанции остановки после выполнения специфических задач.
-/// </summary>
+/// </summary>  
 public struct NPCBaseMovementStats : IComponentData
 {
     public float StoppingDistance;

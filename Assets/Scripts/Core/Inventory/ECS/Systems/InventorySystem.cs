@@ -1,9 +1,12 @@
 ﻿using Unity.Entities;
 using UnityEngine;
+using Game.Production;
+using Game.Workshop;
 
 /// <summary>
-/// Централизованная система для обработки запросов на изменение инвентарей.
-/// Обрабатывает запросы на добавление (AddItemRequest) и удаление (RemoveItemRequest) предметов.
+/// AddItemRequest / RemoveItemRequest для любых типов инвентарей (General/Input/Output/WIP).
+/// Можно подсказать тип через DestinationInventoryHint на сущности запроса.
+/// Без хинта применяется порядок Output → WIP → Input → General.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class InventorySystem : SystemBase
@@ -16,114 +19,121 @@ public partial class InventorySystem : SystemBase
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(World.Unmanaged);
 
-        var inventoryLookup = GetBufferLookup<InventoryItemElement>();
+        var generalLookup = GetBufferLookup<InventoryItemElement>(false);
+        var inputLookup = GetBufferLookup<InputInventorySlot>(false);
+        var outputLookup = GetBufferLookup<OutputInventorySlot>(false);
+        var wipLookup = GetBufferLookup<WorkshopWIPBufferElement>(false);
+
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
-        // Этап 1: Обработка запросов на добавление предметов
+        // ADD 
         Entities
             .WithoutBurst()
-            .WithChangeFilter<AddItemRequest>() // Оптимизация: система сработает только если появились новые запросы.
-            .ForEach((Entity requestEntity, ref AddItemRequest request) =>
+            .ForEach((Entity reqEntity, ref AddItemRequest request) =>
             {
-                // Проверяем, что у целевой сущности есть инвентарь.
-                if (!inventoryLookup.HasBuffer(request.TargetInventoryOwner))
-                {
-                    ecb.DestroyEntity(requestEntity);
-                    return;
-                }
+                DynamicBuffer<InventoryItemElement> buffer;
+
+                bool useType = EntityManager.HasComponent<DestinationInventoryHint>(reqEntity);
+                InventoryType targetType = useType
+                    ? EntityManager.GetComponentData<DestinationInventoryHint>(reqEntity).Type
+                    : InventoryType.General;
+
+                bool ok = useType
+                    ? InventoryBufferUtils.TryGetInventoryBufferByType(generalLookup, inputLookup, outputLookup, wipLookup, request.TargetInventoryOwner, targetType, out buffer)
+                    : InventoryBufferUtils.TryGetInventoryBufferSmart(generalLookup, inputLookup, outputLookup, wipLookup, request.TargetInventoryOwner, out buffer);
+
+                if (!ok) { ecb.DestroyEntity(reqEntity); return; }
 
                 // Добавляем тег, так как инвентарь будет изменен.
                 ecb.AddComponent<InventoryChangedTag>(request.TargetInventoryOwner);
 
-                var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
-                int amountToAdd = request.Amount;
-                int actuallyAdded = 0;
+                int toAdd = request.Amount, actuallyAdded = 0;
 
-                // Сначала пытаемся добавить предметы в уже существующие стаки того же типа.
-                for (int i = 0; i < inventoryBuffer.Length && amountToAdd > 0; i++)
+                // 1) в существующие стаки
+                for (int i = 0; i < buffer.Length && toAdd > 0; i++)
                 {
-                    var element = inventoryBuffer[i];
-                    if (element.ItemID == request.ItemID)
-                    {
-                        var itemData = itemRegistry.GetItemData(request.ItemID);
-                        if (itemData == null) continue;
-                        
-                        int spaceInStack = itemData.maxStack - element.Amount;
-                        int transferAmount = Mathf.Min(amountToAdd, spaceInStack);
+                    var el = buffer[i];
+                    if (el.ItemID != request.ItemID) continue;
 
-                        element.Amount += transferAmount;
-                        inventoryBuffer[i] = element;
-                        
-                        amountToAdd -= transferAmount;
-                        actuallyAdded += transferAmount;
+                    var data = itemRegistry.GetItemData(request.ItemID);
+                    if (data == null) break;
+
+                    int space = data.maxStack - el.Amount;
+                    if (space <= 0) continue;
+
+                    int add = Mathf.Min(toAdd, space);
+                    el.Amount += add;
+                    buffer[i] = el;
+                    toAdd -= add;
+                    actuallyAdded += add;
+                }
+
+                // 2) в пустые слоты
+                for (int i = 0; i < buffer.Length && toAdd > 0; i++)
+                {
+                    if (buffer[i].ItemID == 0)
+                    {
+                        var data = itemRegistry.GetItemData(request.ItemID);
+                        if (data == null) break;
+
+                        int add = Mathf.Min(toAdd, data.maxStack);
+                        buffer[i] = new InventoryItemElement { ItemID = request.ItemID, Amount = add };
+                        toAdd -= add;
+                        actuallyAdded += add;
                     }
                 }
 
-                // Затем пытаемся положить оставшиеся предметы в пустые слоты.
-                for (int i = 0; i < inventoryBuffer.Length && amountToAdd > 0; i++)
-                {
-                    if (inventoryBuffer[i].ItemID == 0)
-                    {
-                        var itemData = itemRegistry.GetItemData(request.ItemID);
-                        if (itemData == null) break;
-
-                        int transferAmount = Mathf.Min(amountToAdd, itemData.maxStack);
-                        
-                        inventoryBuffer[i] = new InventoryItemElement 
-                            { ItemID = request.ItemID, Amount = transferAmount };
-
-                        amountToAdd -= transferAmount;
-                        actuallyAdded += transferAmount;
-                    }
-                }
-                
-                // Обновляем поле в запросе, чтобы отразить, сколько предметов было добавлено по факту.
-                request.Amount = actuallyAdded; 
-                
+                request.Amount = actuallyAdded;
+                ecb.DestroyEntity(reqEntity);
             }).Run();
 
-        // Этап 2: Обработка запросов на удаление предметов
+        // REMOVE 
         Entities
             .WithoutBurst()
-            .ForEach((Entity requestEntity, in RemoveItemRequest request) =>
+            .ForEach((Entity reqEntity, ref RemoveItemRequest request) =>
             {
-                if (!inventoryLookup.HasBuffer(request.TargetInventoryOwner))
-                {
-                    ecb.DestroyEntity(requestEntity);
-                    return;
-                }
+                DynamicBuffer<InventoryItemElement> buffer;
+
+                bool useType = EntityManager.HasComponent<DestinationInventoryHint>(reqEntity);
+                InventoryType targetType = useType
+                    ? EntityManager.GetComponentData<DestinationInventoryHint>(reqEntity).Type
+                    : InventoryType.General;
+
+                bool ok = useType
+                    ? InventoryBufferUtils.TryGetInventoryBufferByType(generalLookup, inputLookup, outputLookup, wipLookup, request.TargetInventoryOwner, targetType, out buffer)
+                    : InventoryBufferUtils.TryGetInventoryBufferSmart(generalLookup, inputLookup, outputLookup, wipLookup, request.TargetInventoryOwner, out buffer);
+
+                if (!ok) { ecb.DestroyEntity(reqEntity); return; }
 
                 // Добавляем тег, так как инвентарь будет изменен.
                 ecb.AddComponent<InventoryChangedTag>(request.TargetInventoryOwner);
 
-                var inventoryBuffer = inventoryLookup[request.TargetInventoryOwner];
-                int amountToRemove = request.Amount;
+                int toRemove = request.Amount, removed = 0;
 
-                // Итерируем инвентарь с конца, чтобы безопасно удалять элементы.
-                for (int i = inventoryBuffer.Length - 1; i >= 0 && amountToRemove > 0; i--)
+                for (int i = 0; i < buffer.Length && toRemove > 0; i++)
                 {
-                    if (inventoryBuffer[i].ItemID == request.ItemID)
-                    {
-                        var element = inventoryBuffer[i];
-                        int amountToTake = Mathf.Min(amountToRemove, element.Amount);
-                        
-                        element.Amount -= amountToTake;
-                        amountToRemove -= amountToTake;
+                    var el = buffer[i];
+                    if (el.ItemID != request.ItemID || el.Amount <= 0) continue;
 
-                        // Если стак полностью опустел, очищаем слот.
-                        if (element.Amount <= 0)
-                        {
-                            inventoryBuffer[i] = default; // Эквивалентно new InventoryItemElement { ItemID = 0, Amount = 0 }
-                        }
-                        else
-                        {
-                            inventoryBuffer[i] = element;
-                        }
-                    }
+                    int take = Mathf.Min(toRemove, el.Amount);
+                    el.Amount -= take;
+                    buffer[i] = el.Amount > 0 ? el : default;
+
+                    toRemove -= take;
+                    removed += take;
                 }
-                // Запрос на удаление считается выполненным и уничтожается.
-                ecb.DestroyEntity(requestEntity);
+
+                request.Amount = removed;
+                ecb.DestroyEntity(reqEntity);
             }).Run();
     }
+}
+
+/// <summary>
+/// Необязательный хинт для Add/Remove/Transfer ─ какой именно инвентарь приёмника использовать.
+/// </summary>
+public struct DestinationInventoryHint : IComponentData
+{
+    public InventoryType Type;
 }

@@ -9,9 +9,9 @@ using UnityEngine.AI;
 /// Преобразует цели ИИ в запросы на перемещение для навигационной системы.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(HarvestGoalExecutionSystem))] // После обработки целей сбора
-[UpdateAfter(typeof(ReturnToBaseGoalExecutionSystem))] // После возврата к базе
-[UpdateBefore(typeof(NPCPathfindingSystem))] // Перед выполнением поиска пути
+[UpdateAfter(typeof(HarvestGoalExecutionSystem))]
+[UpdateAfter(typeof(ReturnToBaseGoalExecutionSystem))]
+[UpdateBefore(typeof(NPCPathfindingSystem))]
 public partial class AIPathfindingBridgeSystem : SystemBase
 {
     protected override void OnUpdate()
@@ -19,17 +19,19 @@ public partial class AIPathfindingBridgeSystem : SystemBase
         // Получаем буфер команд для изменения сущностей
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(World.Unmanaged);
-        
-        // Получаем глобальные настройки ИИ
-        var settings = SystemAPI.GetSingleton<AISettings>();
+
+        var arrivalLookup = SystemAPI.GetComponentLookup<ArrivalData>(true);
 
         // Обрабатываем всех ИИ-агентов, исключая тех, кто занят сбором ресурсов
         Entities
-            .WithAll<NPCBrain>() // Только сущности с мозгом ИИ
-            .WithNone<WantsToHarvestTag>() // Исключаем NPC в режиме сбора
-            .ForEach((Entity entity, ref NPCMovementComponent movement, 
-                     ref NPCPathfindingComponent pathfinding, in ActiveGoal goal, 
-                     in NPCBaseMovementStats baseStats) =>
+            .WithReadOnly(arrivalLookup)
+            .WithAll<NPCBrain>()
+            .WithNone<WantsToHarvestTag, InsideBuildingTag>()                                       
+            .ForEach((Entity entity,
+                      ref NPCMovementComponent movement,
+                      ref NPCPathfindingComponent pathfinding,
+                      in ActiveGoal goal,
+                      in NPCBaseMovementStats baseStats) =>
             {
                 // Если цель уже достигается и параметры совпадают - ничего не делаем
                 if (goal.Target == pathfinding.CurrentGoalTarget && movement.HasTarget)
@@ -42,95 +44,71 @@ public partial class AIPathfindingBridgeSystem : SystemBase
                 {
                     if (movement.HasTarget)
                     {
-                        // Сбрасываем параметры движения
+                        Debug.Log($"[AIBridge] {entity.Index}: цель снята -> стоп движение.");
                         movement.HasTarget = false;
                         pathfinding.CurrentGoalTarget = Entity.Null;
                     }
                     return;
                 }
 
-                // Проверяем доступность целевой позиции
-                if (!SystemAPI.HasComponent<LocalToWorld>(goal.Target)) return;
+                if (!SystemAPI.HasComponent<LocalToWorld>(goal.Target))
+                    return;
 
-                // Получаем позицию цели
-                var targetTransform = SystemAPI.GetComponent<LocalToWorld>(goal.Target);
-                
-                // Переменные для расчета конечной позиции и расстояния остановки
-                float3 finalTargetPosition;
-                float newStoppingDistance;
+                var tltw = SystemAPI.GetComponent<LocalToWorld>(goal.Target);
 
-                // Обработка разных типов целей
-                switch (goal.Type)
+                float3 desired = tltw.Position;
+                float stopping = math.max(0.1f, baseStats.StoppingDistance);
+
+                if (arrivalLookup.HasComponent(goal.Target))
                 {
-                    case GoalType.Harvest:
-                        // Настройки сбора ресурсов
-                        var harvesterSettings = SystemAPI.GetComponent<HarvesterSettings>(entity);
-                        newStoppingDistance = harvesterSettings.InteractionRange * settings.HarvestInteractionRangeBuffer;
-                        
-                        // Пытаемся найти ближайшую точку на навмеше
-                        if (NavMesh.SamplePosition(targetTransform.Position, out NavMeshHit hit, 
-                           newStoppingDistance * 2f, NavMesh.AllAreas))
-                        {
-                            finalTargetPosition = hit.position;
-                        }
-                        else
-                        {
-                            // Используем позицию цели как резервный вариант
-                            finalTargetPosition = targetTransform.Position;
-                        }
-                        break;
-                        
-                    case GoalType.ReturnToBase:
-                        // Настройки возврата к базе
-                        newStoppingDistance = baseStats.StoppingDistance * settings.ReturnToBaseStoppingDistanceBuffer;
-                        
-                        // Проверяем наличие смещения для точки прибытия
-                        if (SystemAPI.HasComponent<ArrivalPointOffset>(goal.Target))
-                        {
-                            var offsetComponent = SystemAPI.GetComponent<ArrivalPointOffset>(goal.Target);
-                            // Применяем смещение в мировых координатах
-                            float3 worldSpaceOffset = math.mul(targetTransform.Rotation, offsetComponent.Value);
-                            finalTargetPosition = targetTransform.Position + worldSpaceOffset;
-                        }
-                        else
-                        {
-                            finalTargetPosition = targetTransform.Position;
-                        }
-                        break;
-                        
-                    default:
-                        // Базовые настройки для других типов целей
-                        newStoppingDistance = baseStats.StoppingDistance;
-                        finalTargetPosition = targetTransform.Position;
-                        break;
+                    var arr = arrivalLookup[goal.Target];
+                    float3 off = math.mul(tltw.Rotation, arr.Offset);
+                    desired = tltw.Position + off;
+                    stopping = math.max(stopping, arr.Radius);
                 }
-                
-                // Обновляем параметры движения
-                movement.TargetPosition = finalTargetPosition;
+
+                Vector3 finalPos = desired;
+                float searchRadius = math.max(stopping, 1f) * 1.5f;
+
+                if (NavMesh.SamplePosition(finalPos, out NavMeshHit hit, searchRadius, NavMesh.AllAreas))
+                {
+                    finalPos = hit.position;
+                    if (NavMesh.FindClosestEdge(finalPos, out NavMeshHit edgeHit, NavMesh.AllAreas))
+                        finalPos = edgeHit.position;
+                }
+                else
+                {
+                    Debug.LogWarning($"[AIBridge] {entity.Index}: цель {desired} не проецируется на NavMesh (r={searchRadius}).");
+                    return;
+                }
+
+                Debug.Log($"[AIBridge] {entity.Index}: goal={goal.Target.Index}, desired={desired:F2} -> final={finalPos:F2}, stop={stopping:F2}");
+
+                movement.TargetPosition = finalPos;
+                movement.StoppingDistance = stopping;
                 movement.HasTarget = true;
-                movement.StoppingDistance = newStoppingDistance;
-                
-                // Обновляем параметры поиска пути
+
                 pathfinding.NeedsPathUpdate = true;
                 pathfinding.CurrentWaypointIndex = 0;
                 pathfinding.CurrentGoalTarget = goal.Target;
 
-                // Создаем или обновляем запрос на перемещение
+                Debug.DrawLine(tltw.Position, finalPos, Color.magenta, 2f);
+
                 if (!SystemAPI.HasComponent<MoveToRequest>(entity))
                 {
-                    ecb.AddComponent(entity, new MoveToRequest 
-                    { 
-                        TargetEntity = goal.Target, 
-                        StoppingDistance = newStoppingDistance 
+                    ecb.AddComponent(entity, new MoveToRequest
+                    {
+                        TargetEntity = goal.Target,
+                        StoppingDistance = stopping
                     });
                 }
                 else
                 {
-                    var moveToRequest = SystemAPI.GetComponentRW<MoveToRequest>(entity);
-                    moveToRequest.ValueRW.TargetEntity = goal.Target;
-                    moveToRequest.ValueRW.StoppingDistance = newStoppingDistance;
+                    var req = SystemAPI.GetComponentRW<MoveToRequest>(entity);
+                    req.ValueRW.TargetEntity = goal.Target;
+                    req.ValueRW.StoppingDistance = stopping;
                 }
-
-            }).Run();
+            })
+            .Run();
     }
 }

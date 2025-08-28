@@ -1,15 +1,14 @@
-using Unity.Entities;
-using UnityEngine;  
+﻿using UnityEngine;
 
 public enum ItemType
 {
-    Resource,   // Ресурсы (руда, дерево)
-    Tool,       // Инструменты (кирка, топор)
-    Weapon,     // Оружие
-    Consumable, // Еда, аптечки
-    Building,   // Строительные блоки
-    Conveyor,   // Конвейеры
-    Miscellaneous // Прочее
+    Resource,
+    Tool,
+    Weapon,
+    Consumable,
+    Building,
+    Conveyor,
+    Miscellaneous
 }
 
 [System.Flags]
@@ -27,7 +26,7 @@ public class Item : ScriptableObject
 {
     [Header("Basic Settings")]
     public string itemName = "New Item";
-    public ItemType itemType = ItemType.Resource; // Тип предмета по умолчанию
+    public ItemType itemType = ItemType.Resource;
     public Sprite icon;
     [TextArea] public string description;
 
@@ -39,18 +38,28 @@ public class Item : ScriptableObject
     [Tooltip("Урон инструмента (если это кирка/топор)")]
     public float toolDamage = 10f;
     [Tooltip("Тип ресурсов, которые можно добывать (для инструментов)")]
-    public ResourceType canHarvest; // Что может добывать этот инструмент
+    public ResourceType canHarvest;
+
     [Header("Durability (Optional)")]
     public bool hasDurability = false;
     public int maxDurability = 100;
+
     [Header("Weapon Settings")]
     [Tooltip("Урон, наносимый оружием.")]
     public float weaponDamage = 15f;
     [Tooltip("Время в секундах между атаками (кулдаун).")]
     public float attackCooldown = 0.8f;
+
     [Header("Building Settings")]
+    [Tooltip("Префаб, используемый для постройки здания.")]
     public GameObject buildingPrefab;
-    public Vector2 footprintSize = new Vector2(1, 1); // Размер основания в метрах
+    public Vector2 footprintSize = new Vector2(1, 1);
+
+    [Header("Visuals")]
+    [Tooltip("Префаб, используемый для визуализации этого предмета на конвейере или в мире.")]
+    public GameObject VisualPrefab;
+
+
     [Header("System Info")]
     [Tooltip("Уникальный ID для связи с ECS")]
     public int itemID;

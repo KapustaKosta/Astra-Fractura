@@ -1,6 +1,8 @@
 ﻿using Unity.Entities;
-using Unity.Mathematics; 
-using UnityEngine; 
+using Unity.Mathematics;
+using UnityEngine;
+using Game.Production;
+using Game.Workshop;
 
 /// <summary>
 /// Система, отвечающая за обработку запросов на перемещение предметов между слотами.
@@ -16,8 +18,13 @@ public partial class MoveItemSystem : SystemBase
     protected override void OnUpdate()
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var bufferLookup = GetBufferLookup<InventoryItemElement>(false); 
-        var itemRegistry = ItemRegistry.Instance; 
+
+        var elementLookup = GetBufferLookup<InventoryItemElement>(false);
+        var inputLookup = GetBufferLookup<InputInventorySlot>(false);
+        var outputLookup = GetBufferLookup<OutputInventorySlot>(false);
+        var wipLookup = GetBufferLookup<WorkshopWIPBufferElement>(false);
+
+        var itemRegistry = ItemRegistry.Instance;
 
         if (itemRegistry == null)
         {
@@ -32,20 +39,35 @@ public partial class MoveItemSystem : SystemBase
             .WithoutBurst()
             .ForEach((Entity requestEntity, in MoveItemRequest request) =>
             {
-                // 1. Проверяем валидность данных (существование инвентарей и корректность индексов).
-                if (!bufferLookup.HasBuffer(request.SourceInventoryOwner) ||
-                    !bufferLookup.HasBuffer(request.DestinationInventoryOwner))
+
+                DynamicBuffer<InventoryItemElement> sourceBuffer;
+                DynamicBuffer<InventoryItemElement> destBuffer;
+
+                // Получаем буфер источника (пока без хинтов, так как игрок - General)
+                // В будущем здесь можно добавить проверку SourceInventoryHint
+                bool sourceOk = InventoryBufferUtils.TryGetInventoryBuffer(elementLookup, inputLookup, outputLookup, wipLookup, request.SourceInventoryOwner, out sourceBuffer);
+
+                bool destOk;
+                if (EntityManager.HasComponent<DestinationInventoryHint>(requestEntity))
+                {
+                    var hint = EntityManager.GetComponentData<DestinationInventoryHint>(requestEntity);
+                    destOk = InventoryBufferUtils.TryGetInventoryBufferByType(elementLookup, inputLookup, outputLookup, wipLookup, request.DestinationInventoryOwner, hint.Type, out destBuffer);
+                }
+                else
+                {
+                    // Стандартная логика, если хинта нет
+                    destOk = InventoryBufferUtils.TryGetInventoryBuffer(elementLookup, inputLookup, outputLookup, wipLookup, request.DestinationInventoryOwner, out destBuffer);
+                }
+
+                if (!sourceOk || !destOk)
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
 
-                // Добавляем теги обоим инвентарям, так как они оба меняются.
+
                 ecb.AddComponent<InventoryChangedTag>(request.SourceInventoryOwner);
                 ecb.AddComponent<InventoryChangedTag>(request.DestinationInventoryOwner);
-
-                var sourceBuffer = bufferLookup[request.SourceInventoryOwner];
-                var destBuffer = bufferLookup[request.DestinationInventoryOwner];
 
                 if (request.SourceSlotIndex >= sourceBuffer.Length || request.DestinationSlotIndex >= destBuffer.Length || request.SourceSlotIndex < 0 || request.DestinationSlotIndex < 0)
                 {
@@ -63,9 +85,9 @@ public partial class MoveItemSystem : SystemBase
                     ecb.DestroyEntity(requestEntity);
                     return;
                 }
-                
+
                 var itemData = itemRegistry.GetItemData(sourceItem.ItemID);
-                if(itemData == null)
+                if (itemData == null)
                 {
                     ecb.DestroyEntity(requestEntity);
                     return;
@@ -96,11 +118,7 @@ public partial class MoveItemSystem : SystemBase
                         sourceBuffer[request.SourceSlotIndex] = sourceItem;
                     }
                 }
-                // Случай 2: Простой обмен (Swap). Происходит во всех остальных случаях:
-                // - Перемещение на пустой слот (destItem.ItemID == 0)
-                // - Перемещение на другой предмет (sourceItem.ItemID != destItem.ItemID)
-                // - Перемещение на полный стак того же предмета
-                else
+                else if (destItem.ItemID == 0)
                 {
                     destBuffer[request.DestinationSlotIndex] = sourceItem;
                     sourceBuffer[request.SourceSlotIndex] = destItem;
@@ -108,7 +126,7 @@ public partial class MoveItemSystem : SystemBase
 
                 // 5. Уничтожаем обработанный запрос.
                 ecb.DestroyEntity(requestEntity);
-                
+
             }).Run();
     }
 }

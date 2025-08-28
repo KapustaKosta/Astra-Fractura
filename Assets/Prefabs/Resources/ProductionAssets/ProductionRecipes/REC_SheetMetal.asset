@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e0389562e18a374f8ddd743b7848e1d, type: 3}
+  m_Name: REC_SheetMetal
+  m_EditorClassIdentifier: 
+  RecipeID: 876
+  RecipeName: SheetMetal
+  RequiredStationType: {fileID: 11400000, guid: 77d8041e0bb268140bc203e6f7d4ddb6, type: 2}
+  HammerCost: 25
+  BaseTime: 20
+  RequiredKW: 10
+  Ingredients:
+  - Item: {fileID: 11400000, guid: 3a10c0be052278f42848ae02fdafcf96, type: 2}
+    Amount: 10
+  OutputItem: {fileID: 11400000, guid: cf22faffb5aa838418d3fdeee8c8ba8a, type: 2}
+  OutputAmount: 1

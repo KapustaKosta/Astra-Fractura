@@ -1,5 +1,9 @@
 ﻿using Unity.Entities;
 using Unity.Collections;
+using Game.Workshop;
+using Wiring;
+using Conveyor;
+using Energy.Core;
 
 /// <summary>
 /// Универсальная система, которая выполняется в конце кадра и удаляет все сущности,
@@ -35,7 +39,21 @@ public partial class RequestCleanupSystem : SystemBase
                 ComponentType.ReadWrite<MoveItemRequest>(),
                 ComponentType.ReadWrite<SplitStackRequest>(),
                 ComponentType.ReadWrite<PlayerAssignHarvestRequest>(),
-                ComponentType.ReadWrite<PerformAttackRequest>()
+                ComponentType.ReadWrite<OpenProductionUIRequest>(),
+                ComponentType.ReadWrite<PerformAttackRequest>(),
+                ComponentType.ReadWrite<OpenWorkshopUIRequest>(),
+                ComponentType.ReadWrite<EnterWirePlacementModeRequest>(),
+                ComponentType.ReadWrite<ExitWirePlacementModeRequest>(),
+                ComponentType.ReadWrite<EnterConveyorModeRequest>(),
+                ComponentType.ReadWrite<ExitConveyorModeRequest>(),
+                ComponentType.ReadWrite<OpenGeneratorUIRequest>(),
+                ComponentType.ReadWrite<OpenBatteryUIRequest>(),
+                ComponentType.ReadWrite<ToggleGeneratorRequest>(),
+                ComponentType.ReadWrite<SetRouteItemRequest>(),
+                ComponentType.ReadWrite<ToggleRouteRequest>(),
+                ComponentType.ReadWrite<OpenConveyorRoutesUIRequest>(),
+                ComponentType.ReadWrite<ConfirmConveyorPlacementRequest>(),
+                ComponentType.ReadWrite<RemoveConveyorUnderCursorRequest>()
             }
         };
         m_RequestQuery = GetEntityQuery(queryDesc);

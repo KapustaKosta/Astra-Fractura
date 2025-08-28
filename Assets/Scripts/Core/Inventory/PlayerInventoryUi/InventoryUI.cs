@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Entities;
 using System.Collections.Generic;
 
@@ -49,15 +49,23 @@ public class InventoryUI : MonoBehaviour
         }
 
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
-        if (gameStateQuery.IsEmpty) return;
+        if (gameStateQuery.IsEmpty)
+        {
+            return;
+        }
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
 
-        // Определяем, должно ли окно быть открыто, сравнивая текущий тип UI в GameState.
-        bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
-                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Inventory;
+        bool isUIMode = entityManager.HasComponent<InUIMode>(gameStateEntity);
+        UIType activeUIType = UIType.None;
+        if (isUIMode && entityManager.HasComponent<UIState>(gameStateEntity))
+        {
+            activeUIType = entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType;
+        }
+
+        bool shouldBeOpen = isUIMode && activeUIType == UIType.Inventory;
 
         // Если состояние видимости панели не совпадает с требуемым, меняем его.
-        if (inventoryPanel.activeSelf != shouldBeOpen)
+        if (inventoryPanel != null && inventoryPanel.activeSelf != shouldBeOpen)
         {
             inventoryPanel.SetActive(shouldBeOpen);
             // При первом открытии окна необходимо полностью перестроить его структуру.
@@ -107,9 +115,11 @@ public class InventoryUI : MonoBehaviour
     private void RebuildSlots()
     {
         if (!isInitialized) return;
-        // Передаем все необходимые данные для построения: ссылки на ECS, сущность игрока,
-        // UI-элементы и колбэк-метод, который будет вызываться при клике на слот.
-        InventoryPanelHelper.RebuildSlots(entityManager, playerEntity, slotsParent, slotPrefab, slots, OnInventorySlotClicked);
+
+
+        // Теперь мы передаем 7 аргументов: 6-й - это тип инвентаря, 7-й - колбэк.
+        InventoryPanelHelper.RebuildSlots(entityManager, playerEntity, slotsParent, slotPrefab, slots, InventoryType.General, OnInventorySlotClicked);
+
     }
 
     /// <summary>
@@ -132,11 +142,11 @@ public class InventoryUI : MonoBehaviour
         if (!isInitialized || clickedSlot == null || clickedSlot.CurrentItem == null) return;
 
         var item = clickedSlot.CurrentItem;
-        
+
         if (item.itemType == ItemType.Building && clickedSlot.slotIndex < 8)
         {
             entityManager.SetComponentData(playerEntity, new ActiveQuickbarSlot { Index = clickedSlot.slotIndex });
-            
+
             // Запрашиваем закрытие всех UI, чтобы вернуться в игру и увидеть режим строительства.
             GameBridge.Instance?.HandleUICloseAction();
         }

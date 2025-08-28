@@ -1,5 +1,8 @@
 ﻿using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
+using Unity.Rendering;
 
 /// <summary>
 /// Финальная система, которая обрабатывает запросы PlaceBuildingRequest,
@@ -10,51 +13,52 @@ public partial class FinalizeBuildingSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        // Система больше не зависит от Inventory.Instance
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                           .CreateCommandBuffer(World.Unmanaged);
 
         // Получаем сущность игрока, чтобы знать, из чьего инвентаря удалять предмет.
         if (!SystemAPI.TryGetSingletonEntity<PlayerControllerData>(out var playerEntity))
         {
-            // Если игрока нет, запросы на постройку не могут быть выполнены.
-            var requestsQuery = SystemAPI.QueryBuilder().WithAll<PlaceBuildingRequest>().Build();
-            ecb.DestroyEntity(requestsQuery, EntityQueryCaptureMode.AtPlayback);
+            var q = SystemAPI.QueryBuilder().WithAll<PlaceBuildingRequest>().Build();
+            ecb.DestroyEntity(q, EntityQueryCaptureMode.AtPlayback);
             return;
         }
 
-        // Обрабатываем каждый запрос на постройку
-        foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<PlaceBuildingRequest>>().WithEntityAccess())
+        foreach (var (request, reqEntity) in SystemAPI.Query<RefRO<PlaceBuildingRequest>>().WithEntityAccess())
         {
-            var reqData = request.ValueRO;
-
-            if (reqData.BuildingPrefabToPlace == Entity.Null || !SystemAPI.Exists(reqData.BuildingPrefabToPlace))
+            var req = request.ValueRO;
+            if (req.BuildingPrefabToPlace == Entity.Null)
             {
-                ecb.DestroyEntity(requestEntity);
+                ecb.DestroyEntity(reqEntity);
                 continue;
             }
-            
-            // Инстанцирование здания
-            var newBuilding = ecb.Instantiate(reqData.BuildingPrefabToPlace);
-            ecb.SetComponent(newBuilding, LocalTransform.FromPositionRotation(reqData.Position, reqData.Rotation));
-            ecb.AddComponent<NewlyBuiltTag>(newBuilding);
-            // Новый тег для гибридного спавна GameObject
-            ecb.AddComponent(newBuilding, new SpawnHybridBuildingTag
-            {
-                BuildingItemID = reqData.ItemIDToConsume
-            });
 
-            // Создаем запрос на удаление предмета
-            // Вместо прямого вызова inventory.Remove()
-            var removeItemRequestEntity = ecb.CreateEntity();
-            ecb.AddComponent(removeItemRequestEntity, new RemoveItemRequest
+            var newBuilding = ecb.Instantiate(req.BuildingPrefabToPlace);
+
+
+            // 1. Читаем масштаб из оригинального префаба, чтобы не потерять его.
+            float prefabScale = 1f;
+            if (SystemAPI.HasComponent<LocalTransform>(req.BuildingPrefabToPlace))
             {
-                TargetInventoryOwner = playerEntity, // Указываем, что удалить нужно у игрока
-                ItemID = reqData.ItemIDToConsume,
+                prefabScale = SystemAPI.GetComponent<LocalTransform>(req.BuildingPrefabToPlace).Scale;
+            }
+
+            // 2. Используем метод, который сохраняет масштаб.
+            ecb.SetComponent(newBuilding, LocalTransform.FromPositionRotationScale(req.Position, req.Rotation, prefabScale));
+
+
+            ecb.AddComponent<NewlyBuiltTag>(newBuilding);
+            ecb.AddComponent(newBuilding, new SpawnHybridBuildingTag { BuildingItemID = req.ItemIDToConsume });
+
+            var removeReq = ecb.CreateEntity();
+            ecb.AddComponent(removeReq, new RemoveItemRequest
+            {
+                TargetInventoryOwner = playerEntity,
+                ItemID = req.ItemIDToConsume,
                 Amount = 1
             });
 
-            // Уничтожаем обработанный запрос на постройку
-            ecb.DestroyEntity(requestEntity);
+            ecb.DestroyEntity(reqEntity);
         }
     }
 }

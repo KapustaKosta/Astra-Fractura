@@ -1,14 +1,14 @@
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 
 /// <summary>
-/// ���⥬�, ����� ��ࠡ��뢠�� ������ �� ������ ������ � ०��� ��ந⥫��⢠.
+/// Система, которая обрабатывает запросы на поворот здания в режиме строительства.
 /// <para>
-/// - ����砥� ��魮��� �ॢ�� ������ (BuildingPreviewTag).
-/// - ��ࠡ��뢠�� �� ������ �� ������ (RotateRequest).
-/// - �����稢��� �ॢ�� ������ �� ROTATE_SPEED �ࠤ�ᮢ �� �� Y �� ����.
-/// - ��᫥ ��ࠡ�⪨ 㤠��� ��������� RotateRequest � ᮮ⢥������� ��魮�⥩.
+/// - Получает сущность превью здания (BuildingPreviewTag).
+/// - Обрабатывает все запросы на поворот (RotateRequest).
+/// - Поворачивает превью здания на ROTATE_SPEED градусов по оси Y за кадр.
+/// - После обработки удаляет компонент RotateRequest у соответствующих сущностей.
 /// </para>
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -16,19 +16,19 @@ using Unity.Mathematics;
 public partial class RotateBuildingSystem : SystemBase
 {
     /// <summary>
-    /// ������� ������ �ॢ�� ������ (�ࠤ�ᮢ �� ����).
+    /// Скорость поворота превью здания (градусов за кадр).
     /// </summary>
     private const float ROTATE_SPEED = 2.5f;
     /// <summary>
-    /// ��ࠡ��뢠�� �� ������ �� ������ ������ � ०��� ��ந⥫��⢠.
+    /// Обрабатывает все запросы на поворот здания в режиме строительства.
     /// </summary>
     protected override void OnUpdate()
     {
         /*
-         * 1. ����砥� ��魮��� �ॢ�� ������ (BuildingPreviewTag).
-         * 2. ��ࠡ��뢠�� �� ������ �� ������ (RotateRequest).
-         * 3. �����稢��� �ॢ�� ������ �� ROTATE_SPEED �ࠤ�ᮢ �� �� Y �� ����.
-         * 4. ��᫥ ��ࠡ�⪨ 㤠��� ��������� RotateRequest � ᮮ⢥������� ��魮�⥩.
+         * 1. Получает сущность превью здания (BuildingPreviewTag).
+         * 2. Обрабатывает все запросы на поворот (RotateRequest).
+         * 3. Поворачивает превью здания на ROTATE_SPEED градусов по оси Y за кадр.
+         * 4. После обработки удаляет компонент RotateRequest у соответствующих сущностей.
          */
         if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity)) return;
 
@@ -37,7 +37,12 @@ public partial class RotateBuildingSystem : SystemBase
             if (SystemAPI.HasComponent<LocalTransform>(previewEntity))
             {
                 var transform = SystemAPI.GetComponentRW<LocalTransform>(previewEntity);
-                transform.ValueRW.Rotation = math.mul(transform.ValueRW.Rotation, quaternion.RotateY(math.radians(ROTATE_SPEED)));
+
+
+                // Вращаем вокруг мировой оси Y для предсказуемого поведения на склонах.
+                // quaternion.RotateY создает вращение в мировом пространстве.
+                // Умножение слева (world * local) применяет мировое вращение к локальному повороту.
+                transform.ValueRW.Rotation = math.mul(quaternion.RotateY(math.radians(ROTATE_SPEED)), transform.ValueRW.Rotation);
             }
             EntityManager.RemoveComponent<RotateRequest>(reqEntity);
         }

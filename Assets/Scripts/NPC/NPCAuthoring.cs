@@ -1,4 +1,4 @@
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
 using Unity.Collections;
 
@@ -35,10 +35,14 @@ public class NPCAuthoring : MonoBehaviour
     /// Уровень трудолюбия NPC.
     /// </summary>
     public int diligence;
-    
+
     [Header("Боевые параметры")]
     [Tooltip("Максимальное здоровье NPC.")]
     public float maxHealth = 100f;
+
+    [Header("Рабочие параметры")]
+    [Tooltip("Общий запас 'рабочей силы' (молотков), доступный NPC на один полный производственный цикл.")]
+    public float hammerPoolCapacity = 35f;
 
     class Baker : Baker<NPCAuthoring>
     {
@@ -63,8 +67,14 @@ public class NPCAuthoring : MonoBehaviour
                 Diligence = authoring.diligence,
                 Target = Entity.Null
             });
-            
-            // Компонент с данными здоровья
+
+            // Добавляем новый компонент с запасом рабочей силы
+            AddComponent(entity, new NPCWorkForce
+            {
+                MaxHammerPool = authoring.hammerPoolCapacity,
+                CurrentHammerPool = authoring.hammerPoolCapacity // Начинает с полным запасом
+            });
+
             AddComponent(entity, new HealthComponent
             {
                 MaxHealth = authoring.maxHealth,

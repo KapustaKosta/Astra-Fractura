@@ -1,8 +1,10 @@
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 using StarterAssets;
 using System;
+using Wiring;
+using Conveyor;
 
 /// <summary>
 /// ECS-система, отвечающая за обработку ввода от пользователя.
@@ -26,18 +28,6 @@ public partial class InputsSystem : SystemBase
     private int quickbarDigitPressed;
     private float quickbarScrollDelta;
 
-    /// <summary>
-    /// Вызывается при создании системы. Гарантирует, что синглтон GameState и игрок существуют.
-    /// </summary>
-    protected override void OnCreate()
-    {
-        RequireForUpdate<GameState>();
-        RequireForUpdate<PlayerControllerData>();
-    }
-
-    /// <summary>
-    /// Вызывается при первом запуске системы. Подписывается на события ввода.
-    /// </summary>
     protected override void OnStartRunning()
     {
         StarterAssetsInputs.onMove += OnMove;
@@ -49,9 +39,8 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onPrimaryAction += OnPrimaryAction;
         StarterAssetsInputs.onQuickbarDigit += OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll += OnQuickbarScroll;
+        StarterAssetsInputs.onRotate += OnRotate;
 
-		StarterAssetsInputs.onRotate += OnRotate;
-        
         inventoryRequested = false;
         rightClickRequested = false;
         jumpRequested = false;
@@ -77,8 +66,7 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onPrimaryAction -= OnPrimaryAction;
         StarterAssetsInputs.onQuickbarDigit -= OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll -= OnQuickbarScroll;
-
-		StarterAssetsInputs.onRotate -= OnRotate;
+        StarterAssetsInputs.onRotate -= OnRotate;
     }
 
     /// <summary>
@@ -100,15 +88,7 @@ public partial class InputsSystem : SystemBase
     /// Обработчик события прыжка.
     /// </summary>
     private void OnJump() { jumpRequested = true; lastJumpTime = SystemAPI.Time.ElapsedTime; }
-
-    /// <summary>
-    /// Обработчик события инвентаря.
-    /// </summary>
-    private void OnInventory() => inventoryRequested = true;
-
-    /// <summary>
-    /// Обработчик события вторичного действия.
-    /// </summary>
+    private void OnInventory() { inventoryRequested = true; }
     private void OnRightClick() => rightClickRequested = true;
 
     /// <summary>
@@ -126,16 +106,15 @@ public partial class InputsSystem : SystemBase
     /// </summary>
     private void OnQuickbarScroll(float delta) => quickbarScrollDelta = delta;
 
-/// Обработчик события поворота (isPressed: true — кнопка зажата, false — отпущена).
+    /// Обработчик события поворота (isPressed: true — кнопка зажата, false — отпущена).
     /// </summary>
     private void OnRotate(bool isPressed) => rotateHeld = isPressed;
 
-    /// <summary>
-    /// Вызывается каждый кадр. Обновляет InputsData и создает одноразовые запросы для UI.
-    /// </summary>
+
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
+                           .CreateCommandBuffer(World.Unmanaged);
 
         // Создаем одноразовые запросы для действий, которые должны сработать один раз по нажатию
         if (inventoryRequested)
@@ -148,55 +127,80 @@ public partial class InputsSystem : SystemBase
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         bool isUI = SystemAPI.HasComponent<InUIMode>(gameStateEntity);
         bool isInBuildingMode = SystemAPI.HasComponent<InBuildingMode>(gameStateEntity);
+        bool isInWireMode = SystemAPI.HasComponent<InWirePlacementMode>(gameStateEntity);
+        bool isInConveyorMode = SystemAPI.HasComponent<InConveyorMode>(gameStateEntity);
 
         // Пока кнопка поворота удерживается и мы в режиме строительства — добавляем RotateRequest к превью
         if (rotateHeld && isInBuildingMode)
         {
-            if (SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity))
+            if (SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity) && !SystemAPI.HasComponent<RotateRequest>(previewEntity))
             {
-                if (!SystemAPI.HasComponent<RotateRequest>(previewEntity))
-                    ecb.AddComponent<RotateRequest>(previewEntity);
+                ecb.AddComponent<RotateRequest>(previewEntity);
             }
         }
-        else
+
+
+        // Если мы в режиме строительства зданий (не конвейеров!) и есть скролл, создаем запрос на изменение высоты.
+        if (isInBuildingMode && math.abs(quickbarScrollDelta) > 0.01f)
         {
-            if (SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity))
+            var heightReq = ecb.CreateEntity();
+            ecb.AddComponent(heightReq, new AdjustBuildingHeightRequest
             {
-                if (SystemAPI.HasComponent<RotateRequest>(previewEntity))
-                    ecb.RemoveComponent<RotateRequest>(previewEntity);
-            }
+                // Нормализуем значение, чтобы получить -1 или 1
+                ScrollDelta = math.sign(quickbarScrollDelta)
+            });
+            // Обнуляем, чтобы этот же скролл не вызвал смену предмета в хотбаре
+            quickbarScrollDelta = 0f;
         }
+
 
         // Обработка правой кнопки мыши: если в режиме строительства, то это запрос на выход,
         // иначе - запрос на взаимодействие.
         if (rightClickRequested)
         {
-            if (isInBuildingMode) 
+            if (isInWireMode)
             {
-                var exitE = ecb.CreateEntity();
-                ecb.AddComponent(exitE, new ExitBuildingModeRequest());
+                if (SystemAPI.TryGetSingletonEntity<PendingWire>(out var pendingWireEntity))
+                {
+                    ecb.DestroyEntity(pendingWireEntity);
+                }
+                else if (SystemAPI.TryGetSingletonEntity<PendingWireRemoval>(out var pendingRemovalEntity))
+                {
+                    ecb.DestroyEntity(pendingRemovalEntity);
+                }
+                else
+                {
+                    var r = ecb.CreateEntity();
+                    ecb.AddComponent(r, new ExitWirePlacementModeRequest());
+                }
             }
-            else // Иначе, это обычное взаимодействие.
+            else if (isInConveyorMode)
             {
-                var rcE = ecb.CreateEntity();
-                ecb.AddComponent(rcE, new InteractionRequest());
+                var r = ecb.CreateEntity();
+                ecb.AddComponent(r, new RemoveConveyorUnderCursorRequest());
+            }
+            else if (isInBuildingMode)
+            {
+                var r = ecb.CreateEntity();
+                ecb.AddComponent(r, new ExitBuildingModeRequest());
+            }
+            else if (!isUI)
+            {
+                var r = ecb.CreateEntity();
+                ecb.AddComponent(r, new InteractionRequest());
             }
             rightClickRequested = false;
         }
-        
+
         var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
         double now = SystemAPI.Time.ElapsedTime;
         bool jumpBuffered = (now - lastJumpTime) <= controllerData.JumpBufferDuration;
-        
-        // Определяем финальные значения для записи, блокируя ввод в режиме UI
-        float2 currentMove = isUI ? float2.zero : new float2(moveInput.x, moveInput.y);
-        float2 currentLook = isUI ? float2.zero : new float2(lookInput.x, lookInput.y);
-        bool currentSprint = isUI ? false : sprintInput;
+
+        float2 currentMove = isUI ? float2.zero : moveInput;
+        float2 currentLook = isUI ? float2.zero : lookInput;
+        bool currentSprint = !isUI && sprintInput;
         bool currentJump = !isUI && jumpBuffered;
-        // Мы передаем сырое состояние кнопки, а другие системы решат, можно ли выполнять действие
-        bool currentPrimaryAction = primaryActionInput;
-        
-        // Определяем финальные значения для квикбара, блокируя ввод в режиме UI.
+        bool currentPrimaryAction = !isUI && primaryActionInput;
         int currentQuickbarDigit = isUI ? 0 : quickbarDigitPressed;
         float currentQuickbarScroll = isUI ? 0f : quickbarScrollDelta;
 
@@ -213,7 +217,7 @@ public partial class InputsSystem : SystemBase
         // Обновляем поля квикбара в компоненте InputsData.
         inputs.ValueRW.QuickbarDigitKeyPressed = currentQuickbarDigit;
         inputs.ValueRW.QuickbarScrollDelta = currentQuickbarScroll;
-        
+
         jumpRequested = false;
         
         // Сбрасываем одноразовый ввод для квикбара.

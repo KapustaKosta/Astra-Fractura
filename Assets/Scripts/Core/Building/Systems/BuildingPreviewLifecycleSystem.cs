@@ -1,9 +1,5 @@
 ﻿using Unity.Entities;
 using Unity.Transforms;
-using Unity.Physics;
-using Unity.Physics.Extensions;
-using Unity.Burst;
-using UnityEngine;
 
 
 /// <summary>
@@ -23,28 +19,50 @@ public partial class BuildingPreviewLifecycleSystem : SystemBase
         // Проверяем существование синглтона GameState.
         if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gs)) return;
 
-        // Определяем, находится ли игра в режиме строительства и существует ли уже сущность превью.
-        bool inBuild   = SystemAPI.HasComponent<InBuildingMode>(gs);
-        bool haveGhost = SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var ghost);
+        bool inBuildMode = SystemAPI.HasComponent<InBuildingMode>(gs);
+        bool hasPreview = SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity);
 
-        // Логика создания превью: если в режиме строительства, но превью еще нет.
-        if (inBuild && !haveGhost)
+        if (inBuildMode && !hasPreview)
         {
-            var st = SystemAPI.GetComponent<BuildingState>(gs);
-            // Если нет выбранного префаба для строительства, прерываем.
-            if (st.BuildingPrefabToPlace == Entity.Null) return;
+            if (SystemAPI.HasComponent<BuildingState>(gs))
+            {
+                var st = SystemAPI.GetComponent<BuildingState>(gs);
+                if (st.BuildingPrefabToPlace != Entity.Null)
+                {
+                    var rootPrefab = ResolvePrefabRoot(st.BuildingPrefabToPlace);
+                    var g = ecb.Instantiate(rootPrefab);
 
-            var g = ecb.Instantiate(st.BuildingPrefabToPlace); // Создаем сущность превью из префаба.
-            ecb.AddComponent<BuildingPreviewTag>(g);           
-            ecb.RemoveComponent<Parent>(g);                    // Удаляем Parent, чтобы превью имело свой собственный Transform.
-            ecb.AddComponent<NeedsPreviewSetupTag>(g);         // Добавляем тег для последующей настройки коллайдера
+                    ecb.AddComponent<BuildingPreviewTag>(g);
+                    ecb.AddComponent<NeedsPreviewSetupTag>(g);
+                    ecb.AddComponent<BuildingHeightOffset>(g);
+                    ecb.AddComponent<BuildingPreviewLink>(g);
+                    ecb.AddComponent<PreviewGroundPosition>(g);
+
+                    ecb.RemoveComponent<Parent>(g);
+                }
+            }
         }
-        // Логика удаления превью: если не в режиме строительства, но превью существует.
-        else if (!inBuild && haveGhost)
+        else if (!inBuildMode && hasPreview)
         {
-            ecb.DestroyEntity(ghost); 
+            if (SystemAPI.HasComponent<BuildingPreviewLink>(previewEntity))
+            {
+                var link = SystemAPI.GetComponent<BuildingPreviewLink>(previewEntity);
+                if (link.FoundationPreviewEntity != Entity.Null && EntityManager.Exists(link.FoundationPreviewEntity))
+                {
+                    ecb.DestroyEntity(link.FoundationPreviewEntity);
+                }
+            }
+            ecb.DestroyEntity(previewEntity);
         }
     }
+
+    private Entity ResolvePrefabRoot(Entity anyPrefabEntity)
+    {
+        var e = anyPrefabEntity;
+        while (SystemAPI.HasComponent<Parent>(e))
+        {
+            e = SystemAPI.GetComponent<Parent>(e).Value;
+        }
+        return e;
+    }
 }
-
-

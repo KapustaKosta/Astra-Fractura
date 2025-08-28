@@ -1,9 +1,8 @@
-﻿using Unity.Entities;
-using Unity.Transforms;
+﻿using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
 using Unity.Physics;
-using Unity.Physics.Extensions;
-using Unity.Burst;
-using UnityEngine;
+using Unity.Transforms;
 
 /// <summary>
 /// Система, которая настраивает PhysicsCollider для сущностей превью зданий,
@@ -12,51 +11,74 @@ using UnityEngine;
 /// </summary>
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPreviewLifecycleSystem))] 
 public partial struct BuildingPreviewSetupSystem : ISystem
 {
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.HasSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()) return;
         var ecb = SystemAPI
             .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(state.WorldUnmanaged);
 
-        var settings = SystemAPI.GetSingleton<BuildingSettings>();
-        int layer = settings.PreviewLayer;
-        if (layer < 0 || layer > 31) return; // Если слой не настроен, выходим
-
-        // Запрос только тех сущностей превью, которые помечены NeedsPreviewSetupTag.
-        foreach (var (pc, entity) in
-                 SystemAPI.Query<RefRW<PhysicsCollider>>()
-                          .WithAll<BuildingPreviewTag, NeedsPreviewSetupTag>()
-                          .WithEntityAccess())
+        foreach (var (ltw, previewRoot) in SystemAPI
+                     .Query<RefRO<LocalToWorld>>()
+                     .WithAll<BuildingPreviewTag, NeedsPreviewSetupTag>()
+                     .WithEntityAccess())
         {
-            // 1. Делаем коллайдер уникальным, если он шарится (для возможности модификации).
-            if (!pc.ValueRO.IsUnique)
-                pc.ValueRW.MakeUnique(entity, ecb);
+            var toProcess = new NativeList<Entity>(Allocator.Temp);
 
-            // 2. Настраиваем политику реакции на столкновения: "None" делает его "ghost" коллайдером.
-            pc.ValueRW.Value.Value.SetCollisionResponse(
-                CollisionResponsePolicy.None);
-
-            // 3. Устанавливаем фильтр столкновений: коллайдер будет принадлежать слою "BuildingPreview"
-            // и не будет сталкиваться ни с чем (CollidesWith = 0u).
-            pc.ValueRW.Value.Value.SetCollisionFilter(new CollisionFilter
+            if (SystemAPI.HasBuffer<LinkedEntityGroup>(previewRoot))
             {
-                BelongsTo    = (uint)(1 << layer),
-                CollidesWith = 0u,
-                GroupIndex   = 0
-            });
+                var leg = SystemAPI.GetBuffer<LinkedEntityGroup>(previewRoot);
+                for (int i = 0; i < leg.Length; i++) toProcess.Add(leg[i].Value);
+            }
+            else
+            {
+                toProcess.Add(previewRoot);
+                if (SystemAPI.HasBuffer<Child>(previewRoot))
+                {
+                    var ch = SystemAPI.GetBuffer<Child>(previewRoot);
+                    for (int i = 0; i < ch.Length; i++) toProcess.Add(ch[i].Value);
+                }
+            }
 
-            // 4. Удаляем компоненты, связанные с физической динамикой, так как превью не должно двигаться
-            // под действием физики или иметь массу.
-            ecb.RemoveComponent<PhysicsMass>(entity);
-            ecb.RemoveComponent<PhysicsVelocity>(entity);
-            ecb.RemoveComponent<PhysicsDamping>(entity);
-            ecb.RemoveComponent<PhysicsGravityFactor>(entity);
+            for (int i = 0; i < toProcess.Length; i++)
+            {
+                var e = toProcess[i];
+                if (!SystemAPI.HasComponent<PhysicsCollider>(e)) continue;
 
-            // 5. Удаляем NeedsPreviewSetupTag, чтобы этот коллайдер больше не обрабатывался данной системой.
-            ecb.RemoveComponent<NeedsPreviewSetupTag>(entity);
+                // 🔸 СДЕЛАТЬ КОЛЛАЙДЕР УНИКАЛЬНЫМ ДЛЯ ПРЕВЬЮ
+                var pc = SystemAPI.GetComponentRW<PhysicsCollider>(e);
+                MakeColliderUnique(ref pc.ValueRW);
+
+                // ⬇ теперь меняем фильтр УЖЕ на копии — не задевая оригинальные префабы
+                var col = pc.ValueRW.Value;
+                var filter = col.Value.GetCollisionFilter();
+                filter.CollidesWith = 0u; // ни с кем не сталкиваться
+                col.Value.SetCollisionFilter(filter);
+                col.Value.SetCollisionResponse(CollisionResponsePolicy.None);
+                pc.ValueRW.Value = col;
+
+                // Убираем динамику, чтобы превью не "жило" в мире
+                if (SystemAPI.HasComponent<PhysicsMass>(e)) ecb.RemoveComponent<PhysicsMass>(e);
+                if (SystemAPI.HasComponent<PhysicsVelocity>(e)) ecb.RemoveComponent<PhysicsVelocity>(e);
+                if (SystemAPI.HasComponent<PhysicsDamping>(e)) ecb.RemoveComponent<PhysicsDamping>(e);
+                if (SystemAPI.HasComponent<PhysicsGravityFactor>(e)) ecb.RemoveComponent<PhysicsGravityFactor>(e);
+            }
+
+            toProcess.Dispose();
+            ecb.RemoveComponent<NeedsPreviewSetupTag>(previewRoot);
         }
+    }
+
+    // Делает Blob коллайдера уникальным, чтобы правки не затрагивали другие экземпляры/префабы
+    static void MakeColliderUnique(ref PhysicsCollider physicsCollider)
+    {
+        // Уже уникален — выходим (Unity помечает это флагом IsUnique)
+        if (physicsCollider.IsUnique) return;
+
+        // Клонируем Blob (Allocator.Persistent — ок, будет освобождён с компонентом)
+        var cloned = physicsCollider.Value.Value.Clone();
+        physicsCollider = new PhysicsCollider { Value = cloned };
     }
 }

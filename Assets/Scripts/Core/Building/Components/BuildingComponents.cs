@@ -2,8 +2,7 @@
 using Unity.Mathematics;
 
 /// <summary>
-/// Тег, который добавляется к "призраку" здания в режиме строительства,
-/// чтобы его можно было легко найти в мире.
+/// Тег, который добавляется к "призраку" здания в режиме строительства.
 /// </summary>
 public struct BuildingPreviewTag : IComponentData { }
 
@@ -18,14 +17,22 @@ public struct PlacementValidTag : IComponentData { }
 public struct PlacementInvalidTag : IComponentData { }
 
 /// <summary>
-/// Тег, указывающий, что превью-сущность нуждается в первичной настройке (например, коллайдера).
+/// Тег, указывающий, что превью-сущность нуждается в первичной настройке.
 /// </summary>
-public struct NeedsPreviewSetupTag : IComponentData {}
+public struct NeedsPreviewSetupTag : IComponentData { }
 
 /// <summary>
 /// Компонент, хранящий локальное смещение для точки прибытия NPC.
 /// </summary>
 public struct ArrivalPointOffset : IComponentData
+{
+    public float3 Value;
+}
+
+/// <summary>
+/// Хранит локальное смещение от pivot'а объекта до его фактического основания (самой нижней точки).
+/// </summary>
+public struct BuildingPivotOffset : IComponentData
 {
     public float3 Value;
 }

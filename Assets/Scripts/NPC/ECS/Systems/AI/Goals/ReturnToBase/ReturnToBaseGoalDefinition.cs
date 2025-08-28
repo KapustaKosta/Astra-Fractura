@@ -28,8 +28,8 @@ public class ReturnToBaseGoalDefinition : GoalDefinition
         bool isFull = itemRegistry != null && InventoryUtils.IsInventoryFull(inventory, itemRegistry);
         // Проверяем блокировку разгрузки
         bool isBlocked = entityManager.HasComponent<UnloadingBlockedTag>(entity);
-        
-        return isFull && !isBlocked;
+        bool movementFailed = entityManager.HasComponent<MovementFailedTag>(entity);
+        return isFull && !isBlocked && !movementFailed;
     }
     
     /// <summary>
@@ -60,7 +60,7 @@ public class ReturnToBaseGoalDefinition : GoalDefinition
     {
         // Проверяем наличие поселения
         if (context.SettlementEntity == Entity.Null) return default;
-        
+
         var inventory = context.InventoryLookup[entity];
         int firstItemID = InventoryUtils.GetFirstItemID(inventory);
         
@@ -69,13 +69,13 @@ public class ReturnToBaseGoalDefinition : GoalDefinition
         {
             return default;
         }
-        
+
         return new ActiveGoal
         {
             Type = this.Type,
-            Target = context.SettlementEntity, // Цель - поселение
-            RelevantItemID = firstItemID, // Предмет для разгрузки
-            CurrentGoalScore = score // Рассчитанный приоритет
+            Target = context.SettlementEntity,
+            RelevantItemID = firstItemID,
+            CurrentGoalScore = score
         };
     }
 }

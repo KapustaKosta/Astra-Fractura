@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemName: Sword
   itemType: 2
-  icon: {fileID: 21300000, guid: f5987748f5077c74bb18a3da214151a9, type: 3}
+  icon: {fileID: 21300000, guid: 8f0827ee8d790064abb4712c305cc3a8, type: 3}
   description: 
   maxStack: 1
   toolDamage: 0
@@ -25,4 +25,5 @@ MonoBehaviour:
   attackCooldown: 0.8
   buildingPrefab: {fileID: 0}
   footprintSize: {x: 1, y: 1}
+  VisualPrefab: {fileID: 0}
   itemID: 5

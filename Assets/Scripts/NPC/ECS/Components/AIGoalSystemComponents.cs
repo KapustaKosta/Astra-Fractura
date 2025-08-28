@@ -1,6 +1,7 @@
 ﻿using System;
 using Unity.Entities;
 
+
 /// <summary>
 /// Атрибут для GoalDefinition, который указывает, какие компоненты-теги
 /// должны быть автоматически удалены с сущности NPC, когда эта цель
@@ -50,3 +51,18 @@ public struct AIActiveTarget : IComponentData
     /// </summary>
     public Entity Value;
 }
+
+/// <summary>
+/// Компонент-таймер для отсчета времени выполнения иммерсивных действий (запуск, починка).
+/// Добавляется к NPC, когда он "входит" в здание для работы.
+/// </summary>
+public struct MaintenanceTimer : IComponentData
+{
+    public float RemainingTime;
+}
+
+/// <summary>
+/// Тег-состояние. Указывает, что назначенный цех NPC требует немедленного обслуживания.
+/// Добавляется системой MaintenanceConditionSystem.
+/// </summary>
+public struct HasMaintenanceTaskTag : IComponentData { }

@@ -7,6 +7,10 @@ public enum UIType
     Inventory,
     NPC,
     Settlement,
-    Trade 
+    Trade,
+    Generator,
+    Battery,
+    Production,
+    Workshop,
+    ConveyorRoutes
 }
-

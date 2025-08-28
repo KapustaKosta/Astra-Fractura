@@ -2,18 +2,19 @@
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using Energy.Core;
+using Game.Production;
+using Wiring;
+using Game.Workshop;
 
 /// <summary>
-/// ECS-система, обрабатывающая взаимодействие игрока с объектами в мире.
-/// Работает только тогда, когда игра находится в режиме по умолчанию.
+/// ЕДИНАЯ ECS-система, обрабатывающая взаимодействие игрока (ПКМ) с объектами в мире.
+/// Работает только тогда, когда игра находится в режиме по умолчанию (InDefaultMode).
+/// Централизованно обрабатывает все типы интерактивных сущностей.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public partial class PlayerContextualInteractionSystem : SystemBase
 {
-    /// <summary>
-    /// Вызывается при создании системы. Требует наличия синглтона GameState,
-    /// PhysicsWorldSingleton и PlayerInitializedTag для обновления.
-    /// </summary>
     protected override void OnCreate()
     {
         RequireForUpdate<GameState>();
@@ -21,21 +22,14 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         RequireForUpdate<PlayerInitializedTag>();
     }
 
-    /// <summary>
-    /// Вызывается каждый кадр. Проверяет, что игра в режиме InDefaultMode.
-    /// Если был запрос на взаимодействие, выполняет трассировку луча от камеры
-    /// и создает запросы UI в зависимости от того, с какой сущностью было взаимодействие.
-    /// </summary>
     protected override void OnUpdate()
     {
-        // Проверяем, что игра находится в нужном режиме. Если нет - выходим.
-        // Это заменяет невалидное использование атрибута [WithAll] для SystemBase.
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         if (!SystemAPI.HasComponent<InDefaultMode>(gameStateEntity))
         {
             return;
         }
-        
+
         var interactionRequestQuery = SystemAPI.QueryBuilder().WithAll<InteractionRequest>().Build();
         if (interactionRequestQuery.IsEmpty) return;
 
@@ -45,7 +39,7 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
 
         if (Camera.main == null) return;
-        
+
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         var rayInput = new RaycastInput
         {
@@ -62,16 +56,35 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         if (physicsWorld.CollisionWorld.CastRay(rayInput, out var ecsHit))
         {
             Entity interactedEntity = ecsHit.Entity;
-            
+            var requestEntity = ecb.CreateEntity();
+
             if (em.HasComponent<NPCComponent>(interactedEntity))
             {
-                var requestEntity = ecb.CreateEntity();
                 ecb.AddComponent(requestEntity, new OpenNPCUIRequest { Target = interactedEntity });
             }
             else if (em.HasComponent<SettlementComponent>(interactedEntity))
             {
-                var requestEntity = ecb.CreateEntity();
                 ecb.AddComponent(requestEntity, new OpenSettlementUIRequest { Target = interactedEntity });
+            }
+            else if (em.HasComponent<WorkshopTag>(interactedEntity))
+            {
+                ecb.AddComponent(requestEntity, new OpenWorkshopUIRequest { Target = interactedEntity });
+            }
+            else if (em.HasComponent<ProductionBuildingTag>(interactedEntity))
+            {
+                ecb.AddComponent(requestEntity, new OpenProductionUIRequest { Target = interactedEntity });
+            }
+            else if (em.HasComponent<GeneratorComponent>(interactedEntity))
+            {
+                ecb.AddComponent(requestEntity, new OpenGeneratorUIRequest { Target = interactedEntity });
+            }
+            else if (em.HasComponent<BatteryComponent>(interactedEntity))
+            {
+                ecb.AddComponent(requestEntity, new OpenBatteryUIRequest { Target = interactedEntity });
+            }
+            else
+            {
+                ecb.DestroyEntity(requestEntity);
             }
         }
     }

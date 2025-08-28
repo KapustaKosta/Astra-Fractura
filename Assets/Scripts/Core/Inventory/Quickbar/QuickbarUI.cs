@@ -15,7 +15,7 @@ public class QuickbarUI : MonoBehaviour
 
     [Tooltip("Префаб для одного слота инвентаря (должен иметь компонент InventorySlot).")]
     [SerializeField] private GameObject slotPrefab;
-    
+
     [Header("Settings")]
     [Tooltip("Ассет с настройками цветов для слотов квикбара.")]
     [SerializeField] private QuickbarSettings settings;
@@ -45,18 +45,18 @@ public class QuickbarUI : MonoBehaviour
             TryInitialize();
             return;
         }
-        
+
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
-        
+
         bool shouldBeVisible = !entityManager.HasComponent<InUIMode>(gameStateEntity);
-        
+
         if (slotsParent.gameObject.activeSelf != shouldBeVisible)
         {
             slotsParent.gameObject.SetActive(shouldBeVisible);
         }
-        
+
         if (shouldBeVisible)
         {
             RefreshSlots();
@@ -123,7 +123,7 @@ public class QuickbarUI : MonoBehaviour
             {
                 var itemElement = inventoryBuffer[i];
                 var itemData = itemRegistry.GetItemData(itemElement.ItemID);
-                slots[i].InitializeSlot(itemData, itemElement.Amount, playerEntity, i);
+                slots[i].InitializeSlot(itemData, itemElement.Amount, playerEntity, i, InventoryType.General);
             }
             else
             {

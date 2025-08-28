@@ -1,9 +1,11 @@
 ﻿using Unity.Entities;
 
+
+
 /// <summary>
 /// Перечисление всех возможных типов глобальных целей для NPC.
 /// </summary>
-public enum GoalType { Idle, Harvest, ReturnToBase, Flee }
+public enum GoalType { Idle, Harvest, ReturnToBase, Flee, MaintainWorkshop }
 
 /// <summary>
 /// Компонент текущей цели NPC. Хранит информацию о типе цели, 
@@ -16,17 +18,17 @@ public struct ActiveGoal : IComponentData
     /// Тип текущей цели (Idle, Harvest и т.д.)
     /// </summary>
     public GoalType Type;
-    
+
     /// <summary>
     /// Целевая сущность для достижения цели (например, объект для сбора)
     /// </summary>
     public Entity Target;
-    
+
     /// <summary>
     /// ID предмета, связанного с текущей целью (например, собираемый ресурс)
     /// </summary>
     public int RelevantItemID;
-    
+
     /// <summary>
     /// Оценка текущей цели - используется для выбора наиболее приоритетной цели
     /// </summary>
@@ -49,7 +51,7 @@ public struct AvailableAction : IBufferElementData
     /// Тип доступного действия (соответствует GoalType)
     /// </summary>
     public GoalType Type;
-    
+
     /// <summary>
     /// Базовый приоритет действия - используется для расчета общей оценки цели
     /// </summary>
@@ -66,7 +68,7 @@ public struct MoveToRequest : IComponentData
     /// Целевая сущность для перемещения
     /// </summary>
     public Entity TargetEntity;
-    
+
     /// <summary>
     /// Расстояние остановки - на каком расстоянии от цели считать перемещение завершенным
     /// </summary>
@@ -83,32 +85,32 @@ public struct AISettings : IComponentData
     /// Радиус поиска целей для NPC
     /// </summary>
     public float AISearchRadius;
-    
+
     /// <summary>
     /// Слой коллизий для ресурсов - используется для фильтрации объектов поиска
     /// </summary>
     public int ResourceCollisionLayer;
-    
+
     /// <summary>
     /// Приоритет назначения сбора ресурсов при взаимодействии с игроком
     /// </summary>
     public float PlayerAssignHarvestPriority;
-    
+
     /// <summary>
     /// Приоритет возврата к базе при взаимодействии с игроком
     /// </summary>
     public float PlayerAssignReturnPriority;
-    
+
     /// <summary>
     /// Скорость поворота NPC (в градусах в секунду)
     /// </summary>
     public float RotationSpeed;
-    
+
     /// <summary>
     /// Буфер взаимодействия для сбора ресурсов - дополнительное расстояние для активации взаимодействия
     /// </summary>
     public float HarvestInteractionRangeBuffer;
-    
+
     /// <summary>
     /// Буфер остановки для возврата к базе - дополнительное расстояние для завершения перемещения
     /// </summary>

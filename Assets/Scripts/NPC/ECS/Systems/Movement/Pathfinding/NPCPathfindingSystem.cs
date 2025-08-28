@@ -1,6 +1,4 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
@@ -29,74 +27,100 @@ public partial class NPCPathfindingSystem : SystemBase
     {
         // Обрабатываем все сущности с компонентами навигации
         Entities
-            .WithStructuralChanges() 
-            .ForEach((Entity entity, ref NPCPathfindingComponent pathfinding, 
-                     in LocalTransform transform, in NPCMovementComponent movement) =>
+            .WithStructuralChanges()
+            .ForEach((Entity entity,
+                      ref NPCPathfindingComponent pathfinding,
+                      in LocalTransform transform,
+                      in NPCMovementComponent movement) =>
             {
-                try
+                if (!pathfinding.NeedsPathUpdate)
+                    return;
+
+                pathfinding.NeedsPathUpdate = false;
+
+                Vector3 startPos = transform.Position;
+                Vector3 endPos = movement.TargetPosition;
+
+                if (!NavMesh.SamplePosition(startPos, out NavMeshHit startHit, NavMeshSampleRadius, NavMeshAreaMask))
                 {
-                    // Пропускаем, если обновление маршрута не требуется
-                    if (!pathfinding.NeedsPathUpdate)
-                        return;
+                    Debug.LogError($"[Pathfind] {entity.Index}: старт вне NM ({startPos:F2}).");
+                    if (!EntityManager.HasComponent<MovementFailedTag>(entity))
+                        EntityManager.AddComponent<MovementFailedTag>(entity);
+                    return;
+                }
 
-                    // Создаем экземпляр пути навмеша
-                    var navMeshPath = new NavMeshPath();
-                    
-                    // Получаем начальную и целевую позиции
-                    Vector3 start = new Vector3(transform.Position.x, transform.Position.y, transform.Position.z);
-                    Vector3 end = new Vector3(movement.TargetPosition.x, movement.TargetPosition.y, movement.TargetPosition.z);
+                if (!NavMesh.SamplePosition(endPos, out NavMeshHit endHit, NavMeshSampleRadius, NavMeshAreaMask))
+                {
+                    Debug.LogWarning($"[Pathfind] {entity.Index}: цель вне NM ({endPos:F2}).");
+                    if (!EntityManager.HasComponent<MovementFailedTag>(entity))
+                        EntityManager.AddComponent<MovementFailedTag>(entity);
+                    return;
+                }
 
-                    // Ищем ближайшую точку на навмеше к целевой позиции
-                    NavMeshHit endHit;
-                    bool endFound = NavMesh.SamplePosition(end, out endHit, NavMeshSampleRadius, NavMeshAreaMask);
-                    
-                    // Прерываем, если целевая точка недостижима
-                    if (!endFound)
+                // Доп. прижатие к краю
+                {
+                    Vector3 safeEnd = endHit.position;
+                    if (NavMesh.FindClosestEdge(safeEnd, out NavMeshHit edgeHit, NavMeshAreaMask))
+                        safeEnd = edgeHit.position;
+                    endHit.position = safeEnd;
+                }
+
+                var navPath = new NavMeshPath();
+                bool ok = NavMesh.CalculatePath(startHit.position, endHit.position, NavMeshAreaMask, navPath);
+
+                if (!ok || navPath.status == NavMeshPathStatus.PathInvalid || navPath.corners == null || navPath.corners.Length == 0)
+                {
+                    Debug.LogWarning($"[Pathfind] {entity.Index}: путь не найден (status={navPath.status}).");
+                    if (!EntityManager.HasComponent<MovementFailedTag>(entity))
+                        EntityManager.AddComponent<MovementFailedTag>(entity);
+                    return;
+                }
+
+                // Визуализация и логи статуса
+                var color = navPath.status == NavMeshPathStatus.PathPartial ? Color.yellow : Color.cyan;
+                for (int i = 0; i < navPath.corners.Length - 1; i++)
+                    Debug.DrawLine(navPath.corners[i], navPath.corners[i + 1], color, 2f);
+
+                Debug.Log($"[Pathfind] {entity.Index}: status={navPath.status}, corners={navPath.corners.Length}, start={startHit.position:F2}, end={endHit.position:F2}");
+
+                // Заполнение буфера углов (с фильтрацией близких)
+                var buffer = EntityManager.HasBuffer<NPCPathBufferElement>(entity)
+                    ? EntityManager.GetBuffer<NPCPathBufferElement>(entity)
+                    : EntityManager.AddBuffer<NPCPathBufferElement>(entity);
+
+                buffer.Clear();
+
+                const float minCornerDistSq = 0.01f;
+                Vector3 prev = navPath.corners[0];
+                buffer.Add(new NPCPathBufferElement { Waypoint = new float3(prev.x, prev.y, prev.z) });
+
+                for (int i = 1; i < navPath.corners.Length; i++)
+                {
+                    Vector3 c = navPath.corners[i];
+                    float dx = c.x - prev.x;
+                    float dz = c.z - prev.z;
+                    if (dx * dx + dz * dz >= minCornerDistSq)
                     {
-                        Debug.LogWarning($"[NPCPathfindingSystem] Entity {entity.Index}: Target position is unreachable on NavMesh.");
-                        return;
-                    }
-
-                    // Строим путь от начальной до скорректированной целевой позиции
-                    bool pathResult = NavMesh.CalculatePath(start, endHit.position, NavMeshAreaMask, navMeshPath);
-                    
-                    
-                    Debug.Log($"[NPCPathfindingSystem] Entity {entity.Index}: CalculatePath result: {pathResult}");
-
-                    if (pathResult)
-                    {
-                        
-                        Debug.Log($"[NPCPathfindingSystem] Entity {entity.Index}: Path found, corners: {navMeshPath.corners.Length}");
-                        
-                        // Получаем или создаем буфер путевых точек
-                        var buffer = EntityManager.HasBuffer<NPCPathBufferElement>(entity)
-                            ? EntityManager.GetBuffer<NPCPathBufferElement>(entity)
-                            : EntityManager.AddBuffer<NPCPathBufferElement>(entity);
-
-                        // Очищаем и заполняем буфер новыми путевыми точками
-                        buffer.Clear();
-                        int i = 0;
-                        foreach (var corner in navMeshPath.corners)
-                        {
-                            buffer.Add(new NPCPathBufferElement { Waypoint = new float3(corner.x, corner.y, corner.z) });
-                            Debug.Log($"[NPCPathfindingSystem] Entity {entity.Index}: Waypoint {i}: {corner}");
-                            i++;
-                        }
-
-                        // Обновляем параметры навигации
-                        pathfinding.CurrentWaypointIndex = 0; // Сбрасываем на первую точку
-                        pathfinding.LastTargetPosition = movement.TargetPosition; // Запоминаем целевую позицию
-                        pathfinding.NeedsPathUpdate = false; // Сбрасываем флаг необходимости обновления
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[NPCPathfindingSystem] Entity {entity.Index}: Path not found!");
+                        buffer.Add(new NPCPathBufferElement { Waypoint = new float3(c.x, c.y, c.z) });
+                        prev = c;
                     }
                 }
-                catch (System.Exception ex)
+
+                if (buffer.Length == 1)
                 {
-                    Debug.LogError($"[NPCPathfindingSystem] Entity {entity.Index}: Exception: {ex}");
+                    var last = buffer[0];
+                    buffer.Add(last);
                 }
-            }).Run();
+
+                pathfinding.CurrentWaypointIndex = 0;
+                pathfinding.LastTargetPosition = movement.TargetPosition;
+
+                if (navPath.status == NavMeshPathStatus.PathPartial)
+                    Debug.LogWarning($"[Pathfind] {entity.Index}: частичный маршрут — NPC остановится у края (ок).");
+
+                if (EntityManager.HasComponent<MovementFailedTag>(entity))
+                    EntityManager.RemoveComponent<MovementFailedTag>(entity);
+            })
+            .Run();
     }
 }

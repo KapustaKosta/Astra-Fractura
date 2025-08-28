@@ -1,6 +1,10 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Game.Workshop;
+using Wiring;
+using Conveyor;
+using Energy.Core;
 
 /// <summary>
 /// Интерфейс-маркер для всех компонентов-запросов,
@@ -17,6 +21,11 @@ public struct EnterBuildingModeRequest : IRequestCleanup { public int ItemID; }
 /// Запрос на выход из режима строительства.
 /// </summary>
 public struct ExitBuildingModeRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на открытие пользовательского интерфейса производственного здания.
+/// </summary>
+public struct OpenProductionUIRequest : IRequestCleanup { public Entity Target; }
 
 /// <summary>
 /// Запрос на размещение здания в указанной точке мира с определенным поворотом.
@@ -141,4 +150,67 @@ public struct TransferItemRequest : IComponentData
     public Entity ToInventoryOwner;
 }
 
+/// <summary>
+/// Запрос на открытие пользовательского интерфейса цеха (Workshop).
+/// </summary>
+public struct OpenWorkshopUIRequest : IRequestCleanup { public Entity Target; }
 
+/// <summary>
+/// Запрос на вход в режим прокладки проводов.
+/// </summary>
+public struct EnterWirePlacementModeRequest : IRequestCleanup { public int WireLevel; }
+
+/// <summary>
+/// Запрос на выход из режима прокладки проводов.
+/// </summary>
+public struct ExitWirePlacementModeRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на вход в режим строительства конвейеров.
+/// </summary>
+public struct EnterConveyorModeRequest : IRequestCleanup { public int ItemID; }
+
+/// <summary>
+/// Запрос на выход из режима строительства конвейеров.
+/// </summary>
+public struct ExitConveyorModeRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на открытие UI генератора.
+/// </summary>
+public struct OpenGeneratorUIRequest : IRequestCleanup { public Entity Target; }
+
+/// <summary>
+/// Запрос на открытие UI батареи.
+/// </summary>
+public struct OpenBatteryUIRequest : IRequestCleanup { public Entity Target; }
+
+/// <summary>
+/// Запрос на включение/выключение генератора.
+/// </summary>
+public struct ToggleGeneratorRequest : IRequestCleanup { public Entity Target; public bool DesiredOn; }
+
+/// <summary>
+/// Запрос на установку предмета для маршрута конвейера.
+/// </summary>
+public struct SetRouteItemRequest : IRequestCleanup { public Entity RouteEntity; public int NewItemID; }
+
+/// <summary>
+/// Запрос на переключение активности маршрута конвейера.
+/// </summary>
+public struct ToggleRouteRequest : IRequestCleanup { public Entity RouteEntity; }
+
+/// <summary>
+/// Запрос на открытие UI управления маршрутами конвейеров.
+/// </summary>
+public struct OpenConveyorRoutesUIRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на подтверждение размещения конвейера.
+/// </summary>
+public struct ConfirmConveyorPlacementRequest : IRequestCleanup { public int ItemID; public Entity PreviewHolder; public Entity StartConnector; public Entity EndConnector; }
+
+/// <summary>
+/// Запрос на удаление конвейера под курсором.
+/// </summary>
+public struct RemoveConveyorUnderCursorRequest : IRequestCleanup { }
