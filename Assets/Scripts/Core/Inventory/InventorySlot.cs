@@ -5,50 +5,20 @@ using System;
 using UnityEngine.EventSystems;
 using Unity.Entities;
 
-/// <summary>
-/// Управляет отображением и функциональностью отдельного слота инвентаря в UI.
-/// Реализует интерфейсы для обработки событий Drag-and-Drop и кликов.
-/// </summary>
 public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerDownHandler
 {
-    [Tooltip("Изображение иконки предмета в слоте.")]
     public Image icon;
-
-    [Tooltip("Текстовое поле для отображения количества предметов.")]
     public TextMeshProUGUI amountText;
-
-    [Tooltip("Кнопка, представляющая сам слот. Используется для визуальных состояний.")]
     public Button slotButton;
-
-    [Tooltip("Изображение, служащее фоном для слота. Его цвет будет меняться.")]
     public Image slotBackground;
 
-    /// <summary>
-    /// Ссылка на ScriptableObject предмета, который в данный момент находится в слоте.
-    /// </summary>
     public Item CurrentItem => currentItem;
-    /// <summary>
-    /// Текущее количество предметов в слоте.
-    /// </summary>
     public int CurrentAmount => currentAmount;
-
-    /// <summary>
-    /// Тип инвентаря, к которому принадлежит этот слот.
-    /// </summary>
     public InventoryType SlotInventoryType { get; private set; }
 
-    /// <summary>
-    /// Сущность-владелец инвентаря, к которому относится этот слот.
-    /// </summary>
     internal Entity ownerEntity;
-    /// <summary>
-    /// Индекс этого слота в буфере инвентаря.
-    /// </summary>
     internal int slotIndex;
 
-    /// <summary>
-    /// Событие, вызываемое при клике левой кнопкой мыши по слоту.
-    /// </summary>
     public event Action<InventorySlot> OnSlotClicked;
 
     private Item currentItem;
@@ -56,29 +26,24 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
 
     private void Awake()
     {
-        // Эта проверка остается на всякий случай, она срабатывает самой первой.
         if (icon == null || amountText == null || slotButton == null)
         {
-#if UNITY_EDITOR
             Debug.LogError($"Одна или несколько ссылок (Icon, AmountText, SlotButton) не установлены для слота '{this.gameObject.name}'!", this.gameObject);
-#endif
         }
     }
 
-    /// <summary>
-    /// Инициализирует слот данными о предмете, его количестве и владельце.
-    /// Если предмет null или количество 0, слот очищается.
-    /// </summary>
-    /// <param name="newItem">ScriptableObject предмета для отображения.</param>
-    /// <param name="amount">Количество предмета.</param>
-    /// <param name="owner">Сущность-владелец инвентаря.</param>
-    /// <param name="index">Индекс слота.</param>
-    /// <param name="inventoryType">Тип инвентаря, которому принадлежит этот слот.</param>
     public void InitializeSlot(Item newItem, int amount, Entity owner, int index, InventoryType inventoryType)
     {
         ownerEntity = owner;
         slotIndex = index;
         SlotInventoryType = inventoryType;
+
+        // НОВАЯ ПРОВЕРКА: Логируем, что пришло на вход
+        if (slotIndex == 0) // Логируем только для проблемного слота
+        {
+            string itemName = newItem != null ? newItem.name : "NULL";
+                //Debug.Log($"<color=lime>[Slot #{slotIndex}]</color> InitializeSlot called with Item: '{itemName}', Amount: {amount}");
+        }
 
         if (newItem == null || amount <= 0)
         {
@@ -89,20 +54,10 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         currentItem = newItem;
         currentAmount = amount;
 
-        if (icon == null || amountText == null)
-        {
-#if UNITY_EDITOR
-            Debug.LogError($"Ссылки на UI элементы (Icon, AmountText) не установлены для '{this.gameObject.name}'.", this.gameObject);
-            return;
-#endif
-        }
+        if (icon == null || amountText == null) return;
 
         if (currentItem.icon == null)
         {
-#if UNITY_EDITOR
-            Debug.LogWarning($"[InventorySlot] У предмета '{currentItem.itemName}' (ID: {currentItem.itemID})" +
-                             $" в ассете не назначен спрайт. Иконка будет скрыта.");
-#endif
             icon.enabled = false;
         }
         else
@@ -119,12 +74,14 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Очищает слот, сбрасывая данные о предмете и обновляя UI.
-    /// Делает слот неинтерактивным.
-    /// </summary>
     public void ClearSlot()
     {
+        // НОВАЯ ПРОВЕРКА: Логируем, когда слот очищается
+        if (slotIndex == 0)
+        {
+            Debug.Log($"<color=lime>[Slot #{slotIndex}]</color> <B>ClearSlot called!</B> The slot will become non-interactive.");
+        }
+
         currentItem = null;
         currentAmount = 0;
 
@@ -145,11 +102,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Обновляет визуальное состояние фона слота на основе его активности.
-    /// </summary>
-    /// <param name="isActive">True, если этот слот является активным в квикбаре.</param>
-    /// <param name="settings">Ассет с настройками цветов.</param>
     public void SetHighlightStatus(bool isActive, QuickbarSettings settings)
     {
         if (slotBackground != null && settings != null)
@@ -158,10 +110,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Обрабатывает клик по слоту (реализация IPointerClickHandler).
-    /// Вызывает событие OnSlotClicked при клике левой кнопкой мыши.
-    /// </summary>
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button == PointerEventData.InputButton.Left && !eventData.dragging)
@@ -170,10 +118,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Обрабатывает нажатие кнопки мыши на слоте (реализация IPointerDownHandler).
-    /// Используется для инициализации операции Drag-and-Drop.
-    /// </summary>
     public void OnPointerDown(PointerEventData eventData)
     {
         if (currentItem != null)
@@ -182,10 +126,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Вызывается в начале операции перетаскивания (реализация IBeginDragHandler).
-    /// Определяет, какой кнопкой мыши начато перетаскивание, и передает эту информацию.
-    /// </summary>
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem != null)
@@ -195,9 +135,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Вызывается каждый кадр во время перетаскивания (реализация IDragHandler).
-    /// </summary>
     public void OnDrag(PointerEventData eventData)
     {
         if (currentItem != null)
@@ -206,18 +143,11 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
         }
     }
 
-    /// <summary>
-    /// Вызывается при завершении операции перетаскивания (реализация IEndDragHandler).
-    /// </summary>
     public void OnEndDrag(PointerEventData eventData)
     {
         DragAndDropHandler.Instance?.OnEndDrag(eventData);
     }
 
-    /// <summary>
-    /// Вызывается, когда другой объект "брошен" на этот слот (реализация IDropHandler).
-    /// Создает ECS-запрос на перемещение или разделение стака.
-    /// </summary>
     public void OnDrop(PointerEventData eventData)
     {
         var handler = DragAndDropHandler.Instance;
@@ -229,7 +159,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IBeginDragHand
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var requestEntity = entityManager.CreateEntity();
 
-            // Добавляем хинт, чтобы системы знали, в какой инвентарь класть предмет.
             entityManager.AddComponentData(requestEntity, new DestinationInventoryHint { Type = this.SlotInventoryType });
 
             if (handler.IsSplitting())

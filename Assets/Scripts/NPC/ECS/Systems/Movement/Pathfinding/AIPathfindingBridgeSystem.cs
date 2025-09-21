@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Система-мост между ИИ-логикой и системой поиска пути.
+/// Система, служащая мостом между логикой искусственного интеллекта (ИИ) и системой поиска пути.
 /// Преобразует цели ИИ в запросы на перемещение для навигационной системы.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -14,101 +14,99 @@ using UnityEngine.AI;
 [UpdateBefore(typeof(NPCPathfindingSystem))]
 public partial class AIPathfindingBridgeSystem : SystemBase
 {
+    private const float StaticTargetRetargetDistanceSq  = 0.75f * 0.75f;
+    private const float DynamicTargetRetargetDistanceSq = 0.10f * 0.10f;
+
+    /// <summary>
+    /// Основной метод обновления системы, выполняемый каждый кадр.
+    /// Он подготавливает необходимые данные и запускает итерацию по всем сущностям,
+    /// которые нуждаются в обновлении пути.
+    /// </summary>
     protected override void OnUpdate()
     {
-        // Получаем буфер команд для изменения сущностей
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+        var arrivalLookup    = SystemAPI.GetComponentLookup<ArrivalData>(true);
+        var ltwLookup        = SystemAPI.GetComponentLookup<LocalToWorld>(true);
+        var playerTagLookup  = SystemAPI.GetComponentLookup<PlayerTag>(true);
+        var hostileTagLookup = SystemAPI.GetComponentLookup<HostileNPCTag>(true);
+
+        var ecb = SystemAPI
+            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(World.Unmanaged);
 
-        var arrivalLookup = SystemAPI.GetComponentLookup<ArrivalData>(true);
-
-        // Обрабатываем всех ИИ-агентов, исключая тех, кто занят сбором ресурсов
         Entities
             .WithReadOnly(arrivalLookup)
-            .WithAll<NPCBrain>()
-            .WithNone<WantsToHarvestTag, InsideBuildingTag>()                                       
-            .ForEach((Entity entity,
+            .WithReadOnly(ltwLookup)
+            .WithReadOnly(playerTagLookup)
+            .WithReadOnly(hostileTagLookup)
+            .WithAny<NPCBrain, HostileNPCTag>()
+            .WithNone<WantsToHarvestTag, InsideBuildingTag, IsAttackingTag>()
+            .ForEach((Entity e,
                       ref NPCMovementComponent movement,
-                      ref NPCPathfindingComponent pathfinding,
+                      ref NPCPathfindingComponent path,
                       in ActiveGoal goal,
                       in NPCBaseMovementStats baseStats) =>
             {
-                // Если цель уже достигается и параметры совпадают - ничего не делаем
-                if (goal.Target == pathfinding.CurrentGoalTarget && movement.HasTarget)
+                if (goal.Target == Entity.Null || !ltwLookup.HasComponent(goal.Target))
                 {
+                    if (movement.HasTarget) movement.HasTarget = false;
                     return;
                 }
 
-                // Обработка отсутствующей цели
-                if (goal.Target == Entity.Null)
-                {
-                    if (movement.HasTarget)
-                    {
-                        Debug.Log($"[AIBridge] {entity.Index}: цель снята -> стоп движение.");
-                        movement.HasTarget = false;
-                        pathfinding.CurrentGoalTarget = Entity.Null;
-                    }
-                    return;
-                }
+                var targetLtw         = ltwLookup[goal.Target];
+                bool isTargetDynamic  = playerTagLookup.HasComponent(goal.Target);
+                bool isHostile        = hostileTagLookup.HasComponent(e);
 
-                if (!SystemAPI.HasComponent<LocalToWorld>(goal.Target))
-                    return;
-
-                var tltw = SystemAPI.GetComponent<LocalToWorld>(goal.Target);
-
-                float3 desired = tltw.Position;
-                float stopping = math.max(0.1f, baseStats.StoppingDistance);
+                float3 centralTargetPos = targetLtw.Position;
+                float   stoppingRadius   = baseStats.StoppingDistance;
 
                 if (arrivalLookup.HasComponent(goal.Target))
                 {
-                    var arr = arrivalLookup[goal.Target];
-                    float3 off = math.mul(tltw.Rotation, arr.Offset);
-                    desired = tltw.Position + off;
-                    stopping = math.max(stopping, arr.Radius);
+                    var arrivalData = arrivalLookup[goal.Target];
+                    centralTargetPos += math.mul(targetLtw.Rotation, arrivalData.Offset);
+                    stoppingRadius    = math.max(stoppingRadius, arrivalData.Radius);
                 }
 
-                Vector3 finalPos = desired;
-                float searchRadius = math.max(stopping, 1f) * 1.5f;
+                float3 finalDesiredPos = centralTargetPos;
 
-                if (NavMesh.SamplePosition(finalPos, out NavMeshHit hit, searchRadius, NavMesh.AllAreas))
+                if (!isHostile && !isTargetDynamic)
                 {
-                    finalPos = hit.position;
-                    if (NavMesh.FindClosestEdge(finalPos, out NavMeshHit edgeHit, NavMesh.AllAreas))
-                        finalPos = edgeHit.position;
+                    const float distributionRadius = 1.5f;
+                    uint  hash   = (uint)e.Index * 2654435761u;
+                    float angle  = (hash % 360) * math.PI / 180f;
+                    float3 offset = new float3(math.cos(angle), 0, math.sin(angle)) * distributionRadius;
+                    finalDesiredPos += offset;
                 }
-                else
+
+                bool  isSameTarget        = goal.Target == path.CurrentGoalTarget;
+                float distSqToLastTarget  = math.distancesq(finalDesiredPos, path.LastTargetPosition);
+                float retargetThresholdSq = isTargetDynamic ? DynamicTargetRetargetDistanceSq : StaticTargetRetargetDistanceSq;
+
+                if (isSameTarget && movement.HasTarget && distSqToLastTarget < retargetThresholdSq)
                 {
-                    Debug.LogWarning($"[AIBridge] {entity.Index}: цель {desired} не проецируется на NavMesh (r={searchRadius}).");
                     return;
                 }
 
-                Debug.Log($"[AIBridge] {entity.Index}: goal={goal.Target.Index}, desired={desired:F2} -> final={finalPos:F2}, stop={stopping:F2}");
-
-                movement.TargetPosition = finalPos;
-                movement.StoppingDistance = stopping;
-                movement.HasTarget = true;
-
-                pathfinding.NeedsPathUpdate = true;
-                pathfinding.CurrentWaypointIndex = 0;
-                pathfinding.CurrentGoalTarget = goal.Target;
-
-                Debug.DrawLine(tltw.Position, finalPos, Color.magenta, 2f);
-
-                if (!SystemAPI.HasComponent<MoveToRequest>(entity))
+                if (NavMesh.SamplePosition(finalDesiredPos, out var hit, 3.0f, NavMesh.AllAreas))
                 {
-                    ecb.AddComponent(entity, new MoveToRequest
-                    {
-                        TargetEntity = goal.Target,
-                        StoppingDistance = stopping
-                    });
+                    movement.TargetPosition   = hit.position;
+                    movement.StoppingDistance = stoppingRadius;
+                    movement.HasTarget        = true;
+
+                    path.NeedsPathUpdate      = true;
+                    path.CurrentWaypointIndex = 0;
+                    path.CurrentGoalTarget    = goal.Target;
+                    path.LastTargetPosition   = finalDesiredPos;
+
+                    if (SystemAPI.HasComponent<MovementFailedTag>(e))
+                        ecb.RemoveComponent<MovementFailedTag>(e);
                 }
                 else
                 {
-                    var req = SystemAPI.GetComponentRW<MoveToRequest>(entity);
-                    req.ValueRW.TargetEntity = goal.Target;
-                    req.ValueRW.StoppingDistance = stopping;
+                    if (!SystemAPI.HasComponent<MovementFailedTag>(e))
+                        ecb.AddComponent<MovementFailedTag>(e);
                 }
             })
+            .WithoutBurst()
             .Run();
     }
 }

@@ -13,14 +13,7 @@ public static class InventoryPanelHelper
 {
     /// <summary>
     /// Полностью перестраивает UI-слоты для указанного инвентаря.
-    /// Уничтожает старые слоты, создает новые и добавляет их в предоставленный список.
     /// </summary>
-    /// <param name="entityManager">Менеджер сущностей для доступа к данным ECS.</param>
-    /// <param name="ownerEntity">Сущность-владелец инвентаря.</param>
-    /// <param name="slotsParent">Трансформ-контейнер для UI-слотов.</param>
-    /// <param name="slotPrefab">Префаб одного UI-слота.</param>
-    /// <param name="slotList">Список, в который будут добавлены созданные слоты.</param>
-    /// <param name="onSlotClickedCallback">Необязательный колбэк, который будет подписан на событие клика по слоту.</param>
     public static void RebuildSlots(
         EntityManager entityManager,
         Entity ownerEntity,
@@ -30,7 +23,6 @@ public static class InventoryPanelHelper
         InventoryType inventoryType = InventoryType.General,
         Action<InventorySlot> onSlotClickedCallback = null)
     {
-        // 1. Очистка старых слотов
         foreach (Transform child in slotsParent)
             UnityEngine.Object.Destroy(child.gameObject);
         slotList.Clear();
@@ -38,7 +30,6 @@ public static class InventoryPanelHelper
         if (!entityManager.Exists(ownerEntity))
             return;
 
-        // 2. Вместимость — из WorkshopConfig для Input/Output/WIP, иначе из InventoryProperties
         int capacity = 0;
         switch (inventoryType)
         {
@@ -46,17 +37,14 @@ public static class InventoryPanelHelper
                 if (entityManager.HasComponent<WorkshopConfig>(ownerEntity))
                     capacity = entityManager.GetComponentData<WorkshopConfig>(ownerEntity).InputCapacity;
                 break;
-
             case InventoryType.Output:
                 if (entityManager.HasComponent<WorkshopConfig>(ownerEntity))
                     capacity = entityManager.GetComponentData<WorkshopConfig>(ownerEntity).OutputCapacity;
                 break;
-
             case InventoryType.WIP:
                 if (entityManager.HasComponent<WorkshopConfig>(ownerEntity))
                     capacity = entityManager.GetComponentData<WorkshopConfig>(ownerEntity).WipCapacity;
                 break;
-
             case InventoryType.General:
             default:
                 if (entityManager.HasComponent<InventoryProperties>(ownerEntity))
@@ -64,17 +52,14 @@ public static class InventoryPanelHelper
                 break;
         }
 
-        if (capacity <= 0)
-            return;
+        if (capacity <= 0) return;
 
-        // 3. Создание слотов
         for (int i = 0; i < capacity; i++)
         {
             GameObject slotGO = UnityEngine.Object.Instantiate(slotPrefab, slotsParent);
             var slot = slotGO.GetComponent<InventorySlot>();
             if (slot != null)
             {
-                // Подписываемся на событие, если колбэк был передан
                 if (onSlotClickedCallback != null)
                     slot.OnSlotClicked += onSlotClickedCallback;
                 slotList.Add(slot);
@@ -83,12 +68,8 @@ public static class InventoryPanelHelper
     }
 
     /// <summary>
-    /// Обновляет данные в уже существующем списке UI-слотов.
-    /// Выбирает правильный тип буфера без Reinterpret.
+    /// Обновляет данные в уже существующем списке UI-слотов, читая каждый тип буфера напрямую.
     /// </summary>
-    /// <param name="entityManager">Менеджер сущностей для доступа к данным ECS.</param>
-    /// <param name="ownerEntity">Сущность-владелец инвентаря.</param>
-    /// <param name="slotList">Список существующих UI-слотов для обновления.</param>
     public static void RefreshSlotsData(
         EntityManager em,
         Entity ownerEntity,
@@ -101,206 +82,94 @@ public static class InventoryPanelHelper
             return;
         }
 
-        // Резервная очистка если нет ItemRegistry
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null)
         {
-            // Если реестр недоступен, всё равно покажем пустоту, чтобы не подвисать.
+            Debug.LogError("[InventoryPanelHelper] ItemRegistry.Instance is null! Cannot refresh slots.");
             ClearAllSlots(ownerEntity, slotList, inventoryType);
             return;
         }
 
+        // Мы больше не используем Reinterpret. Вместо этого мы обрабатываем каждый тип буфера напрямую.
         switch (inventoryType)
         {
             case InventoryType.Input:
                 if (em.HasBuffer<InputInventorySlot>(ownerEntity))
                 {
-                    var buf = em.GetBuffer<InputInventorySlot>(ownerEntity);
-                    RefreshFromTypedBuffer(em, ownerEntity, slotList, buf, inventoryType);
+                    var buffer = em.GetBuffer<InputInventorySlot>(ownerEntity);
+                    for (int i = 0; i < slotList.Count; i++)
+                    {
+                        if (i < buffer.Length)
+                        {
+                            var el = buffer[i];
+                            var itemData = el.ItemID != 0 ? itemRegistry.GetItemData(el.ItemID) : null;
+                            slotList[i].InitializeSlot(itemData, el.Amount, ownerEntity, i, inventoryType);
+                        }
+                        else { slotList[i].ClearSlot(); }
+                    }
                 }
-                else ClearAllSlots(ownerEntity, slotList, inventoryType);
+                else { ClearAllSlots(ownerEntity, slotList, inventoryType); }
                 break;
 
             case InventoryType.Output:
                 if (em.HasBuffer<OutputInventorySlot>(ownerEntity))
                 {
-                    var buf = em.GetBuffer<OutputInventorySlot>(ownerEntity);
-                    RefreshFromTypedBuffer(em, ownerEntity, slotList, buf, inventoryType);
+                    var buffer = em.GetBuffer<OutputInventorySlot>(ownerEntity);
+                    for (int i = 0; i < slotList.Count; i++)
+                    {
+                        if (i < buffer.Length)
+                        {
+                            var el = buffer[i];
+                            var itemData = el.ItemID != 0 ? itemRegistry.GetItemData(el.ItemID) : null;
+                            slotList[i].InitializeSlot(itemData, el.Amount, ownerEntity, i, inventoryType);
+                        }
+                        else { slotList[i].ClearSlot(); }
+                    }
                 }
-                else ClearAllSlots(ownerEntity, slotList, inventoryType);
+                else { ClearAllSlots(ownerEntity, slotList, inventoryType); }
                 break;
 
             case InventoryType.WIP:
                 if (em.HasBuffer<WorkshopWIPBufferElement>(ownerEntity))
                 {
-                    var buf = em.GetBuffer<WorkshopWIPBufferElement>(ownerEntity);
-                    RefreshFromTypedBuffer(em, ownerEntity, slotList, buf, inventoryType);
+                    var buffer = em.GetBuffer<WorkshopWIPBufferElement>(ownerEntity);
+                    for (int i = 0; i < slotList.Count; i++)
+                    {
+                        if (i < buffer.Length)
+                        {
+                            var el = buffer[i];
+                            var itemData = el.ItemID != 0 ? itemRegistry.GetItemData(el.ItemID) : null;
+                            slotList[i].InitializeSlot(itemData, el.Amount, ownerEntity, i, inventoryType);
+                        }
+                        else { slotList[i].ClearSlot(); }
+                    }
                 }
-                else ClearAllSlots(ownerEntity, slotList, inventoryType);
+                else { ClearAllSlots(ownerEntity, slotList, inventoryType); }
                 break;
 
             case InventoryType.General:
             default:
                 if (em.HasBuffer<InventoryItemElement>(ownerEntity))
                 {
-                    var buf = em.GetBuffer<InventoryItemElement>(ownerEntity);
-                    RefreshFromTypedBuffer(em, ownerEntity, slotList, buf, inventoryType);
+                    var buffer = em.GetBuffer<InventoryItemElement>(ownerEntity);
+                    for (int i = 0; i < slotList.Count; i++)
+                    {
+                        if (i < buffer.Length)
+                        {
+                            var el = buffer[i];
+                            var itemData = el.ItemID != 0 ? itemRegistry.GetItemData(el.ItemID) : null;
+                            slotList[i].InitializeSlot(itemData, el.Amount, ownerEntity, i, inventoryType);
+                        }
+                        else { slotList[i].ClearSlot(); }
+                    }
                 }
-                else ClearAllSlots(ownerEntity, slotList, inventoryType);
+                else { ClearAllSlots(ownerEntity, slotList, inventoryType); }
                 break;
         }
     }
 
     /// <summary>
-    /// Типобезопасное чтение универсального буфера InventoryItemElement.
-    /// </summary>
-    private static void RefreshFromTypedBuffer(
-        EntityManager em,
-        Entity ownerEntity,
-        List<InventorySlot> slotList,
-        DynamicBuffer<InventoryItemElement> buffer,
-        InventoryType inventoryType)
-    {
-#if UNITY_EDITOR
-        if (buffer.Length > 0)
-            Debug.Log($"[InventoryUI] {ownerEntity} General buf.len={buffer.Length} first=({buffer[0].ItemID},{buffer[0].Amount})");
-#endif
-
-        var itemRegistry = ItemRegistry.Instance;
-        for (int i = 0; i < slotList.Count; i++)
-        {
-            if (i >= buffer.Length)
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-                continue;
-            }
-
-            var el = buffer[i];
-            if (el.ItemID != 0 && el.Amount > 0)
-            {
-                var data = itemRegistry.GetItemData(el.ItemID);
-                slotList[i].InitializeSlot(data, el.Amount, ownerEntity, i, inventoryType);
-            }
-            else
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Типобезопасное чтение буфера InputInventorySlot.
-    /// </summary>
-    private static void RefreshFromTypedBuffer(
-        EntityManager em,
-        Entity ownerEntity,
-        List<InventorySlot> slotList,
-        DynamicBuffer<InputInventorySlot> buffer,
-        InventoryType inventoryType)
-    {
-#if UNITY_EDITOR
-        if (buffer.Length > 0)
-            Debug.Log($"[InventoryUI] {ownerEntity} INPUT buf.len={buffer.Length} first=({buffer[0].ItemID},{buffer[0].Amount})");
-#endif
-
-        var itemRegistry = ItemRegistry.Instance;
-        for (int i = 0; i < slotList.Count; i++)
-        {
-            if (i >= buffer.Length)
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-                continue;
-            }
-
-            var el = buffer[i];
-            if (el.ItemID != 0 && el.Amount > 0)
-            {
-                var data = itemRegistry.GetItemData(el.ItemID);
-                slotList[i].InitializeSlot(data, el.Amount, ownerEntity, i, inventoryType);
-            }
-            else
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Типобезопасное чтение буфера OutputInventorySlot.
-    /// </summary>
-    private static void RefreshFromTypedBuffer(
-        EntityManager em,
-        Entity ownerEntity,
-        List<InventorySlot> slotList,
-        DynamicBuffer<OutputInventorySlot> buffer,
-        InventoryType inventoryType)
-    {
-#if UNITY_EDITOR
-        if (buffer.Length > 0)
-            Debug.Log($"[InventoryUI] {ownerEntity} OUTPUT buf.len={buffer.Length} first=({buffer[0].ItemID},{buffer[0].Amount})");
-#endif
-
-        var itemRegistry = ItemRegistry.Instance;
-        for (int i = 0; i < slotList.Count; i++)
-        {
-            if (i >= buffer.Length)
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-                continue;
-            }
-
-            var el = buffer[i];
-            if (el.ItemID != 0 && el.Amount > 0)
-            {
-                var data = itemRegistry.GetItemData(el.ItemID);
-                slotList[i].InitializeSlot(data, el.Amount, ownerEntity, i, inventoryType);
-            }
-            else
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Типобезопасное чтение буфера WIP (буферный инвентарь цеха).
-    /// </summary>
-    private static void RefreshFromTypedBuffer(
-        EntityManager em,
-        Entity ownerEntity,
-        List<InventorySlot> slotList,
-        DynamicBuffer<WorkshopWIPBufferElement> buffer,
-        InventoryType inventoryType)
-    {
-#if UNITY_EDITOR
-        if (buffer.Length > 0)
-            Debug.Log($"[InventoryUI] {ownerEntity} WIP buf.len={buffer.Length} first=({buffer[0].ItemID},{buffer[0].Amount})");
-#endif
-
-        var itemRegistry = ItemRegistry.Instance;
-        for (int i = 0; i < slotList.Count; i++)
-        {
-            if (i >= buffer.Length)
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-                continue;
-            }
-
-            var el = buffer[i];
-            if (el.ItemID != 0 && el.Amount > 0)
-            {
-                var data = itemRegistry.GetItemData(el.ItemID);
-                slotList[i].InitializeSlot(data, el.Amount, ownerEntity, i, inventoryType);
-            }
-            else
-            {
-                slotList[i].InitializeSlot(null, 0, ownerEntity, i, inventoryType);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Очистка слотов (когда буфера нет/пуст).
+    /// Очистка всех UI-слотов.
     /// </summary>
     private static void ClearAllSlots(Entity ownerEntity, List<InventorySlot> slotList, InventoryType inventoryType)
     {

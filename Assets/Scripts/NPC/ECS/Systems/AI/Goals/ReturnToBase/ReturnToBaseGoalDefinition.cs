@@ -28,8 +28,9 @@ public class ReturnToBaseGoalDefinition : GoalDefinition
         bool isFull = itemRegistry != null && InventoryUtils.IsInventoryFull(inventory, itemRegistry);
         // Проверяем блокировку разгрузки
         bool isBlocked = entityManager.HasComponent<UnloadingBlockedTag>(entity);
-        bool movementFailed = entityManager.HasComponent<MovementFailedTag>(entity);
-        return isFull && !isBlocked && !movementFailed;
+
+        
+        return isFull && !isBlocked; 
     }
     
     /// <summary>

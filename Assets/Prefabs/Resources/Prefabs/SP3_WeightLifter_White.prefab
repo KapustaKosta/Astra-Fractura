@@ -310,7 +310,6 @@ GameObject:
   - component: {fileID: 8982542627248641361}
   - component: {fileID: 8783634368193974302}
   - component: {fileID: 3368081049174312005}
-  - component: {fileID: 6526968833577735550}
   - component: {fileID: 6994443909638852966}
   - component: {fileID: 151703442642995682}
   - component: {fileID: 6523387474423869519}
@@ -385,29 +384,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ad99965bd4b3b542b52e50f18dd1218, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  npcName: Kirill
+  npcName: Sasha
   age: 20
   skills: Programming
   organizedness: 2
   loyalty: 3
   diligence: 2
   maxHealth: 100
---- !u!114 &6526968833577735550
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2686984289572692794}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c7f7b1803b1cb44bafe812e0a885c90, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Speed: 2
-  RotationSpeed: 5
-  StoppingDistance: 6
-  VelocityZeroingThreshold: 0.001
+  hammerPoolCapacity: 10
+  moveSpeed: 3.5
+  rotationSpeed: 120
+  stoppingDistance: 0.5
+  velocityZeroingThreshold: 0.001
+  avoidanceRadius: 0.6
+  avoidanceWeight: 15
 --- !u!114 &6994443909638852966
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -639,17 +629,17 @@ NavMeshAgent:
   m_GameObject: {fileID: 2686984289572692794}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.5
+  m_Radius: 0.61
   m_Speed: 3.5
   m_Acceleration: 8
-  avoidancePriority: 50
+  avoidancePriority: 51
   m_AngularSpeed: 120
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
-  m_Height: 2
-  m_BaseOffset: 0
+  m_Height: 2.8
+  m_BaseOffset: 0.99
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
 --- !u!1 &3097237210537217941
@@ -2287,6 +2277,13 @@ MonoBehaviour:
   loyalty: 0
   diligence: 0
   maxHealth: 100
+  hammerPoolCapacity: 35
+  moveSpeed: 3.5
+  rotationSpeed: 120
+  stoppingDistance: 0.5
+  velocityZeroingThreshold: 0.001
+  avoidanceRadius: 0.6
+  avoidanceWeight: 5
 --- !u!114 &6895076705685874651
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -15,8 +15,8 @@ MonoBehaviour:
   RecipeID: 454
   RecipeName: IronIngot
   RequiredStationType: {fileID: 11400000, guid: 0b3336ed804fd5f468170e5c3db463a9, type: 2}
-  HammerCost: 15
-  BaseTime: 15
+  HammerCost: 2
+  BaseTime: 5
   RequiredKW: 5
   Ingredients:
   - Item: {fileID: 11400000, guid: 8201f26f9429a5345b8190e6a994ecb1, type: 2}

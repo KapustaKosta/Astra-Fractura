@@ -1,6 +1,7 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
 /// <summary>
 /// Содержит базовые характеристики NPC, такие как имя, возраст и личные качества.
@@ -33,16 +34,26 @@ public struct NPCWorkForce : IComponentData
 }
 
 /// <summary>
-/// ECS-компонент, хранящий данные, связанные с движением NPC.
+/// ECS-компонент, хранящий динамические данные, связанные с движением NPC (могут изменяться в рантайме).
 /// </summary>
 public struct NPCMovementComponent : IComponentData
 {
-    public float Speed;
-    public float RotationSpeed;
+    public float Speed; 
+    public float RotationSpeed; 
     public float StoppingDistance;
     public float VelocityZeroingThresholdSq;
-    public float3 TargetPosition;
+    
+    //  Разделяем данные для систем
+    public float3 TargetPosition;           
+    public float3 TargetOffset;            
+    
     public bool HasTarget;
+    public float3 CurrentDesiredMoveDirection; 
+    public float3 SmoothedMoveDirection; 
+    
+    public float3 PreferredVelocity;
+    // Финальная безопасная скорость после расчетов ORCA (используется системой движения)
+    public float3 TargetVelocity;
 }
 
 /// <summary>
@@ -51,11 +62,11 @@ public struct NPCMovementComponent : IComponentData
 public struct NPCHiredTag : IComponentData { }
 
 /// <summary>
-/// Хранит базовые, неизменяемые статы движения NPC, 
-/// заданные в Authoring-компоненте. Используется для восстановления
-/// стандартной дистанции остановки после выполнения специфических задач.
+/// Хранит базовые, неизменяемые статы движения NPC.
 /// </summary>  
 public struct NPCBaseMovementStats : IComponentData
 {
+    public float Speed;
+    public float RotationSpeed;
     public float StoppingDistance;
 }

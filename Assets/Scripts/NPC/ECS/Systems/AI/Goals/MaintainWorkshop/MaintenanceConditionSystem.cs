@@ -2,7 +2,7 @@
 using Unity.Entities;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(WorkshopWorkerSystem))]
+[UpdateAfter(typeof(WorkshopMaintenanceExecutionSystem))]
 public partial class MaintenanceConditionSystem : SystemBase
 {
     protected override void OnUpdate()
@@ -10,58 +10,52 @@ public partial class MaintenanceConditionSystem : SystemBase
         // Создаем EntityCommandBuffer для безопасного добавления/удаления компонентов
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
-        var isProductionActiveLookup = GetComponentLookup<ProductionActiveTag>(true);
-        var stationStateLookup = GetComponentLookup<StationState>(true);
-        var stationSlotLookup = GetBufferLookup<StationSlot>(true);
-
-
         Entities
-            .WithReadOnly(isProductionActiveLookup)
-            .WithReadOnly(stationStateLookup)
-            .WithReadOnly(stationSlotLookup)
-            .ForEach((Entity entity, in NPCComponent npc) =>
+            .WithAll<ProductionActiveTag>()
+            .ForEach((in DynamicBuffer<AssignedWorker> workers, in DynamicBuffer<StationSlot> slots) =>
             {
-                var workshopEntity = npc.AssignedWorkshop;
-                bool isWorkAvailable = false;
-
-                // Та же логика обнаружения работы, что и раньше
-                if (workshopEntity != Entity.Null
-                    && isProductionActiveLookup.HasComponent(workshopEntity)
-                    && stationSlotLookup.HasBuffer(workshopEntity))
+                foreach (var worker in workers)
                 {
-                    var slots = stationSlotLookup[workshopEntity];
+                    var npcEntity = worker.NpcEntity;
+                    bool isNeeded = false;
+
                     foreach (var slot in slots)
                     {
-                        if (!stationStateLookup.HasComponent(slot.Station)) continue;
-                        var st = stationStateLookup[slot.Station];
-
-                        // Если хотя бы одна станция ждет ручного труда, значит работа есть
-                        if (st.Status == StationStatus.AwaitingManualLabor)
+                        if (SystemAPI.HasComponent<StationState>(slot.Station))
                         {
-                            isWorkAvailable = true;
-                            break;
+                            var state = SystemAPI.GetComponent<StationState>(slot.Station);
+
+                            if (state.SpecificWorker == npcEntity && state.Enabled == 1)
+                            {
+                                isNeeded = true;
+                                break;
+                            }
                         }
                     }
+
+                    bool hasTaskTag = SystemAPI.HasComponent<HasMaintenanceTaskTag>(npcEntity);
+                    if (isNeeded && !hasTaskTag)
+                    {
+                        ecb.AddComponent<HasMaintenanceTaskTag>(npcEntity);
+                    }
+                    else if (!isNeeded && hasTaskTag)
+                    {
+                        ecb.RemoveComponent<HasMaintenanceTaskTag>(npcEntity);
+                    }
                 }
+            }).Run();
 
-
-                bool hasTaskTag = SystemAPI.HasComponent<HasMaintenanceTaskTag>(entity);
-
-                // Если работа доступна, а у NPC еще нет тега - добавляем его.
-                if (isWorkAvailable && !hasTaskTag)
+        Entities
+            .WithNone<ProductionActiveTag>()
+            .ForEach((in DynamicBuffer<AssignedWorker> workers) =>
+            {
+                foreach (var worker in workers)
                 {
-                    ecb.AddComponent<HasMaintenanceTaskTag>(entity);
+                    if (SystemAPI.HasComponent<HasMaintenanceTaskTag>(worker.NpcEntity))
+                    {
+                        ecb.RemoveComponent<HasMaintenanceTaskTag>(worker.NpcEntity);
+                    }
                 }
-                // Если работы нет, а тег у NPC все еще висит - убираем его.
-                // Это важно, чтобы NPC не пытался идти в цех, когда работа уже выполнена или отменена.
-                else if (!isWorkAvailable && hasTaskTag)
-                {
-                    ecb.RemoveComponent<HasMaintenanceTaskTag>(entity);
-                }
-
-
-            })
-            .WithoutBurst() 
-            .Run();
+            }).Run();
     }
 }

@@ -27,18 +27,18 @@ public partial class SettlementActionsSystem : SystemBase
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
         
         var playerSettlementEntity = SystemAPI.GetSingletonEntity<PlayerSettlementTag>();
-        // Получаем прямой доступ на запись к компоненту нашего синглтона.
-        var settlementData = SystemAPI.
-            GetComponentRW<SettlementComponent>(playerSettlementEntity);
+        var settlementData = SystemAPI.GetComponentRW<SettlementComponent>(playerSettlementEntity);
 
         // Обработка запросов на найм NPC
+        // WithStructuralChanges() нужен для безопасной работы с буфером settlementData
         Entities
-            .WithoutBurst()
-            .ForEach((in HireNPCRequest request) =>
+            .WithStructuralChanges()
+            .ForEach((Entity requestEntity, in HireNPCRequest request) =>
             {
                 // Проверяем, существует ли NPC и не нанят ли он уже
                 if (!SystemAPI.Exists(request.NPCToHire) || SystemAPI.HasComponent<NPCHiredTag>(request.NPCToHire))
                 {
+                    EntityManager.DestroyEntity(requestEntity);
                     return; 
                 }
                 
@@ -57,6 +57,8 @@ public partial class SettlementActionsSystem : SystemBase
                     #endif
                 }
                 
+                // Уничтожаем обработанный запрос
+                EntityManager.DestroyEntity(requestEntity);
             })
             .Run();
     }

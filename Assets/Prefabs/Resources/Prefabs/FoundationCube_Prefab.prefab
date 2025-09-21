@@ -97,6 +97,7 @@ GameObject:
   - component: {fileID: 6002228534283225062}
   - component: {fileID: 8409932479325701471}
   - component: {fileID: 5971141110158045554}
+  - component: {fileID: 6276286282892486803}
   m_Layer: 3
   m_Name: FoundationCube_Prefab
   m_TagString: Untagged
@@ -275,6 +276,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 173caa6285f20b5498e7ed30c1555fe2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridSize:
-    x: 4
-    y: 4
+  GridSize: {x: 4, y: 4}
+  FootprintSize: {x: 4, y: 4}
+  PivotYOffset: 0
+  TileHeightMeters: 1
+--- !u!114 &6276286282892486803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4920705823384770968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6eeb5dc026fdf4b488bc7ae0138ab719, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SerializedVersion: 1
+  m_AgentTypeID: 0
+  m_StartPoint: {x: 0, y: 0, z: -2.5}
+  m_EndPoint: {x: 0, y: 0, z: 2.5}
+  m_StartTransform: {fileID: 0}
+  m_EndTransform: {fileID: 0}
+  m_Activated: 1
+  m_Width: 0
+  m_CostModifier: 1
+  m_IsOverridingCost: 0
+  m_Bidirectional: 1
+  m_AutoUpdatePosition: 1
+  m_Area: 0

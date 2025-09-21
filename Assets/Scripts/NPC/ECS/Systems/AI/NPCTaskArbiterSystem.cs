@@ -15,9 +15,7 @@ public partial class NPCTaskArbiterSystem : SystemBase
 {
     // Ссылка на реестр целей ИИ
     private GoalRegistrySystem _goalRegistry;
-    // Запрос для выборки всех NPC
-    private EntityQuery _npcQuery;
-
+    private EntityQuery _npcQuery; // Этот запрос мы и будем исправлять
     private const float CURRENT_GOAL_INERTIA_BONUS = 1.1f;
 
     protected override void OnCreate()
@@ -27,7 +25,9 @@ public partial class NPCTaskArbiterSystem : SystemBase
         // Требуем инициализации реестра и наличия поселения
         RequireForUpdate<GoalRegistrySystem.Initialized>(); 
         RequireForUpdate<PlayerSettlementTag>();
-        // Создаем запрос для выборки NPC
+        
+        // Мы говорим системе: "Работай ТОЛЬКО с теми NPC, которые наняты".
+        // Это самое важное изменение, которое решает проблему в корне.
         _npcQuery = GetEntityQuery(
             ComponentType.ReadOnly<NPCBrain>(),
             ComponentType.ReadOnly<NPCHiredTag>());
@@ -42,6 +42,7 @@ public partial class NPCTaskArbiterSystem : SystemBase
         // Создаем командный буфер для изменений
         var ecb = new EntityCommandBuffer(Allocator.Temp);
 
+        // Этот блок для обработки невалидных целей остается, он полезен.
         Entities
             .WithAll<ActiveGoal, CurrentGoalInvalidTag>()
             .ForEach((Entity entity, in ActiveGoal goal) =>
@@ -52,6 +53,7 @@ public partial class NPCTaskArbiterSystem : SystemBase
             }).Run();
 
         var goalDefinitions = _goalRegistry.GoalDefinitionsMap;
+        if (goalDefinitions.Count == 0) { ecb.Dispose(); return; }
         
         // Проверяем, есть ли зарегистрированные цели
         if (goalDefinitions.Count == 0)
@@ -62,6 +64,7 @@ public partial class NPCTaskArbiterSystem : SystemBase
 
         // Получаем глобальные настройки AI
         var settings = SystemAPI.GetSingleton<AISettings>();
+        if (settings.Equals(default(AISettings))) { ecb.Dispose(); return; }
         
         // Проверяем корректность настроек
         if (settings.Equals(default(AISettings)))
@@ -78,7 +81,8 @@ public partial class NPCTaskArbiterSystem : SystemBase
             .WithManagedDependencies(ResourceItemMapping.Instance)
             .Build();
 
-        // Получаем список всех NPC
+        // Теперь _npcQuery вернет МАССИВ ТОЛЬКО ИЗ НАНЯТЫХ NPC.
+        // Ненанятые NPC просто не попадут в этот цикл.
         var npcEntities = _npcQuery.ToEntityArray(Allocator.Temp);
         
         // Основной цикл оценки целей для каждого NPC
@@ -117,15 +121,8 @@ public partial class NPCTaskArbiterSystem : SystemBase
                         bestGoalDef = currentDef;
                     }
                 }
-                else
-                {
-                   //log.Append("<color=red>CANNOT be considered.</color>\n");
-                }
             }
-
-            //log.Append($"==> BEST GOAL CHOSEN: <b><color=yellow>{(bestGoalDef != null ? bestGoalDef.Type.ToString() : "NONE")}</color></b> with score {bestScore:F2}\n");
-            //Debug.Log(log.ToString());
-
+            
             if (bestGoalDef == null) continue;
 
             GoalType currentGoalType = hasActiveGoal ? currentGoal.Type : (GoalType)(-1);

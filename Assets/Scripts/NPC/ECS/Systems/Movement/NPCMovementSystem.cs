@@ -5,237 +5,192 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
-using UnityEngine;
 
 /// <summary>
-/// Система физического движения NPC.
-/// Управляет перемещением NPC по заданным маршрутам через обновление физической скорости.
-/// Интегрируется с системой поиска пути и ИИ для реализации навигации.
+/// Система, отвечающая за физическое перемещение NPC. Она выполняется перед основным шагом физики
+/// и преобразует желаемую скорость (TargetVelocity), рассчитанную системой избегания, в реальную
+/// физическую скорость (PhysicsVelocity). Реализует плавное ускорение/торможение,
+/// проверку "на земле" и автоматическое преодоление невысоких препятствий (ступенек).
 /// </summary>
-[UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
+[UpdateInGroup(typeof(BeforePhysicsSystemGroup))]
+[UpdateAfter(typeof(PhysicsInitializeGroup))]
 public partial class NPCMovementSystem : SystemBase
 {
+    private const uint NPC_CATEGORY_BIT      = 1u << 7;
+    private const uint COLLIDES_WITH_DEFAULT = ~0u;
+    private const float MaxAccelPerSec = 120f;
+    private const float SmoothLambda   = 16f;
+    private const float StartKick      = 1.20f;
+    private const float MinSpeedHold   = 0.45f;
+
+    /// <summary>
+    /// Основной метод обновления системы. Получает необходимые зависимости (DeltaTime, PhysicsWorld)
+    /// и планирует выполнение NPCMoveJob для всех соответствующих сущностей.
+    /// </summary>
     protected override void OnUpdate()
     {
-        var dt = SystemAPI.Time.DeltaTime;
+        var dt    = SystemAPI.Time.DeltaTime;
         var world = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 
         Dependency = new NPCMoveJob
         {
-            DeltaTime = dt,
+            DeltaTime      = dt,
             CollisionWorld = world
         }.ScheduleParallel(Dependency);
     }
 
+    /// <summary>
+    /// Job, который выполняет всю основную логику перемещения для каждого NPC параллельно.
+    /// </summary>
     [BurstCompile]
     private partial struct NPCMoveJob : IJobEntity
     {
         public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
 
+        /// <summary>
+        /// Выполняется для каждой сущности. Метод реализует полный цикл физики движения:
+        /// 1. Проверяет, "на земле" ли находится NPC.
+        /// 2. Реализует механику преодоления ступенек с помощью лучей.
+        /// 3. Управляет вертикальной скоростью (применяет гравитацию или удерживает на земле).
+        /// 4. Плавно интерполирует текущую горизонтальную скорость к целевой,
+        ///    используя экспоненциальное сглаживание, ограничение ускорения и "стартовый толчок".
+        /// 5. При отсутствии цели применяет пассивное торможение.
+        /// </summary>
         public void Execute(
             Entity entity,
             ref LocalTransform transform,
             ref PhysicsVelocity vel,
             ref PhysicsDamping damping,
-            in PhysicsCollider physicsCollider,
-            ref NPCMovementComponent move,
-            in NPCBaseMovementStats baseStats
+            in NPCMovementComponent move
         )
         {
-            if (!move.HasTarget)
+            if (!move.HasTarget && math.lengthsq(move.TargetVelocity) < 0.01f)
             {
                 damping.Linear = GroundDamping;
-                vel.Linear = new float3(0, vel.Linear.y, 0);
-                vel.Angular = 0;
+                float k0 = 1f - math.exp(-SmoothLambda * DeltaTime);
+                vel.Linear.x = math.lerp(vel.Linear.x, 0f, k0);
+                vel.Linear.z = math.lerp(vel.Linear.z, 0f, k0);
+                vel.Angular  = 0;
                 return;
             }
 
-            float3 toTarget = move.TargetPosition - transform.Position;
-            float distSq = math.lengthsq(new float3(toTarget.x, 0, toTarget.z));
-
-            // ВАЖНО: здесь используем ТЕКУЩИЙ move.StoppingDistance, который Follow-система
-            // ставит маленьким для промежуточных углов и большим только для финала.
-            float stopDist = math.max(move.StoppingDistance, 0.05f);
-
-            if (distSq <= stopDist * stopDist)
-            {
-                damping.Linear = GroundDamping;
-                if (math.lengthsq(vel.Linear.xz) <= move.VelocityZeroingThresholdSq)
-                    vel.Linear = new float3(0, vel.Linear.y, 0);
-                vel.Angular = 0;
-
-                // Не снимаем HasTarget — это делает Follow на последнем угле.
-#if UNITY_EDITOR
-                Debug.Log($"[Move] near target: dist={math.sqrt(distSq):F2} <= stop={stopDist:F2} ; velXZ={math.length(new float2(vel.Linear.x, vel.Linear.z)):F3}");
-#endif
-                return;
-            }
-
-            // Дальше стандартная логика движения/ступенек 
-            var hits = new NativeList<DistanceHit>(Allocator.Temp);
+            var hits = new NativeList<Unity.Physics.DistanceHit>(Allocator.Temp);
             var filter = new CollisionFilter
             {
-                BelongsTo = 1u << 0,
-                CollidesWith = GroundMask,
-                GroupIndex = 0
+                BelongsTo    = NPC_CATEGORY_BIT,
+                CollidesWith = COLLIDES_WITH_DEFAULT,
+                GroupIndex   = 0
             };
 
             float3 sphereCenter = transform.Position + new float3(0, GroundedOffset, 0);
             bool overlapped = CollisionWorld.OverlapSphere(sphereCenter, GroundedRadius, ref hits, filter);
 
             bool grounded = false;
-            float3 groundN = new float3(0, 1, 0);
-            float bestDot = -1f;
-
             if (overlapped)
             {
                 for (int i = 0; i < hits.Length; i++)
                 {
-                    var h = hits[i];
-                    if (h.Entity == entity) continue;
-
-                    float d = math.dot(h.SurfaceNormal, new float3(0, 1, 0));
-                    if (d > MaxSlopeCosine && d > bestDot)
-                    {
-                        bestDot = d;
-                        groundN = h.SurfaceNormal;
-                        grounded = true;
-                    }
+                    if (hits[i].Entity == entity) continue;
+                    if (math.dot(hits[i].SurfaceNormal, math.up()) > MaxSlopeCosine)
+                    { grounded = true; break; }
                 }
             }
             hits.Dispose();
 
-            float3 dirXZ = math.normalizesafe(new float3(toTarget.x, 0, toTarget.z));
-            float3 moveDir = dirXZ;
+            float3 desiredHorizVel = move.TargetVelocity;
 
-            if (grounded && math.lengthsq(moveDir) > 1e-6f)
-                moveDir = math.normalize(Reject(moveDir, groundN));
-
-            float3 desiredHorizVel = moveDir * move.Speed;
-
-            if (grounded && math.lengthsq(desiredHorizVel) > 1e-6f)
+            if (grounded && math.lengthsq(desiredHorizVel.xz) > 0.1f)
             {
                 float3 fwd = math.normalize(desiredHorizVel);
                 float3 rayStart = transform.Position + new float3(0, StepRayStartHeight, 0);
                 float checkDist = math.max(StepForwardCheckMin, math.length(desiredHorizVel) * DeltaTime + Skin);
+                var fwdInput = new RaycastInput { Start = rayStart, End = rayStart + fwd * checkDist, Filter = filter };
 
-                var fwdInput = new RaycastInput
+                if (CollisionWorld.CastRay(fwdInput, out Unity.Physics.RaycastHit fwdHit))
                 {
-                    Start = rayStart,
-                    End = rayStart + fwd * checkDist,
-                    Filter = filter
-                };
-
-                Unity.Physics.RaycastHit fwdHit;
-                bool hasFront = CollisionWorld.CastRay(fwdInput, out fwdHit);
-
-                bool stepped = false;
-                if (hasFront)
-                {
-                    float wallY = math.abs(math.dot(fwdHit.SurfaceNormal, new float3(0, 1, 0)));
-                    bool looksLikeWall = wallY < 0.2f;
-
-                    if (looksLikeWall)
+                    if (math.abs(math.dot(fwdHit.SurfaceNormal, math.up())) < 0.2f)
                     {
                         float3 topStart = transform.Position + new float3(0, StepMaxHeight + StepClearanceUp, 0);
-                        var topInput = new RaycastInput
-                        {
-                            Start = topStart,
-                            End = topStart + fwd * checkDist,
-                            Filter = filter
-                        };
-                        bool blockedAbove = CollisionWorld.CastRay(topInput, out _);
+                        var topInput = new RaycastInput { Start = topStart, End = topStart + fwd * checkDist, Filter = filter };
 
-                        if (!blockedAbove)
+                        if (!CollisionWorld.CastRay(topInput, out _))
                         {
                             float3 downStart = topStart + fwd * math.min(checkDist, fwdHit.Fraction * checkDist + StepExtraForward);
-                            var downInput = new RaycastInput
-                            {
-                                Start = downStart,
-                                End = downStart + new float3(0, -(StepMaxHeight + 0.75f), 0),
-                                Filter = filter
-                            };
-
-                            Unity.Physics.RaycastHit downHit;
-                            if (CollisionWorld.CastRay(downInput, out downHit))
+                            var downInput = new RaycastInput { Start = downStart, End = downStart - new float3(0, StepMaxHeight + 0.75f, 0), Filter = filter };
+                            if (CollisionWorld.CastRay(downInput, out Unity.Physics.RaycastHit downHit))
                             {
                                 float targetY = downHit.Position.y + GroundedOffset;
                                 float dy = targetY - transform.Position.y;
-                                float slopeDot = math.dot(downHit.SurfaceNormal, new float3(0, 1, 0));
-
-                                if (dy > 0.01f && dy <= StepMaxHeight + 0.05f && slopeDot > MaxSlopeCosine)
+                                if (dy > 0.01f && dy <= StepMaxHeight + 0.05f && math.dot(downHit.SurfaceNormal, math.up()) > MaxSlopeCosine)
                                 {
-                                    float riseV = math.clamp(dy / math.max(DeltaTime, 1e-5f), 0f, StepMaxRiseSpeed);
-                                    vel.Linear.y = math.max(vel.Linear.y, riseV);
-                                    stepped = true;
-#if UNITY_EDITOR
-                                    Debug.Log($"[Move] stepped up dy={dy:F2}");
-#endif
+                                    vel.Linear.y = math.max(vel.Linear.y, math.clamp(dy / DeltaTime, 0f, StepMaxRiseSpeed));
                                 }
                             }
                         }
                     }
-
-                    if (!stepped)
-                    {
-                        desiredHorizVel = Reject(desiredHorizVel, fwdHit.SurfaceNormal);
-                    }
                 }
-            }
-
-            if (math.lengthsq(desiredHorizVel.xz) > 1e-6f)
-            {
-                float3 forward = math.normalize(new float3(desiredHorizVel.x, 0, desiredHorizVel.z));
-                quaternion targetRot = quaternion.LookRotationSafe(forward, new float3(0, 1, 0));
-                transform.Rotation = math.slerp(transform.Rotation, targetRot, math.saturate(move.RotationSpeed * DeltaTime));
             }
 
             if (grounded)
             {
                 if (vel.Linear.y < 0f) vel.Linear.y = GroundedVerticalVelocity;
+                damping.Linear = GroundDamping;
             }
             else
             {
-                vel.Linear.y = math.max(vel.Linear.y + Gravity * DeltaTime, TerminalVelocity);
+                vel.Linear.y   = math.max(vel.Linear.y + Gravity * DeltaTime, TerminalVelocity);
+                damping.Linear = AirDamping;
             }
 
-            damping.Linear = grounded ? GroundDamping : AirDamping;
+            float2 vCur = new float2(vel.Linear.x, vel.Linear.z);
+            float2 vTgt = new float2(desiredHorizVel.x, desiredHorizVel.z);
 
-            vel.Linear = new float3(
-                desiredHorizVel.x,
-                vel.Linear.y,
-                desiredHorizVel.z
-            );
-            vel.Angular = 0;
+            float tgtLen = math.length(vTgt);
+            if (tgtLen > 1e-4f)
+            {
+                float2 dir = vTgt / tgtLen;
+                if (math.length(vCur) < StartKick * 0.5f)
+                    vCur += dir * StartKick;
 
-#if UNITY_EDITOR
-            Debug.DrawLine(transform.Position, move.TargetPosition, Color.white, 0.05f);
-#endif
+                float floor = math.max(tgtLen * MinSpeedHold, StartKick);
+                if (math.length(vCur) < floor * 0.5f)
+                    vTgt = dir * floor;
+
+                float k = 1f - math.exp(-SmoothLambda * DeltaTime);
+                float2 vPre = math.lerp(vCur, vTgt, k);
+                float2 dv = vPre - vCur;
+                float mdv = MaxAccelPerSec * DeltaTime;
+                float dvl = math.length(dv);
+                if (dvl > mdv) vPre = vCur + dv * (mdv / math.max(1e-6f, dvl));
+
+                vCur = vPre;
+            }
+            else
+            {
+                float k = 1f - math.exp(-SmoothLambda * DeltaTime);
+                vCur = math.lerp(vCur, float2.zero, k);
+            }
+
+            vel.Linear.x = vCur.x;
+            vel.Linear.z = vCur.y;
+            vel.Angular  = 0;
         }
 
-        private static float3 Reject(in float3 v, in float3 n)
-        {
-            float3 nn = math.normalizesafe(n);
-            return v - nn * math.dot(v, nn);
-        }
-
-        private const uint GroundMask = 0xFFFFFFFFu;
-        private const float GroundedRadius = 0.4f;
-        private const float GroundedOffset = 0.05f;
-        private const float MaxSlopeCosine = 0.5f;
-        private const float GroundDamping = 2.0f;
-        private const float AirDamping = 0.1f;
-        private const float Gravity = -25f;
-        private const float TerminalVelocity = -50f;
+        private const float GroundedRadius           = 0.4f;
+        private const float GroundedOffset           = 0.05f;
+        private const float MaxSlopeCosine           = 0.5f;
+        private const float GroundDamping            = 2.0f;
+        private const float AirDamping               = 0.1f;
+        private const float Gravity                  = -25f;
+        private const float TerminalVelocity         = -50f;
         private const float GroundedVerticalVelocity = -2f;
-
-        private const float StepMaxHeight = 0.30f;
-        private const float StepRayStartHeight = 0.10f;
-        private const float StepForwardCheckMin = 0.35f;
-        private const float StepClearanceUp = 0.05f;
-        private const float StepExtraForward = 0.05f;
-        private const float StepMaxRiseSpeed = 10f;
-        private const float Skin = 0.02f;
+        private const float StepMaxHeight            = 0.30f;
+        private const float StepRayStartHeight       = 0.10f;
+        private const float StepForwardCheckMin      = 0.35f;
+        private const float StepClearanceUp          = 0.05f;
+        private const float StepExtraForward         = 0.05f;
+        private const float StepMaxRiseSpeed         = 10f;
+        private const float Skin                     = 0.02f;
     }
 }

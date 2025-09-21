@@ -59,7 +59,6 @@ public partial class HarvestConditionSystem : SystemBase
         };
 
         // Теперь мы полностью полагаемся на AIPhysicsQuery.
-
         Entities
             .WithName("HarvestConditionSystem")
             .WithoutBurst()

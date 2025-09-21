@@ -4,14 +4,18 @@ using Unity.Entities;
 namespace Game.Workshop
 {
     /// <summary>
-    /// Обрабатывает установку ТИПА станции в слоте (из пустого -> установлен тип).
-    /// Рецепт выбирается отдельно через SetStationRecipeRequest.
+    /// Система, обрабатывающая запросы на установку определенного типа станка в слот цеха.
     /// </summary>
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
-    [UpdateBefore(typeof(WorkshopSystem))]
+    [UpdateBefore(typeof(WorkshopStateTransitionSystem))]
     public partial struct WorkshopStationInstallSystem : ISystem
     {
+        /// <summary>
+        /// Основной метод обновления. Находит запросы InstallStationTypeRequest,
+        /// обновляет StationTypeID в конфигурации станка и сбрасывает его состояние,
+        /// подготавливая его к выбору рецепта.
+        /// </summary>
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
@@ -25,7 +29,7 @@ namespace Game.Workshop
                 if (!SystemAPI.Exists(r.Workshop) || !SystemAPI.HasBuffer<StationSlot>(r.Workshop))
                 { ecb.DestroyEntity(reqEntity); continue; }
 
-                ecb.AddComponent<WorkshopChainChangedTag>(r.Workshop); // Добавляем тег
+                ecb.AddComponent<WorkshopChainChangedTag>(r.Workshop);
 
                 var slots = SystemAPI.GetBuffer<StationSlot>(r.Workshop);
                 if (r.SlotIndex < 0 || r.SlotIndex >= slots.Length)

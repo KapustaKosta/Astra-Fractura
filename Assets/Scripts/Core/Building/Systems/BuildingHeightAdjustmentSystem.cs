@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateBefore(typeof(BuildingPlacementSystem))]
+[UpdateBefore(typeof(RegularBuildingPreviewPlacementSystem))]
 public partial class BuildingHeightAdjustmentSystem : SystemBase
 {
     private const float HEIGHT_STEP = 0.25f;

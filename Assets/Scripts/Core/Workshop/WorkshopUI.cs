@@ -9,6 +9,7 @@ using Game.Production;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Mathematics;
+using System;
 
 namespace Game.Workshop
 {
@@ -16,11 +17,9 @@ namespace Game.Workshop
     {
         public static WorkshopUI Instance { get; private set; }
 
-
         [Header("Dependencies")]
         [Tooltip("Ссылка на ScriptableObject реестра рецептов.")]
         public ProductionRecipeRegistrySO recipeRegistry;
-
 
         [Header("Panel & Header")]
         public GameObject panel;
@@ -36,9 +35,18 @@ namespace Game.Workshop
 
         [Header("Worker Assignment")]
         public GameObject assignWorkerGroup;
-        public TMP_Dropdown npcDropdown;
-        public Button confirmAssignButton;
+        public Button closeAssignWorkerButton;
         public TextMeshProUGUI npcInfoText;
+
+        [Header("Station Assignment")]
+        public Transform stationAssignmentContainer;
+        public StationAssignmentCardUI stationAssignmentCardPrefab;
+
+        [Header("General Assignment")]
+        public TMP_Dropdown generalNpcDropdown;
+        public Button confirmGeneralAssignButton;
+        public Transform generalWorkersContainer;
+        public GeneralWorkerCardUI generalWorkerCardPrefab;
 
         [Header("Worker Info")]
         public TextMeshProUGUI workerInfoText;
@@ -61,13 +69,13 @@ namespace Game.Workshop
         public TextMeshProUGUI stationHoverText;
 
         private readonly List<StationCardUI> _cards = new();
+        private readonly List<StationAssignmentCardUI> _stationAssignCards = new();
+        private readonly List<GeneralWorkerCardUI> _generalWorkerCards = new List<GeneralWorkerCardUI>();
         private readonly List<Entity> _availableNpcs = new List<Entity>();
         private List<StationType> _availableStationTypes;
 
-
         private readonly List<ProductionRecipeSO> _producibleRecipes = new List<ProductionRecipeSO>();
         private Dictionary<int, ProductionRecipeSO> _allRecipesMap;
-
 
         private EntityManager _em;
         private Entity _activeWorkshop;
@@ -78,6 +86,9 @@ namespace Game.Workshop
         private int _lastRecipeFingerprint = int.MinValue;
         private bool _infiniteToggleBound = false;
 
+        private int _lastWorkersPanelFingerprint = int.MinValue;
+        private Entity _lastSelectedGeneralNpc = Entity.Null;
+
         void Awake()
         {
             if (Instance != null) { Destroy(gameObject); return; }
@@ -87,7 +98,6 @@ namespace Game.Workshop
                 .OrderBy(t => t.StationName)
                 .ToList();
 
-
             _allRecipesMap = new Dictionary<int, ProductionRecipeSO>();
             if (recipeRegistry != null)
             {
@@ -96,7 +106,6 @@ namespace Game.Workshop
                     _allRecipesMap[recipe.RecipeID] = recipe;
                 }
             }
-
 
             if (panel != null) panel.SetActive(false);
             if (stationHoverPanel != null) stationHoverPanel.SetActive(false);
@@ -130,6 +139,16 @@ namespace Game.Workshop
             {
                 if (_activeWorkshop == Entity.Null || !_em.Exists(_activeWorkshop)) { Hide(); return; }
                 RefreshUI();
+
+                if (assignWorkerGroup.activeSelf)
+                {
+                    int fp = BuildWorkerAssignmentFingerprint();
+                    if (fp != _lastWorkersPanelFingerprint)
+                    {
+                        _lastWorkersPanelFingerprint = fp;
+                        RefreshWorkerAssignmentPanel();
+                    }
+                }
             }
         }
 
@@ -142,15 +161,22 @@ namespace Game.Workshop
             openWIPInventoryButton?.onClick.AddListener(OnOpenWIPInventory);
             openOutputInventoryButton?.onClick.AddListener(OnOpenOutputInventory);
             manageWorkersButton?.onClick.AddListener(OnManageWorkers);
-            confirmAssignButton?.onClick.AddListener(OnConfirmAssign);
+            confirmGeneralAssignButton?.onClick.AddListener(OnConfirmAssignGeneralWorker);
             startProductionChainButton?.onClick.AddListener(OnStartProductionChain);
             stopProductionChainButton?.onClick.AddListener(OnStopProductionChain);
 
+            closeAssignWorkerButton?.onClick.AddListener(() => assignWorkerGroup.SetActive(false));
+
             finalRecipeDropdown?.onValueChanged.AddListener(_ => UpdateChainInfoText());
             batchAmountInput?.onValueChanged.AddListener(_ => UpdateChainInfoText());
-            npcDropdown?.onValueChanged.AddListener(OnNpcSelectionChanged);
+            generalNpcDropdown?.onValueChanged.AddListener(OnNpcSelectionChanged);
 
             _listenersBound = true;
+        }
+
+        public StationType GetStationTypeById(int typeId)
+        {
+            return _availableStationTypes.FirstOrDefault(t => t.StationTypeID == typeId);
         }
 
         void RefreshUI()
@@ -160,7 +186,7 @@ namespace Game.Workshop
 
             var queue = _em.GetBuffer<WorkshopProductionQueueItem>(_activeWorkshop);
             var wsState = _em.GetComponentData<WorkshopState>(_activeWorkshop);
-            bool isChainActive = wsState.IsOn && !queue.IsEmpty;
+            bool isChainActive = _em.HasComponent<ProductionActiveTag>(_activeWorkshop);
 
             RefreshStations(isChainActive);
 
@@ -257,6 +283,7 @@ namespace Game.Workshop
             if (panel != null) panel.SetActive(true);
             assignWorkerGroup.SetActive(false);
             if (npcInfoText != null) npcInfoText.gameObject.SetActive(false);
+            _lastWorkersPanelFingerprint = int.MinValue;
             RebuildAndRefresh();
         }
 
@@ -335,7 +362,6 @@ namespace Game.Workshop
             finalRecipeDropdown.RefreshShownValue();
         }
 
-
         private int BuildProducibleRecipesAndFingerprint(List<ProductionRecipeSO> outList)
         {
             outList.Clear();
@@ -365,7 +391,7 @@ namespace Game.Workshop
                 }
             }
 
-            outList.Sort((a, b) => string.Compare(a.RecipeName, b.RecipeName, System.StringComparison.Ordinal));
+            outList.Sort((a, b) => string.Compare(a.RecipeName, b.RecipeName, StringComparison.Ordinal));
 
             int fp = 17;
             foreach (var recipe in outList) fp = fp * 31 + recipe.RecipeID;
@@ -374,7 +400,6 @@ namespace Game.Workshop
 
         private int CalculateMaxProducibleAmountChain(ProductionRecipeSO finalRecipe)
         {
-            // Эта логика сильно зависит от симуляции и трудно точно предсказать на UI-слое.
             var virtualInventory = new Dictionary<int, int>();
             if (_em.HasBuffer<InputInventorySlot>(_activeWorkshop))
             {
@@ -388,7 +413,6 @@ namespace Game.Workshop
                 }
             }
 
-            // Упрощенная проверка: есть ли ресурсы хотя бы на 1 запуск *первой* станции в цепи.
             var slots = _em.GetBuffer<StationSlot>(_activeWorkshop);
             foreach (var slot in slots)
             {
@@ -401,10 +425,10 @@ namespace Game.Workshop
                         {
                             if (!virtualInventory.TryGetValue(input.Item.itemID, out int have) || have < input.Amount)
                             {
-                                return 0; // Не хватает ресурсов даже на первый шаг
+                                return 0;
                             }
                         }
-                        return 999; // Ресурсы для первого шага есть, возвращаем "много"
+                        return 999;
                     }
                 }
             }
@@ -413,7 +437,6 @@ namespace Game.Workshop
 
         private float CalculateTotalChainTimeRecursive(int recipeID, Dictionary<int, float> memo)
         {
-            // Используем мемоизацию, чтобы не считать одно и то же несколько раз
             if (memo.TryGetValue(recipeID, out float cachedTime))
             {
                 return cachedTime;
@@ -426,24 +449,22 @@ namespace Game.Workshop
 
             float totalTime = recipe.BaseTime + recipe.HammerCost;
 
-            // Рекурсивно добавляем время, необходимое для производства всех ингредиентов
             if (recipe.Ingredients != null)
             {
                 foreach (var ingredient in recipe.Ingredients)
                 {
                     if (ingredient.Item != null && _allRecipesMap.ContainsKey(ingredient.Item.itemID))
                     {
-                        // Находим рецепт для ингредиента (т.к. ID рецепта = ID выходного предмета)
                         int ingredientRecipeID = ingredient.Item.itemID;
-                        // Умножаем время производства одного ингредиента на требуемое количество
                         totalTime += CalculateTotalChainTimeRecursive(ingredientRecipeID, memo) * ingredient.Amount;
                     }
                 }
             }
 
-            memo[recipeID] = totalTime; // Сохраняем результат в кэш
+            memo[recipeID] = totalTime;
             return totalTime;
         }
+
         private void UpdateChainProgressInfo()
         {
             var queue = _em.GetBuffer<WorkshopProductionQueueItem>(_activeWorkshop);
@@ -453,7 +474,6 @@ namespace Game.Workshop
 
             Entity currentActiveStation = Entity.Null;
             int currentActiveStationIndex = -1;
-            float timeForSubsequentStations = 0f;
 
             for (int i = 0; i < slots.Length; i++)
             {
@@ -462,18 +482,11 @@ namespace Game.Workshop
                 var state = _em.GetComponentData<StationState>(slot.Station);
                 if (state.Enabled != 1) continue;
 
-                if (currentActiveStation == Entity.Null && state.Status != 
+                if (currentActiveStation == Entity.Null && state.Status !=
                     StationStatus.Idle && state.Status != StationStatus.WaitingForInput && state.Status != StationStatus.Offline)
                 {
                     currentActiveStation = slot.Station;
                     currentActiveStationIndex = i;
-                }
-                if (currentActiveStation != Entity.Null && i > currentActiveStationIndex)
-                {
-                    if (_allRecipesMap.TryGetValue(state.SelectedRecipeID, out var recipe))
-                    {
-                        timeForSubsequentStations += recipe.BaseTime + recipe.HammerCost;
-                    }
                 }
             }
             if (currentActiveStation == Entity.Null)
@@ -484,30 +497,15 @@ namespace Game.Workshop
                     if (!_em.HasComponent<StationState>(slot.Station) || _em.GetComponentData<StationState>(slot.Station).Enabled != 1) continue;
                     currentActiveStation = slot.Station;
                     currentActiveStationIndex = i;
-                    timeForSubsequentStations = 0f;
-                    for (int j = i + 1; j < slots.Length; j++)
-                    {
-                        var nextSlot = slots[j];
-                        if (_em.HasComponent<StationState>(nextSlot.Station))
-                        {
-                            var state = _em.GetComponentData<StationState>(nextSlot.Station);
-                            if (state.Enabled == 1 && _allRecipesMap.TryGetValue(state.SelectedRecipeID, out var recipe))
-                            {
-                                timeForSubsequentStations += recipe.BaseTime + recipe.HammerCost;
-                            }
-                        }
-                    }
                     break;
                 }
             }
             float totalChainTime = 0f;
             if (_producibleRecipes.Count > 0)
             {
-                // Находим рецепт, который сейчас в производстве
                 var currentFinalRecipe = _allRecipesMap.Values.FirstOrDefault(r => r.RecipeID == q.FinalRecipeID);
                 if (currentFinalRecipe != null)
                 {
-                    // Используем новую рекурсивную функцию для точного расчета
                     totalChainTime = CalculateTotalChainTimeRecursive(currentFinalRecipe.RecipeID, new Dictionary<int, float>());
                 }
             }
@@ -520,10 +518,9 @@ namespace Game.Workshop
                 sb.AppendLine($"Итерация: {currentIx} / {q.InitialAmount}");
             }
 
-            // Используем точное время для одной итерации, умноженное на количество оставшихся
             if (q.AmountToProduce > 0)
             {
-                float totalETA = /* remainingInCurrentIteration + */ (math.max(0, q.AmountToProduce - 1) * totalChainTime);
+                float totalETA = (math.max(0, q.AmountToProduce - 1) * totalChainTime);
                 sb.AppendLine($"Всего осталось ≈ {totalETA:F1} сек.");
             }
 
@@ -554,8 +551,6 @@ namespace Game.Workshop
             chainInfoText.text = $"Готовы произвести: {selectedRecipe.RecipeName} x {desiredBatch}";
         }
 
-
-
         public void OnStationHoverEnter(Entity station, int slotIndex)
         {
             if (stationHoverPanel == null || stationHoverText == null || !_em.Exists(station) || !_em.HasComponent<StationState>(station)) return;
@@ -576,14 +571,14 @@ namespace Game.Workshop
                 {
                     string name = _em.HasComponent<NPCComponent>(pred.worker) ? _em.GetComponentData<NPCComponent>(pred.worker).Name.ToString() : "NPC";
                     float hc = _em.HasComponent<NPCWorkForce>(pred.worker) ? _em.GetComponentData<NPCWorkForce>(pred.worker).CurrentHammerPool : 0f;
-                    stationHoverText.text = pred.delay > 0.001f ? $"Обслужит: {name}\nHC сейчас:" +
-                        $" {hc:0.0}\nОсвободится через ≈ {pred.delay:0.0} сек." : $"Обслужит: {name}\nHC сейчас: {hc:0.0}";
+                    stationHoverText.text = pred.delay > 0.001f ? $"Обслужит: {name}\nHC сейчас: {hc:0.0}\nОсвободится через ≈ {pred.delay:0.0} сек." : $"Обслужит: {name}\nHC сейчас: {hc:0.0}";
                 }
                 else { stationHoverText.text = "Нет доступных рабочих"; }
                 stationHoverPanel.SetActive(true);
             }
         }
         public void OnStationHoverExit() { if (stationHoverPanel != null) stationHoverPanel.SetActive(false); }
+
         private (Entity worker, float delay) PredictWorkerForStation(int targetSlotIndex)
         {
             if (!_em.HasBuffer<AssignedWorker>(_activeWorkshop)) return (Entity.Null, 0f);
@@ -618,60 +613,197 @@ namespace Game.Workshop
             }
             return (chosen, delay);
         }
-        void OnManageWorkers() { bool isActive = !assignWorkerGroup.activeSelf; 
-            assignWorkerGroup.SetActive(isActive); if (npcInfoText != null) npcInfoText.gameObject.SetActive(isActive);
-            if (isActive) { PopulateNpcDropdown(); } }
-        void PopulateNpcDropdown()
+
+        void OnManageWorkers()
         {
-            npcDropdown.ClearOptions(); _availableNpcs.Clear(); var options = new List<TMP_Dropdown.OptionData>();
-            var npcs = _em.CreateEntityQuery(typeof(NPCComponent), typeof(NPCHiredTag)).ToEntityArray(Allocator.Temp);
-            foreach (var npcEntity in npcs)
+            bool isActive = !assignWorkerGroup.activeSelf;
+            assignWorkerGroup.SetActive(isActive); if (npcInfoText != null) npcInfoText.gameObject.SetActive(isActive);
+            if (isActive)
+            {
+                _lastWorkersPanelFingerprint = int.MinValue;
+                RefreshWorkerAssignmentPanel();
+            }
+        }
+
+        void RefreshWorkerAssignmentPanel()
+        {
+            var allAvailableNpcs = new List<Entity>();
+            using (var npcs = _em.CreateEntityQuery(typeof(NPCComponent), typeof(NPCHiredTag)).ToEntityArray(Allocator.Temp))
+            {
+                foreach (var npcEntity in npcs) allAvailableNpcs.Add(npcEntity);
+            }
+
+            var slots = _em.GetBuffer<StationSlot>(_activeWorkshop);
+
+            while (_stationAssignCards.Count < slots.Length)
+            {
+                var card = Instantiate(stationAssignmentCardPrefab, stationAssignmentContainer);
+                _stationAssignCards.Add(card);
+            }
+
+            for (int i = 0; i < _stationAssignCards.Count; i++)
+            {
+                if (i >= slots.Length)
+                {
+                    _stationAssignCards[i].gameObject.SetActive(false);
+                }
+                else
+                {
+                    _stationAssignCards[i].gameObject.SetActive(true);
+                    _stationAssignCards[i].Bind(_activeWorkshop, i, slots[i].Station, _em, allAvailableNpcs, _allRecipesMap);
+                }
+            }
+
+            RefreshGeneralWorkersList(slots);
+            PopulateGeneralNpcDropdown(allAvailableNpcs);
+        }
+
+        void RefreshGeneralWorkersList(DynamicBuffer<StationSlot> slots)
+        {
+            var assignedWorkers = _em.GetBuffer<AssignedWorker>(_activeWorkshop);
+            var specificallyAssigned = new HashSet<Entity>();
+            foreach (var slot in slots)
+            {
+                if (_em.HasComponent<StationState>(slot.Station))
+                {
+                    var specificWorker = _em.GetComponentData<StationState>(slot.Station).SpecificWorker;
+                    if (specificWorker != Entity.Null) specificallyAssigned.Add(specificWorker);
+                }
+            }
+
+            var generalWorkers = new List<Entity>();
+            foreach (var worker in assignedWorkers)
+            {
+                if (!specificallyAssigned.Contains(worker.NpcEntity))
+                {
+                    generalWorkers.Add(worker.NpcEntity);
+                }
+            }
+
+            while (_generalWorkerCards.Count < generalWorkers.Count)
+            {
+                var card = Instantiate(generalWorkerCardPrefab, generalWorkersContainer);
+                _generalWorkerCards.Add(card);
+            }
+            for (int i = 0; i < _generalWorkerCards.Count; i++)
+            {
+                _generalWorkerCards[i].gameObject.SetActive(i < generalWorkers.Count);
+            }
+            for (int i = 0; i < generalWorkers.Count; i++)
+            {
+                _generalWorkerCards[i].Bind(_activeWorkshop, generalWorkers[i], _em);
+            }
+        }
+
+        void PopulateGeneralNpcDropdown(List<Entity> allNpcs)
+        {
+            Entity previouslySelected = Entity.Null;
+            if (_availableNpcs.Count > 0 && generalNpcDropdown != null && generalNpcDropdown.value >= 0 && generalNpcDropdown.value < _availableNpcs.Count)
+            {
+                previouslySelected = _availableNpcs[generalNpcDropdown.value];
+            }
+            if (_lastSelectedGeneralNpc != Entity.Null) previouslySelected = _lastSelectedGeneralNpc;
+
+            generalNpcDropdown.ClearOptions();
+            _availableNpcs.Clear();
+
+            var pairs = new List<(string name, Entity ent)>();
+            foreach (var npcEntity in allNpcs)
             {
                 if (!_em.Exists(npcEntity)) continue;
                 var npcData = _em.GetComponentData<NPCComponent>(npcEntity);
-                if (npcData.AssignedWorkshop == Entity.Null) { _availableNpcs.Add(npcEntity);
-                    options.Add(new TMP_Dropdown.OptionData(npcData.Name.ToString())); }
+                if (npcData.AssignedWorkshop == Entity.Null)
+                {
+                    pairs.Add((npcData.Name.ToString(), npcEntity));
+                }
             }
-            npcs.Dispose();
-            if (options.Count == 0) { options.Add(new TMP_Dropdown.OptionData("Нет свободных рабочих")); 
-                confirmAssignButton.interactable = false; if (npcInfoText != null) npcInfoText.text = ""; }
-            else { confirmAssignButton.interactable = true; }
-            npcDropdown.AddOptions(options); npcDropdown.SetValueWithoutNotify(0); OnNpcSelectionChanged(0);
+
+            pairs.Sort((a, b) =>
+            {
+                int c = string.Compare(a.name, b.name, StringComparison.Ordinal);
+                if (c != 0) return c;
+                return a.ent.Index.CompareTo(b.ent.Index);
+            });
+
+            var options = new List<TMP_Dropdown.OptionData>();
+            foreach (var p in pairs)
+            {
+                _availableNpcs.Add(p.ent);
+                options.Add(new TMP_Dropdown.OptionData(p.name));
+            }
+
+            if (options.Count == 0)
+            {
+                options.Add(new TMP_Dropdown.OptionData("Нет свободных"));
+                confirmGeneralAssignButton.interactable = false;
+                generalNpcDropdown.AddOptions(options);
+                generalNpcDropdown.SetValueWithoutNotify(0);
+                if (npcInfoText != null) npcInfoText.text = "";
+                return;
+            }
+
+            confirmGeneralAssignButton.interactable = true;
+            generalNpcDropdown.AddOptions(options);
+
+            int newIndex = 0;
+            if (previouslySelected != Entity.Null)
+            {
+                int found = _availableNpcs.IndexOf(previouslySelected);
+                if (found >= 0) newIndex = found;
+            }
+
+            generalNpcDropdown.SetValueWithoutNotify(newIndex);
+            OnNpcSelectionChanged(newIndex);
         }
+
         void OnNpcSelectionChanged(int index)
         {
-            if (npcInfoText == null || _availableNpcs.Count == 0 || index >= _availableNpcs.Count) { if (npcInfoText != null) npcInfoText.text = ""; return; }
-            var npcEntity = _availableNpcs[index]; if (!_em.Exists(npcEntity)) return;
+            if (npcInfoText == null || _availableNpcs.Count == 0 || index >= _availableNpcs.Count)
+            {
+                if (npcInfoText != null) npcInfoText.text = "";
+                _lastSelectedGeneralNpc = Entity.Null;
+                return;
+            }
+            var npcEntity = _availableNpcs[index];
+            _lastSelectedGeneralNpc = npcEntity;
+            if (!_em.Exists(npcEntity)) { npcInfoText.text = ""; return; }
+
             var sb = new StringBuilder();
             if (_em.HasComponent<NPCWorkForce>(npcEntity)) sb.AppendLine($"Эффективность: {_em.GetComponentData<NPCWorkForce>(npcEntity).CurrentHammerPool:F0}");
             npcInfoText.text = sb.ToString();
         }
-        void OnConfirmAssign()
+
+        void OnConfirmAssignGeneralWorker()
         {
-            if (_availableNpcs.Count == 0 || npcDropdown.value >= _availableNpcs.Count) return;
+            if (_availableNpcs.Count == 0 || generalNpcDropdown.value >= _availableNpcs.Count) return;
+            var chosen = _availableNpcs[generalNpcDropdown.value];
             var req = _em.CreateEntity();
-            _em.AddComponentData(req, new AssignWorkerToWorkshopRequest 
-            { NpcEntity = _availableNpcs[npcDropdown.value], WorkshopEntity = _activeWorkshop });
-            assignWorkerGroup.SetActive(false); if (npcInfoText != null) npcInfoText.gameObject.SetActive(false);
+            _em.AddComponentData(req, new AssignWorkerToWorkshopRequest
+            { NpcEntity = chosen, WorkshopEntity = _activeWorkshop });
+
+            _lastSelectedGeneralNpc = chosen;
+            _lastWorkersPanelFingerprint = int.MinValue;
         }
-        void OnOpenInputInventory() 
+
+        void OnOpenInputInventory()
         {
-            if (!_isInitialized || _activeWorkshop == Entity.Null)
-                return; var e = _em.CreateEntity();
-            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.Input }); 
+            if (!_isInitialized || _activeWorkshop == Entity.Null) return;
+            var e = _em.CreateEntity();
+            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.Input });
         }
-        void OnOpenWIPInventory() 
+        void OnOpenWIPInventory()
         {
-            if (!_isInitialized || _activeWorkshop == Entity.Null) 
-                return; var e = _em.CreateEntity(); 
-            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.WIP }); 
+            if (!_isInitialized || _activeWorkshop == Entity.Null) return;
+            var e = _em.CreateEntity();
+            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.WIP });
         }
-        void OnOpenOutputInventory() 
+        void OnOpenOutputInventory()
         {
-            if (!_isInitialized || _activeWorkshop == Entity.Null) 
-                return; var e = _em.CreateEntity(); 
-            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.Output }); 
+            if (!_isInitialized || _activeWorkshop == Entity.Null) return;
+            var e = _em.CreateEntity();
+            _em.AddComponentData(e, new OpenInventoryUIRequest { Target = _activeWorkshop, Type = InventoryType.Output });
         }
+
         void RefreshCompactBar()
         {
             workshopNameText.text = _em.GetComponentData<NetworkNode>(_activeWorkshop).Name.ToString();
@@ -681,20 +813,91 @@ namespace Game.Workshop
             workerInfoText.text = $"Рабочие: {workers.Length}";
             powerText.text = $"Питание: {usage.InUsedKW:0.##} / {load.CurrentKW:0.##} кВт";
             float requiredKW = load.CurrentKW, suppliedKW = usage.InUsedKW;
-            if (requiredKW < 0.01f) { powerIndicatorBar.fillAmount = 0;
-                powerIndicatorBar.color = Color.grey; } 
-            else { powerIndicatorBar.fillAmount = Mathf.Clamp01(suppliedKW / requiredKW);
-                powerIndicatorBar.color = (suppliedKW < requiredKW - 0.01f) ? Color.yellow : Color.cyan; }
+            if (requiredKW < 0.01f)
+            {
+                powerIndicatorBar.fillAmount = 0;
+                powerIndicatorBar.color = Color.grey;
+            }
+            else
+            {
+                powerIndicatorBar.fillAmount = Mathf.Clamp01(suppliedKW / requiredKW);
+                powerIndicatorBar.color = (suppliedKW < requiredKW - 0.01f) ? Color.yellow : Color.cyan;
+            }
         }
-        void EnsureCards(int count) { while (_cards.Count < count) 
-            { var card = Instantiate(stationCardPrefab, stationsRow);
-                card.Init(this); _cards.Add(card); } 
-            for (int i = 0; i < _cards.Count; i++) _cards[i].gameObject.SetActive(i < count); }
+
+        void EnsureCards(int count)
+        {
+            while (_cards.Count < count)
+            {
+                var card = Instantiate(stationCardPrefab, stationsRow);
+                card.Init(this);
+                _cards.Add(card);
+            }
+            for (int i = 0; i < _cards.Count; i++) _cards[i].gameObject.SetActive(i < count);
+        }
+
         void RefreshStations(bool isChainActive)
         {
             if (!_em.HasBuffer<StationSlot>(_activeWorkshop)) { EnsureCards(0); return; }
-            var slotsBuffer = _em.GetBuffer<StationSlot>(_activeWorkshop); EnsureCards(slotsBuffer.Length);
-            for (int i = 0; i < slotsBuffer.Length; i++) _cards[i].Bind(_activeWorkshop, i, slotsBuffer[i].Station, _em, _availableStationTypes, isChainActive);
+            var slotsBuffer = _em.GetBuffer<StationSlot>(_activeWorkshop);
+            EnsureCards(slotsBuffer.Length);
+            for (int i = 0; i < slotsBuffer.Length; i++)
+                _cards[i].Bind(_activeWorkshop, i, slotsBuffer[i].Station, _em, _availableStationTypes, isChainActive);
+        }
+
+        private int BuildWorkerAssignmentFingerprint()
+        {
+            if (_activeWorkshop == Entity.Null || !_em.Exists(_activeWorkshop)) return 0;
+
+            unchecked
+            {
+                int h = 17;
+
+                using (var npcs = _em.CreateEntityQuery(typeof(NPCComponent), typeof(NPCHiredTag)).ToEntityArray(Allocator.Temp))
+                {
+                    var idxs = new List<int>(npcs.Length);
+                    for (int i = 0; i < npcs.Length; i++) idxs.Add(npcs[i].Index);
+                    idxs.Sort();
+                    h = h * 31 + idxs.Count;
+                    for (int i = 0; i < idxs.Count; i++) h = h * 31 + idxs[i];
+                }
+
+                if (_em.HasBuffer<AssignedWorker>(_activeWorkshop))
+                {
+                    var workers = _em.GetBuffer<AssignedWorker>(_activeWorkshop);
+                    var idxs = new List<int>(workers.Length);
+                    for (int i = 0; i < workers.Length; i++) idxs.Add(workers[i].NpcEntity.Index);
+                    idxs.Sort();
+                    h = h * 31 + idxs.Count;
+                    for (int i = 0; i < idxs.Count; i++) h = h * 31 + idxs[i];
+                }
+
+                if (_em.HasBuffer<StationSlot>(_activeWorkshop))
+                {
+                    var slots = _em.GetBuffer<StationSlot>(_activeWorkshop);
+                    h = h * 31 + slots.Length;
+                    for (int i = 0; i < slots.Length; i++)
+                    {
+                        var stEnt = slots[i].Station;
+                        if (_em.Exists(stEnt) && _em.HasComponent<StationState>(stEnt))
+                        {
+                            var st = _em.GetComponentData<StationState>(stEnt);
+                            h = h * 31 + st.SpecificWorker.Index;
+                            h = h * 31 + st.Enabled;
+                            h = h * 31 + st.SelectedRecipeID;
+                        }
+                        else
+                        {
+                            h = h * 31 + 0;
+                        }
+                    }
+                }
+
+                if (_lastSelectedGeneralNpc != Entity.Null)
+                    h = h * 31 + _lastSelectedGeneralNpc.Index;
+
+                return h;
+            }
         }
     }
 }

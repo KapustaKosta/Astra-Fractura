@@ -8,21 +8,29 @@ using UnityEngine;
 namespace Game.Workshop
 {
     /// <summary>
-    /// Рассчитывает ПОТЕНЦИАЛЬНУЮ потребность цеха в энергии на основе УСТАНОВЛЕННЫХ
-    /// станков и ВЫБРАННЫХ рецептов, НЕЗАВИСИМО от того, включены ли они.
+    /// Система, которая рассчитывает общую потребность в энергии для каждого цеха.
     /// </summary>
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
-    [UpdateAfter(typeof(WorkshopControlSystem))]
+    [UpdateAfter(typeof(ToggleStationRequestSystem))]
+    [UpdateAfter(typeof(SetStationRecipeRequestSystem))]
     [UpdateBefore(typeof(EnergyDispatchSystem))]
     public partial struct WorkshopPowerDemandSystem : ISystem
     {
+        /// <summary>
+        /// Вызывается при создании системы для установки необходимых зависимостей.
+        /// </summary>
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<ProductionRecipeRegistryData>();
         }
 
+        /// <summary>
+        /// Основной метод обновления. Для каждого цеха суммирует потребляемую мощность (RequiredKW)
+        /// всех установленных станков с выбранными рецептами и записывает результат
+        /// в компонент ConsumerLoad, который затем используется системой энергетики.
+        /// </summary>
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
@@ -63,6 +71,9 @@ namespace Game.Workshop
             }
         }
 
+        /// <summary>
+        /// Вспомогательный метод для поиска рецепта по его ID в реестре.
+        /// </summary>
         private static ref ProductionRecipe FindRecipe(ref ProductionRecipeRegistryBlob registry, int recipeID)
         {
             for (int i = 0; i < registry.Recipes.Length; i++)

@@ -6,10 +6,18 @@ using UnityEngine;
 
 namespace Game.Workshop
 {
+    /// <summary>
+    /// Система, обрабатывающая запросы на запуск производства, как правило, поступающие от UI.
+    /// </summary>
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct WorkshopRequestHandlerSystem : ISystem
     {
+        /// <summary>
+        /// Основной метод обновления. Находит все запросы StartWorkshopProductionRequest,
+        /// очищает текущую очередь производства цеха, добавляет новый заказ,
+        /// включает цех и инициирует пересчет плана производства.
+        /// </summary>
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
@@ -31,7 +39,6 @@ namespace Game.Workshop
                     workshopState.ValueRW.IsOn = true;
                 }
 
-
                 var queue = SystemAPI.GetBuffer<WorkshopProductionQueueItem>(workshop);
                 queue.Clear();
                 queue.Add(new WorkshopProductionQueueItem
@@ -42,10 +49,7 @@ namespace Game.Workshop
                 });
 
                 ecb.AddComponent(workshop, new RequestRecalculatePlan());
-
-                var name = nameLookup.HasComponent(workshop) ? nameLookup[workshop].Name.ToString() : "Unknown Workshop";
-                Debug.Log($"[RequestHandler] UI requested START for '{name}'. Emitting RequestRecalculatePlan.");
-
+                
                 ecb.DestroyEntity(reqEntity);
             }
         }

@@ -85,9 +85,7 @@ namespace Game.Workshop
         public void Init(WorkshopUI root)
         {
             _root = root;
-
             recipeRegistry = root.recipeRegistry;
-
         }
 
         private void Awake()
@@ -306,7 +304,6 @@ namespace Game.Workshop
         {
             if (recipeRegistry == null || _currentStationType == null) return;
 
-            // Фильтруем все рецепты, подходящие для данного типа станции
             var filteredRecipes = recipeRegistry.Recipes
                 .Where(r => r != null && r.RequiredStationType != null && r.RequiredStationType.StationTypeID == _currentStationType.StationTypeID)
                 .OrderBy(r => r.RecipeName)
@@ -325,10 +322,8 @@ namespace Game.Workshop
                 if (h != _lastRecipesHash)
                 {
                     _lastRecipesHash = h;
-
                     _availableRecipesForStation.Clear();
                     _availableRecipesForStation.AddRange(filteredRecipes);
-
                     recipeDropdown.ClearOptions();
                     recipeDropdown.AddOptions(_availableRecipesForStation.Select(r => r.RecipeName).ToList());
                     recipeDropdown.RefreshShownValue();
@@ -390,13 +385,11 @@ namespace Game.Workshop
             requirementsText.gameObject.SetActive(true);
             var sbReq = new StringBuilder();
 
-
             ProductionRecipeSO fullRecipe;
             if (recipeIndex != -1 && recipeIndex < _availableRecipesForStation.Count)
             {
                 fullRecipe = _availableRecipesForStation[recipeIndex];
             }
-
             else
             {
                 progressSlider.gameObject.SetActive(false);
@@ -411,7 +404,7 @@ namespace Game.Workshop
 
             progressSlider.gameObject.SetActive(false);
             if (productionInfoText != null) productionInfoText.gameObject.SetActive(false);
-
+            
             if (!isEnabled)
             {
                 statusText.text = "Отключен от цепи";
@@ -422,89 +415,101 @@ namespace Game.Workshop
                 statusText.text = "Ожидание запуска цепи";
                 statusIndicatorImage.color = COLOR_IDLE;
             }
+            else if (state.Status == StationStatus.WaitingForInput)
+            {
+                statusText.text = "Нет ресурсов";
+                statusIndicatorImage.color = GetColorForStatus(state.Status);
+            }
+            else if (state.Status == StationStatus.AwaitingManualLabor)
+            {
+                statusText.text = "Ожидает рабочего";
+                statusIndicatorImage.color = GetColorForStatus(state.Status);
+            }
+            else if (state.PowerEfficiency < 0.01f)
+            {
+                statusText.text = "Нет энергии";
+                statusIndicatorImage.color = COLOR_WAITING;
+            }
+            else if (state.PowerEfficiency < 0.99f)
+            {
+                statusText.text = $"Просадка сети ({state.PowerEfficiency * 100:F0}%)";
+                statusIndicatorImage.color = COLOR_WAITING;
+            }
             else
             {
                 statusText.text = state.Status.ToString();
                 statusIndicatorImage.color = GetColorForStatus(state.Status);
-
-                if (productionInfoText != null)
-                {
-                    productionInfoText.gameObject.SetActive(true);
-                    var sbInfo = new StringBuilder();
-
-                    var queue = _em.GetBuffer<WorkshopProductionQueueItem>(_workshop);
-                    if (!queue.IsEmpty && IsLastActiveStationInChain())
-                    {
-                        var q = queue[0];
-                        if (q.InitialAmount == -1) { sbInfo.AppendLine("<b>Бесконечное производство</b>"); }
-                        else
-                        {
-                            int left = math.max(0, q.AmountToProduce);
-                            int total = math.max(0, q.InitialAmount);
-                            int currentIx = math.clamp(total - left + 1, 1, total);
-                            sbInfo.AppendLine($"<b>Итерация: {currentIx} / {total}</b>");
-                        }
-                    }
-
-                    float totalBT = math.max(0.01f, fullRecipe.BaseTime + state.TimePenalty);
-                    float totalHC = math.max(0.01f, fullRecipe.HammerCost);
-
-                    switch (state.Status)
-                    {
-                        case StationStatus.ApplyingManualLabor:
-                            {
-                                progressSlider.gameObject.SetActive(true);
-                                float applied = math.max(0f, state.AppliedHammerCost);
-                                float remainingHC = math.max(0f, totalHC - applied);
-                                progressSlider.value = math.saturate(applied / totalHC);
-
-                                sbInfo.AppendLine($"HC (ручной труд): осталось {remainingHC:F1} сек.");
-                                sbInfo.AppendLine($"BT (автомат): будет ещё {totalBT:F1} сек. после HC");
-                                break;
-                            }
-
-                        case StationStatus.Working:
-                            {
-                                progressSlider.gameObject.SetActive(true);
-                                progressSlider.value = 1.0f - (state.RemainingTime / totalBT);
-                                sbInfo.AppendLine($"BT (автомат): осталось {state.RemainingTime:F1} сек.");
-                                sbInfo.AppendLine($"HC (ручной труд): 0.0 сек.");
-                                break;
-                            }
-
-                        default:
-                            {
-                                progressSlider.gameObject.SetActive(true);
-                                progressSlider.value = 0f;
-                                sbInfo.AppendLine($"HC (ручной труд): {totalHC:F1} сек.");
-                                sbInfo.AppendLine($"BT (автомат): {totalBT:F1} сек.");
-                                break;
-                            }
-                    }
-
-                    productionInfoText.text = sbInfo.ToString();
-                }
             }
 
-            sbReq.AppendLine("<b>Требования:</b>");
-            string enabledColor = isEnabled ? "green" : "grey";
-            sbReq.AppendLine($"<color={enabledColor}>- Включен в цепь</color>");
+            // 2. ОТОБРАЖАЕМ ТАЙМЕРЫ В СТАРОМ ФОРМАТЕ
+            if (productionInfoText != null)
+            {
+                productionInfoText.gameObject.SetActive(true);
+                var sbInfo = new StringBuilder();
 
-            float cumulativePowerForPreviousAndSelf = GetCumulativePowerForPreviousStations(fullRecipe.RequiredKW);
-            var usage = _em.GetComponentData<NetLinkUsage>(_workshop);
-            bool hasPower = usage.InUsedKW >= cumulativePowerForPreviousAndSelf;
-            string powerColor = !isEnabled ? "grey" : (hasPower ? "green" : "red");
-            sbReq.AppendLine($"<color={powerColor}>- Энергия ({fullRecipe.RequiredKW} кВт)</color>");
+                float totalBT = math.max(0.01f, fullRecipe.BaseTime + state.TimePenalty);
+                float totalHC = math.max(0.01f, fullRecipe.HammerCost);
+
+                switch (state.Status)
+                {
+                    case StationStatus.ApplyingManualLabor:
+                        {
+                            progressSlider.gameObject.SetActive(true);
+                            float applied = math.max(0f, state.AppliedHammerCost);
+                            float remainingHC = math.max(0f, totalHC - applied);
+                            progressSlider.value = math.saturate(applied / totalHC);
+                            sbInfo.AppendLine($"HC (ручной труд): осталось {remainingHC:F1} сек.");
+                            sbInfo.AppendLine($"BT (автомат): будет ещё {totalBT:F1} сек. после HC");
+                            break;
+                        }
+                    case StationStatus.Working:
+                        {
+                            progressSlider.gameObject.SetActive(true);
+                            progressSlider.value = 1.0f - math.saturate(state.RemainingTime / totalBT);
+                            sbInfo.AppendLine($"BT (автомат): осталось {state.RemainingTime:F1} сек.");
+                            sbInfo.AppendLine($"HC (ручной труд): 0.0 сек.");
+                            break;
+                        }
+                    default:
+                        {
+                            progressSlider.gameObject.SetActive(true);
+                            progressSlider.value = 0f;
+                            sbInfo.AppendLine($"HC (ручной труд): {totalHC:F1} сек.");
+                            sbInfo.AppendLine($"BT (автомат): {totalBT:F1} сек.");
+                            break;
+                        }
+                }
+                productionInfoText.text = sbInfo.ToString();
+            }
+
+            // 3. ФОРМИРУЕМ СПИСОК ТРЕБОВАНИЙ
+            sbReq.AppendLine("<b>Требования:</b>");
+            sbReq.AppendLine($"<color={(isEnabled ? "green" : "grey")}>- Включен в цепь</color>");
+
+            string powerColor;
+            string powerTextStr;
+            if (!isEnabled || !isChainActive)
+            {
+                powerColor = "grey";
+                powerTextStr = $"- Энергия ({fullRecipe.RequiredKW} кВт)";
+            }
+            else
+            {
+                if (state.PowerEfficiency >= 0.99f) powerColor = "green";
+                else if (state.PowerEfficiency > 0.01f) powerColor = "yellow";
+                else powerColor = "red";
+                float receivedKW = fullRecipe.RequiredKW * state.PowerEfficiency;
+                powerTextStr = $"- Энергия: {receivedKW:F1}/{fullRecipe.RequiredKW} кВт (КПД: {state.PowerEfficiency * 100:F0}%)";
+            }
+            sbReq.AppendLine($"<color={powerColor}>{powerTextStr}</color>");
 
             var resourceResult = CheckHasResourcesDetailed(fullRecipe);
-            string resourceColor = !isEnabled ? "grey" : (resourceResult.HasAllResources ? "green" : "red");
-            sbReq.AppendLine($"<color={resourceColor}>- Ресурсы</color>");
+            sbReq.AppendLine($"<color={(!isEnabled ? "grey" : (resourceResult.HasAllResources ? "green" : "red"))}>- Ресурсы</color>");
 
             if (!resourceResult.HasAllResources && isEnabled)
             {
                 sbReq.Append(resourceResult.MissingItemsText);
             }
-
             requirementsText.text = sbReq.ToString();
         }
 
@@ -529,24 +534,19 @@ namespace Game.Workshop
             if (!_em.HasBuffer<StationSlot>(_workshop)) return selfPower;
             var slots = _em.GetBuffer<StationSlot>(_workshop);
             float total = selfPower;
-
             for (int i = 0; i < _slotIndex; i++)
             {
                 var slot = slots[i];
                 if (!_em.Exists(slot.Station) || !_em.HasComponent<StationState>(slot.Station) || _em.GetComponentData<StationState>(slot.Station).Enabled == 0) continue;
-
                 var state = _em.GetComponentData<StationState>(slot.Station);
-
                 var recipe = GetRecipeById(state.SelectedRecipeID);
                 if (recipe != null)
                 {
                     total += recipe.RequiredKW;
                 }
-
             }
             return total;
         }
-
 
         private ResourceCheckResult CheckHasResourcesDetailed(ProductionRecipeSO recipe)
         {
@@ -555,10 +555,7 @@ namespace Game.Workshop
                 return new ResourceCheckResult { HasAllResources = true, MissingItemsText = "" };
             }
 
-            // Используем HashMap для быстрого поиска и суммирования ресурсов
             var availableInventory = new NativeHashMap<int, int>(64, Allocator.Temp);
-
-            // 1. всегда добавляем ресурсы из основного входного инвентаря
             if (_em.HasBuffer<InputInventorySlot>(_workshop))
             {
                 foreach (var item in _em.GetBuffer<InputInventorySlot>(_workshop))
@@ -571,7 +568,6 @@ namespace Game.Workshop
                 }
             }
 
-            // 2. всегда добавляем ресурсы из промежуточного WIP инвентаря
             if (_em.HasBuffer<WorkshopWIPBufferElement>(_workshop))
             {
                 foreach (var item in _em.GetBuffer<WorkshopWIPBufferElement>(_workshop))
@@ -586,14 +582,10 @@ namespace Game.Workshop
 
             var missingItemsSb = new StringBuilder();
             bool allResourcesFound = true;
-
-            // 3. Проверяем каждый ингредиент по очереди
             foreach (var requiredIngredient in recipe.Ingredients)
             {
                 if (requiredIngredient.Item == null) continue;
-
                 availableInventory.TryGetValue(requiredIngredient.Item.itemID, out int amountOnHand);
-
                 if (amountOnHand < requiredIngredient.Amount)
                 {
                     allResourcesFound = false;
@@ -601,8 +593,7 @@ namespace Game.Workshop
                     missingItemsSb.AppendLine($"<color=red>- {requiredIngredient.Item.itemName} (не хватает {missingAmount})</color>");
                 }
             }
-
-            availableInventory.Dispose(); 
+            availableInventory.Dispose();
 
             return new ResourceCheckResult
             {

@@ -7,7 +7,7 @@ using UnityEngine;
 /// Создает экземпляр через меню Unity и очищает связанные компоненты при смене цели.
 /// </summary>
 [CreateAssetMenu(fileName = "Goal_Harvest", menuName = "AI/Goal Definitions/Harvest")]
-[Cleanup(typeof(AIActiveTarget), typeof(WantsToHarvestTag))]
+[Cleanup(typeof(AIActiveTarget), typeof(WantsToHarvestTag), typeof(MovementFailedTag))]
 public class HarvestGoalDefinition : GoalDefinition
 {
     /// <summary>
@@ -17,12 +17,7 @@ public class HarvestGoalDefinition : GoalDefinition
     public override bool CanBeConsidered(Entity entity, in GoalEvaluationContext context)
     {
         bool isBlocked = context.EntityManager.HasComponent<HarvestingBlockedTag>(entity);
-
-
-        bool movementFailed = context.EntityManager.HasComponent<MovementFailedTag>(entity);
-
-        return !isBlocked && !movementFailed;
-
+        return !isBlocked; 
     }
 
     /// <summary>

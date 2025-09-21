@@ -14,14 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   StationTypeID: 2
   StationName: ThePumpingMachine
-  Icon: {fileID: 21300000, guid: f59401c5c79564fd1ae3bfb0876455a7, type: 3}
-  AvailableRecipes:
-  - recipeID: 2
-    recipeName: SheetMetal
-    inputs:
-    - itemID: 2
-      amount: 10
-    outputItemID: 876
-    outputAmount: 1
-    durationPerItemSec: 10
-    requiredKW: 10
+  Icon: {fileID: 21300000, guid: 628271c8b57db284f8ca6411ebd0b985, type: 3}

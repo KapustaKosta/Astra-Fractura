@@ -1,98 +1,116 @@
 ﻿using Unity.Entities;
 using UnityEngine;
+using Unity.Mathematics;
 using Unity.Collections;
 
 /// <summary>
 /// Authoring-компонент для определения NPC в ECS.
-/// Позволяет настраивать начальные параметры NPC и добавляет все необходимые компоненты AI и PF.
+/// Настраивает стартовые параметры и добавляет набор компонентов:
+/// AI, движение, избегание, Pathfinding + буфер пути.
 /// </summary>
+[DisallowMultipleComponent]
 public class NPCAuthoring : MonoBehaviour
 {
     [Header("Базовая информация о NPC")]
-    public string npcName;
-
-    /// <summary>
-    /// Возраст NPC.
-    /// </summary>
-    public int age;
-
-    /// <summary>
-    /// Навыки NPC (строковое представление).
-    /// </summary>
-    public string skills;
-
-    /// <summary>
-    /// Уровень организованности NPC.
-    /// </summary>
-    public int organizedness;
-
-    /// <summary>
-    /// Уровень лояльности NPC.
-    /// </summary>
-    public int loyalty;
-
-    /// <summary>
-    /// Уровень трудолюбия NPC.
-    /// </summary>
-    public int diligence;
+    public string npcName = "Unnamed NPC";
+    public int age = 25;
+    public string skills = "Worker";
+    public int organizedness = 50;
+    public int loyalty = 50;
+    public int diligence = 50;
 
     [Header("Боевые параметры")]
     [Tooltip("Максимальное здоровье NPC.")]
     public float maxHealth = 100f;
 
     [Header("Рабочие параметры")]
-    [Tooltip("Общий запас 'рабочей силы' (молотков), доступный NPC на один полный производственный цикл.")]
+    [Tooltip("Общий запас 'рабочей силы' (молотков) на цикл.")]
     public float hammerPoolCapacity = 35f;
 
-    class Baker : Baker<NPCAuthoring>
+    [Header("Параметры движения")]
+    [Tooltip("Скорость передвижения NPC в м/с.")]
+    public float moveSpeed = 3.5f;
+    [Tooltip("Скорость поворота NPC в радианах/сек.")]
+    public float rotationSpeed = 120f;
+    [Tooltip("Расстояние до цели, на котором NPC прекратит движение.")]
+    public float stoppingDistance = 0.5f;
+    [Tooltip("Порог обнуления скорости движения.")]
+    public float velocityZeroingThreshold = 0.001f;
+
+    [Header("Параметры избегания")]
+    [Tooltip("Радиус 'личного пространства' для ORCA/сепарации.")]
+    public float avoidanceRadius = 0.4f;
+    [Tooltip("Вес реакции на силы избегания.")]
+    public float avoidanceWeight = 2.0f;
+
+    public class Baker : Baker<NPCAuthoring>
     {
-        /// <summary>
-        /// Выполняет процесс "запекания" данных из MonoBehaviour в ECS-сущности.
-        /// Создает и добавляет компонент NPCComponent к сущности NPC.
-        /// </summary>
-        /// <param name="authoring">Экземпляр NPCAuthoring.</param>
-        public override void Bake(NPCAuthoring authoring)
+        public override void Bake(NPCAuthoring a)
         {
-            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            var e = GetEntity(TransformUsageFlags.Dynamic);
             
-
-            // Компонент с данными NPC из системы AI
-            AddComponent(entity, new NPCComponent
+            AddComponent(e, new NPCComponent
             {
-                Name = new FixedString64Bytes(authoring.npcName ?? string.Empty),
-                Age = authoring.age,
-                Skills = new FixedString128Bytes(authoring.skills ?? string.Empty),
-                Organizedness = authoring.organizedness,
-                Loyalty = authoring.loyalty,
-                Diligence = authoring.diligence,
-                Target = Entity.Null
+                Name          = new FixedString64Bytes(a.npcName ?? string.Empty),
+                Age           = a.age,
+                Skills        = new FixedString128Bytes(a.skills ?? string.Empty),
+                Organizedness = a.organizedness,
+                Loyalty       = a.loyalty,
+                Diligence     = a.diligence,
+                Target             = Entity.Null,
+                AssignedWorkshop   = Entity.Null
             });
 
-            // Добавляем новый компонент с запасом рабочей силы
-            AddComponent(entity, new NPCWorkForce
+            AddComponent(e, new NPCWorkForce
             {
-                MaxHammerPool = authoring.hammerPoolCapacity,
-                CurrentHammerPool = authoring.hammerPoolCapacity // Начинает с полным запасом
+                MaxHammerPool     = a.hammerPoolCapacity,
+                CurrentHammerPool = a.hammerPoolCapacity
             });
 
-            AddComponent(entity, new HealthComponent
+            AddComponent(e, new HealthComponent
             {
-                MaxHealth = authoring.maxHealth,
-                CurrentHealth = authoring.maxHealth
-            });
-            
-            /// Компонент, хранящий прямую ссылку на GameObject
-            AddComponentObject(entity, new GameObjectLink
-            {
-                Value = authoring.gameObject
+                MaxHealth     = a.maxHealth,
+                CurrentHealth = a.maxHealth
             });
 
-            // Компонент "мозга" из системы AI
-            AddComponent<NPCBrain>(entity);
-            
-            // Компоненты, необходимые для системы Pathfinding (PF)
-            AddComponent<NPCPathfindingComponent>(entity);
-            AddBuffer<NPCPathBufferElement>(entity);
+            // Ссылка на исходный GameObject (если требуется для мостов/визуала)
+            AddComponentObject(e, new GameObjectLink { Value = a.gameObject });
+
+            // Избежание
+            AddComponent(e, new AvoidanceData
+            {
+                Radius = math.max(0.1f, a.avoidanceRadius),
+                Weight = a.avoidanceWeight
+            });
+
+            // Базовые статы движения
+            AddComponent(e, new NPCBaseMovementStats
+            {
+                Speed            = a.moveSpeed,
+                RotationSpeed    = a.rotationSpeed,
+                StoppingDistance = a.stoppingDistance
+            });
+
+            // Текущее движение
+            AddComponent(e, new NPCMovementComponent
+            {
+                HasTarget                   = false,
+                TargetPosition              = float3.zero,
+                Speed                       = a.moveSpeed,
+                RotationSpeed               = a.rotationSpeed,
+                StoppingDistance            = a.stoppingDistance,
+                VelocityZeroingThresholdSq  = a.velocityZeroingThreshold * a.velocityZeroingThreshold,
+                CurrentDesiredMoveDirection = float3.zero,
+                PreferredVelocity           = float3.zero,
+                TargetVelocity              = float3.zero
+            });
+
+            // Мозг/Pathfinding
+            AddComponent<NPCBrain>(e);
+            AddComponent<NPCPathfindingComponent>(e);
+            AddBuffer<NPCPathBufferElement>(e);
+
+
         }
     }
 }

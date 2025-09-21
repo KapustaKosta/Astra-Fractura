@@ -8,7 +8,7 @@ using Unity.Transforms;
 
 
 [UpdateInGroup(typeof(PhysicsSystemGroup))]
-[UpdateBefore(typeof(PhysicsInitializeGroup))] // успеваем до построения мира физики
+[UpdateBefore(typeof(PhysicsInitializeGroup))] 
 public partial struct FoundationColliderBakeTransformSystem : ISystem
 {
     public void OnCreate(ref SystemState state)

@@ -1,7 +1,6 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 
-// Мы помещаем его в тот же namespace, чтобы другие системы цеха его "видели" автоматически
 namespace Game.Workshop
 {
     /// <summary>

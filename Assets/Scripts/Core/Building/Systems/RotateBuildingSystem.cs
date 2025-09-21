@@ -12,7 +12,7 @@ using Unity.Mathematics;
 /// </para>
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPlacementSystem))]
+[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
 public partial class RotateBuildingSystem : SystemBase
 {
     /// <summary>

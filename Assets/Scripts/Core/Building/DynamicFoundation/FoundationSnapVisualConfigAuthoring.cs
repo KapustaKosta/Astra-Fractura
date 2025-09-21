@@ -48,8 +48,8 @@ public struct FoundationSnapVisualConfig : IComponentData
     public float BestScale;
     public float NormalScale;
     public float CornerScale;
-    public float4 BestColor;   // linear RGBA
-    public float4 NormalColor; // linear RGBA
+    public float4 BestColor;  
+    public float4 NormalColor; 
 }
 
 public struct FoundationSnapMarkerTag : IComponentData

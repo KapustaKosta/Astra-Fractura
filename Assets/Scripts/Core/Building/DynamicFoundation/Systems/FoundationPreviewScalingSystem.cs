@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateBefore(typeof(BuildingPlacementSystem))]
+[UpdateBefore(typeof(FoundationPlacementSystem))]
 public partial class FoundationPreviewScalingSystem : SystemBase
 {
     // Автокалибруемый "метров за один тик", если в тюнинге шаг не задан явно

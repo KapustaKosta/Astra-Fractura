@@ -7,7 +7,7 @@ using UnityEngine;
 /// можно ли их разместить в текущей позиции.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPlacementSystem))]
+[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
 public partial class PreviewMaterialSystem : SystemBase
 {
     private UnityEngine.Rendering.BatchMaterialID validMatID;   // ID материала для валидного размещения.

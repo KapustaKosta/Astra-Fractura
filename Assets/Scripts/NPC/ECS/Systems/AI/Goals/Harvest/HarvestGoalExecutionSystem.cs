@@ -17,39 +17,48 @@ public partial class HarvestGoalExecutionSystem : SystemBase
     /// </summary>
     protected override void OnUpdate()
     {
-        // Получаем прямой доступ к EntityManager для немедленного изменения компонентов
         var entityManager = this.EntityManager;
 
-        // Обрабатываем всех сущностей с ИИ-движением и активной целью
         Entities
-            .WithStructuralChanges() // Разрешаем структурные изменения в текущем потоке
-            .ForEach((Entity entity, ref NPCMovementComponent movement, in ActiveGoal goal, 
-                     in HarvesterSettings harvesterSettings, in LocalToWorld npcTransform) =>
+            .WithStructuralChanges()
+            .ForEach((Entity entity, 
+                     ref NPCMovementComponent movement, 
+                     in ActiveGoal goal, 
+                     in HarvesterSettings harvesterSettings, 
+                     in LocalToWorld npcTransform,
+                     in DynamicBuffer<NPCPathBufferElement> pathBuffer) => 
             {
-                // Проверяем, что цель - сбор ресурсов и есть корректная целевая сущность
+                // Проверяем базовые условия
                 if (goal.Type != GoalType.Harvest || 
                     goal.Target == Entity.Null || 
-                    !entityManager.HasComponent<LocalToWorld>(goal.Target)) 
+                    !entityManager.HasComponent<LocalToWorld>(goal.Target) ||
+                    pathBuffer.Length == 0) 
                 {
                     return;
                 }
-
-                // Проверяем, достиг ли NPC цели (движение завершено)
+                
+                // 1. NPC считает, что он прибыл (движение остановлено)
                 bool hasArrived = !movement.HasTarget;
                 
-                // Получаем позицию цели
+                // 2. Получаем конечную точку, к которой он реально шел
+                float3 finalWaypoint = pathBuffer[pathBuffer.Length - 1].Waypoint;
+
+                // 3. Проверяем, действительно ли NPC находится у конечной точки пути
+                //    Используем квадрат радиуса остановки для точности
+                float stopRadius = movement.StoppingDistance + 0.2f; // небольшой запас
+                bool isAtFinalWaypoint = math.distancesq(npcTransform.Position, finalWaypoint) 
+                                         <= stopRadius * stopRadius;
+
+                // 4. Дополнительно проверяем, что сама конечная точка пути находится в рендже взаимодействия с целью.
+                //    Это защита от случаев, когда путь построен к точке, которая на самом деле далеко от ресурса.
                 var targetTransform = entityManager.GetComponentData<LocalToWorld>(goal.Target);
-                
-                // Проверяем, находится ли NPC в радиусе взаимодействия
-                // Используем distance squared для избежания вычисления корня
-                bool isInRange = math.distancesq(npcTransform.Position, targetTransform.Position) 
-                               <= harvesterSettings.InteractionRange * harvesterSettings.InteractionRange;
+                bool isWaypointCloseToTarget = math.distancesq(finalWaypoint, targetTransform.Position) 
+                                               <= harvesterSettings.InteractionRange * harvesterSettings.InteractionRange;
 
                 // Проверяем наличие метки активного сбора
                 bool wantsToHarvest = entityManager.HasComponent<WantsToHarvestTag>(entity);
-
-                // Логика управления состоянием сбора:
-                if (hasArrived && isInRange)
+                
+                if (hasArrived && isAtFinalWaypoint && isWaypointCloseToTarget)
                 {
                     // Условия выполнены - начинаем или продолжаем сбор
                     if (!wantsToHarvest)

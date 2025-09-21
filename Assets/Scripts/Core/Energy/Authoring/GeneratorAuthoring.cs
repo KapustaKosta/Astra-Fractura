@@ -30,8 +30,6 @@ namespace Energy.Core.Authoring
                 });
 
                 // Любой энергетический объект является узлом сети
-                // ИЗМЕНЕНИЕ: Используем SubnetId и присваиваем начальное значение 0.
-                // NetworkDiscoverySystem перезапишет его актуальным значением.
                 AddComponent(e, new NetworkNode { Name = name, SubnetId = 0 });
             }
         }

@@ -1,4 +1,4 @@
-﻿using Unity.Entities;
+﻿﻿using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;
@@ -9,7 +9,7 @@ using UnityEngine;
 /// который будет обработан FinalizeBuildingSystem для корректного списания ресурсов.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPlacementSystem))]
+[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
 public partial class ConfirmPlacementSystem : SystemBase
 {
     private bool wasPressedLastFrame; // Флаг для отслеживания состояния кнопки между кадрами.

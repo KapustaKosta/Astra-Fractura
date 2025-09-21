@@ -5,7 +5,7 @@
 /// <summary>
 /// Перечисление всех возможных типов глобальных целей для NPC.
 /// </summary>
-public enum GoalType { Idle, Harvest, ReturnToBase, Flee, MaintainWorkshop }
+public enum GoalType { Idle, Harvest, ReturnToBase, Flee, MaintainWorkshop, Attack, Wander } // ДОБАВЛЕНО: Wander
 
 /// <summary>
 /// Компонент текущей цели NPC. Хранит информацию о типе цели, 
@@ -40,6 +40,14 @@ public struct ActiveGoal : IComponentData
 /// Используется для фильтрации сущностей в системах ИИ.
 /// </summary>
 public struct NPCBrain : IComponentData { }
+
+/// <summary>
+/// Таймер ожидания для цели "Бродить".
+/// </summary>
+public struct WanderWaitTimer : IComponentData
+{
+    public float Value;
+}
 
 /// <summary>
 /// Доступное действие для NPC. Хранится в динамическом буфере 
@@ -85,6 +93,8 @@ public struct AISettings : IComponentData
     /// Радиус поиска целей для NPC
     /// </summary>
     public float AISearchRadius;
+    
+    public int PlayerCollisionLayer;
 
     /// <summary>
     /// Слой коллизий для ресурсов - используется для фильтрации объектов поиска

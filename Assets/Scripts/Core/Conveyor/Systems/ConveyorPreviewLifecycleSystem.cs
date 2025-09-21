@@ -17,7 +17,7 @@ namespace Conveyor
             {
                 if (!em.HasComponent<ConveyorState>(gs))
                 {
-                    // ИЗМЕНЕНИЕ: Увеличиваем радиус с 1.25f до 2.5f
+
                     em.AddComponentData(gs, new ConveyorState { SnapRadius = 2.5f });
                 }
                 var st = em.GetComponentData<ConveyorState>(gs);

@@ -115,7 +115,6 @@ public class TradeUI : MonoBehaviour
 
         if (titleText != null) titleText.text = windowTitle;
 
-        // Показываем/скрываем инвентарь игрока только в зависимости от режима (выбор/взаимодействие)
         if (playerSlotsParent != null)
         {
             playerSlotsParent.parent.gameObject.SetActive(!isSelectionMode);
@@ -128,13 +127,11 @@ public class TradeUI : MonoBehaviour
 
     public void Show(Entity currentTarget, InventoryType type)
     {
-        // Стандартный вызов для взаимодействия с инвентарями
         InternalShow(currentTarget, type, null);
     }
 
     public void ShowForItemSelection(Entity inventoryOwner, InventoryType type, Action<Item> selectionCallback)
     {
-        // Вызов для режима выбора предмета
         InternalShow(inventoryOwner, type, selectionCallback);
     }
 
@@ -154,13 +151,11 @@ public class TradeUI : MonoBehaviour
     {
         bool isSelectionMode = _onItemSelectedCallback != null;
 
-        // Перестраиваем инвентарь игрока, если мы не в режиме выбора
         if (!isSelectionMode)
         {
             InventoryPanelHelper.RebuildSlots(entityManager, playerEntity, playerSlotsParent, playerSlotPrefab, playerSlots, InventoryType.General);
         }
 
-        // Всегда перестраиваем инвентарь цели
         Action<InventorySlot> slotClickAction = isSelectionMode ? HandleSlotClickForSelection : null;
         InventoryPanelHelper.RebuildSlots(entityManager, targetEntity, targetSlotsParent, targetSlotPrefab, targetSlots, targetInventoryType, slotClickAction);
     }
@@ -176,13 +171,16 @@ public class TradeUI : MonoBehaviour
 
     private void RefreshPanels()
     {
-        // Обновляем инвентарь игрока, если он отображается
+        if (entityManager.Exists(targetEntity))
+        {
+            Debug.Log($"<color=cyan>[TradeUI.RefreshPanels]</color> Refreshing for Target Entity: {targetEntity}, Inventory Type: {targetInventoryType}");
+        }
+
         if (playerSlotsParent != null && playerSlotsParent.parent.gameObject.activeSelf)
         {
             InventoryPanelHelper.RefreshSlotsData(entityManager, playerEntity, playerSlots, InventoryType.General);
         }
 
-        // Всегда обновляем инвентарь цели
         InventoryPanelHelper.RefreshSlotsData(entityManager, targetEntity, targetSlots, targetInventoryType);
     }
 }

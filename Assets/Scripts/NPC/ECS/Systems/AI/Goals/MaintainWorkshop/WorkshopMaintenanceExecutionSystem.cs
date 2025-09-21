@@ -24,7 +24,7 @@ public partial class WorkshopMaintenanceExecutionSystem : SystemBase
         var ltwLookup = GetComponentLookup<LocalToWorld>(true);
         var arrivalLookup = GetComponentLookup<ArrivalData>(true);
 
-        // Этап 1: NPC прибыл в цех (со структурными изменениями).
+        // Этап 1: NPC прибыл в цех.
         Entities
             .WithStructuralChanges()
             .WithAll<ActiveGoal>().WithNone<InsideBuildingTag, WorkshopMaintenanceInProgress>()
@@ -61,7 +61,6 @@ public partial class WorkshopMaintenanceExecutionSystem : SystemBase
                     workForce.CurrentHammerPool = workForce.MaxHammerPool;
                     entityManager.AddComponent<InsideBuildingTag>(npcEntity);
                     entityManager.AddComponentData(npcEntity, new WorkshopMaintenanceInProgress { WorkshopEntity = workshopEntity });
-                    entityManager.RemoveComponent<ActiveGoal>(npcEntity);
                 }
 
             }).Run();
@@ -69,16 +68,15 @@ public partial class WorkshopMaintenanceExecutionSystem : SystemBase
 
         stationStateLookup.Update(this);
 
-
-        // Этап 2: NPC находится в цеху и ищет работу (теперь этот блок будет работать безопасно).
+        // Этап 2: NPC находится в цеху и выполняет работу.
         Entities
             .ForEach((Entity npcEntity, ref WorkshopMaintenanceInProgress progress, ref NPCWorkForce workForce) =>
             {
                 var workshopEntity = progress.WorkshopEntity;
                 if (!SystemAPI.Exists(workshopEntity)) { ecb.RemoveComponent<WorkshopMaintenanceInProgress>(npcEntity); return; }
 
-                var workshopState = SystemAPI.GetComponent<WorkshopState>(workshopEntity);
-                if (!workshopState.IsOn)
+                bool isWorkStillNeeded = SystemAPI.HasComponent<HasMaintenanceTaskTag>(npcEntity);
+                if (!isWorkStillNeeded)
                 {
                     ecb.RemoveComponent<WorkshopMaintenanceInProgress>(npcEntity);
                     return;
@@ -95,20 +93,11 @@ public partial class WorkshopMaintenanceExecutionSystem : SystemBase
                     if (stationStateLookup.HasComponent(slot.Station))
                     {
                         var state = stationStateLookup[slot.Station];
-                        if (state.AssignedWorker == npcEntity)
+                        // Ищем нашу назначенную станцию, которая ждет работы
+                        if (state.SpecificWorker == npcEntity && state.Status == StationStatus.ApplyingManualLabor)
                         {
-                            if (state.Status == StationStatus.ApplyingManualLabor)
-                            {
-                                targetStation = slot.Station;
-                                break;
-                            }
-                            else if (state.Status == StationStatus.AwaitingManualLabor)
-                            {
-                                targetStation = slot.Station;
-                                state.Status = StationStatus.ApplyingManualLabor;
-                                stationStateLookup[targetStation] = state;
-                                break;
-                            }
+                            targetStation = slot.Station;
+                            break;
                         }
                     }
                 }
@@ -119,19 +108,30 @@ public partial class WorkshopMaintenanceExecutionSystem : SystemBase
                 ref var recipe = ref FindRecipe(ref recipeBlobRef.Value, targetState.SelectedRecipeID);
                 if (recipe.RecipeID == -1) return;
 
-                float workRate = 1.0f;
-                float workAmount = math.min(workForce.CurrentHammerPool, dt * workRate);
-                float neededHK = recipe.HammerCost - targetState.AppliedHammerCost;
-                workAmount = math.min(workAmount, neededHK);
+                float workRate = 1.0f; // Работа со скоростью 1 HC в секунду
+                float workAmount = math.min(workForce.CurrentHammerPool, dt * workRate * targetState.PowerEfficiency);
+                float neededHC = recipe.HammerCost - targetState.AppliedHammerCost;
+                workAmount = math.min(workAmount, neededHC);
 
-                targetState.AppliedHammerCost += workAmount;
-                workForce.CurrentHammerPool -= workAmount;
+                if (workAmount > 0)
+                {
+                    targetState.AppliedHammerCost += workAmount;
+                    workForce.CurrentHammerPool -= workAmount;
+                }
+                
+                if ((recipe.HammerCost - targetState.AppliedHammerCost) <= 0.001f)
+                {
+                    // HC выполнен, переводим станок в состояние Working для отсчета BT
+                    targetState.Status = StationStatus.Working;
+                    targetState.RemainingTime = recipe.BaseTime + targetState.TimePenalty;
+                    targetState.AssignedWorker = Entity.Null; // Освобождаем временное назначение
+                }
 
                 stationStateLookup[targetStation] = targetState;
 
             }).Run();
 
-        // Этап 3: NPC освобожден (без изменений).
+        // Этап 3: NPC освобожден.
         Entities
             .WithAll<InsideBuildingTag>().WithNone<WorkshopMaintenanceInProgress>()
             .ForEach((Entity npcEntity) =>

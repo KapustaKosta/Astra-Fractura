@@ -1,4 +1,4 @@
-﻿using Energy.Core;
+﻿﻿using Energy.Core;
 using Game.Production;
 using Unity.Burst;
 using Unity.Collections;
@@ -7,16 +7,29 @@ using UnityEngine;
 
 namespace Game.Workshop
 {
+    /// <summary>
+    /// Система-планировщик, которая проверяет, возможно ли выполнить текущий
+    /// производственный заказ в цехе, исходя из имеющихся ресурсов.
+    /// </summary>
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct WorkshopPlannerSystem : ISystem
     {
+        /// <summary>
+        /// Вызывается при создании системы для установки необходимых зависимостей.
+        /// </summary>
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<ProductionRecipeRegistryData>();
         }
 
+        /// <summary>
+        /// Основной метод обновления. Срабатывает при запросе на пересчет плана.
+        /// Рекурсивно проверяет, хватает ли ресурсов для производства финального
+        /// продукта из очереди, учитывая необходимость крафта промежуточных компонентов.
+        /// Помечает цех тегом Feasible (выполнимо) или Unfeasible (невыполнимо).
+        /// </summary>
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
@@ -36,8 +49,6 @@ namespace Game.Workshop
                 .WithEntityAccess())
 
             {
-                var workshopName = nameLookup.HasComponent(workshopEntity) ? nameLookup[workshopEntity].Name.ToString() : "Unknown Workshop";
-
                 ecb.RemoveComponent<ProductionPlanIsFeasibleTag>(workshopEntity);
                 ecb.RemoveComponent<ProductionPlanIsUnfeasibleTag>(workshopEntity);
 
@@ -74,21 +85,20 @@ namespace Game.Workshop
                 if (canProduce)
                 {
                     ecb.AddComponent(workshopEntity, new ProductionPlanIsFeasibleTag());
-                    Debug.Log($"[Planner] Plan for '{workshopName}' is FEASIBLE.");
                 }
                 else
                 {
                     ecb.AddComponent(workshopEntity, new ProductionPlanIsUnfeasibleTag());
-                    Debug.LogWarning($"[Planner] Plan for '{workshopName}' is UNFEASIBLE.");
                 }
 
                 ecb.RemoveComponent<RequestRecalculatePlan>(workshopEntity);
                 ecb.RemoveComponent<WorkshopChainChangedTag>(workshopEntity); 
-
             }
         }
 
-
+        /// <summary>
+        /// Рекурсивная функция для проверки возможности производства предмета.
+        /// </summary>
         private bool CanPotentiallyProduce(int recipeIdToProduce, int amountNeeded, ref ProductionRecipeRegistryBlob registry, ref NativeHashMap<int, int> availableResources)
         {
             int recipeIndex = FindRecipeIndex(ref registry, recipeIdToProduce);
@@ -124,6 +134,9 @@ namespace Game.Workshop
             return true;
         }
 
+        /// <summary>
+        /// Вспомогательный метод для поиска индекса рецепта по его ID.
+        /// </summary>
         private int FindRecipeIndex(ref ProductionRecipeRegistryBlob registry, int recipeID)
         {
             for (int i = 0; i < registry.Recipes.Length; i++)

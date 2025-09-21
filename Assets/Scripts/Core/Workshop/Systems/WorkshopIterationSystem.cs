@@ -1,10 +1,20 @@
 ﻿using Game.Workshop;
 using Unity.Entities;
 
+/// <summary>
+/// Система-дирижер, управляющая "проходами" ручного труда в цехе.
+/// Основная задача - однократно восстановить энергию (Hammer Pool) рабочих
+/// после завершения всех задач ручного труда в текущем цикле.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(WorkshopWorkerSystem))] 
+[UpdateAfter(typeof(WorkshopMaintenanceExecutionSystem))]
 public partial struct WorkshopIterationSystem : ISystem
 {
+    /// <summary>
+    /// Основной метод обновления. Если в цехе нет задач ручного труда и цикл еще не был отмечен
+    /// как завершенный, система восстанавливает энергию всем рабочим и добавляет тег
+    /// WorkshopPassCompleteTag. Если задачи появляются снова, тег снимается, начиная новый цикл.
+    /// </summary>
     public void OnUpdate(ref SystemState state)
     {
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);

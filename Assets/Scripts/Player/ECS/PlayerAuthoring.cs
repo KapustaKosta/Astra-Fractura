@@ -21,6 +21,12 @@ public class PlayerAuthoring : MonoBehaviour
     public float MoveSpeed = 4.0f;
 
     /// <summary>
+    /// ХП игрока.
+    /// </summary>
+    [Header("Player Settings")]
+    public float maxHealth = 100f;
+    
+    /// <summary>
     /// Скорость движения игрока в режиме спринта.
     /// </summary>
     public float SprintSpeed = 6.0f;
@@ -165,7 +171,8 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
             IgnoreLayers = authoring.IgnoreLayers.value
         });
         AddComponent<PlayerGroundedState>(entity);
-
+        
+        
         var sphereGeometry = new SphereGeometry
         {
             Center = float3.zero,
@@ -205,6 +212,12 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
         });
 
         AddComponent(entity, new PlayerGroundCheckColliderCleanup { Collider = bakedCollider }); 
+
+        AddComponent(entity, new HealthComponent
+        {
+            MaxHealth = (int)authoring.maxHealth,   
+            CurrentHealth = (int)authoring.maxHealth
+        });
 
         AddComponent(entity, new PlayerStateData
         {

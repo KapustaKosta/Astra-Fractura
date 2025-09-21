@@ -7,7 +7,7 @@ using Unity.Rendering;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingPlacementSystem))]
+[UpdateAfter(typeof(FoundationPlacementSystem))]
 public partial struct FoundationSnapVisualSystem : ISystem
 {
     [BurstCompile]
@@ -36,14 +36,13 @@ public partial struct FoundationSnapVisualSystem : ISystem
 
         var previewTransform = SystemAPI.GetComponent<LocalTransform>(previewEntity);
         var snapPoints = new NativeList<SnapPointData>(Allocator.Temp);
-
-        // ⬇️ ИЗМЕНЕНИЕ 3: Добавляем LocalToWorld в запрос, чтобы получить вращение фундамента.
+        
         foreach (var (deck, ltw) in SystemAPI.Query<RefRO<FoundationDeck>, RefRO<LocalToWorld>>())
         {
             float2 deckHalfSize = deck.ValueRO.SizeXZ * 0.5f;
             float deckLocalY = 0; // В локальном пространстве палуба находится на Y, зависящем от скейла. Но DeckWorldY уже в мире, так что используем ее.
 
-            // ⬇️ Определяем точки в ЛОКАЛЬНОМ пространстве фундамента (относительно его центра).
+            // Определяем точки в локальном пространстве фундамента (относительно его центра).
             // Y-координата пока 0, мы подставим мировую высоту DeckWorldY позже.
             float3[] localPoints =
             {
@@ -61,7 +60,7 @@ public partial struct FoundationSnapVisualSystem : ISystem
 
             for (int i = 0; i < localPoints.Length; i++)
             {
-                // ⬇️ Трансформируем локальную точку в мировую, используя матрицу, которая содержит и позицию, и ВРАЩЕНИЕ.
+                // рансформируем локальную точку в мировую, используя матрицу, которая содержит и позицию, и ВРАЩЕНИЕ.
                 float3 worldPoint = math.transform(ltw.ValueRO.Value, localPoints[i]);
                 // Y координата может быть неточной из-за скейла, поэтому переназначаем ее из надежного источника.
                 worldPoint.y = deck.ValueRO.DeckWorldY;
