@@ -23,6 +23,13 @@ public partial class EnemyPerceptionSystem : SystemBase
             }
             return;
         }
+        
+        // Если у игрока есть DeadTag, считаем, что игрока нет на сцене.
+        if (SystemAPI.HasComponent<DeadTag>(player))
+        {
+            return; 
+        }
+
         if (!SystemAPI.HasComponent<LocalToWorld>(player)) return;
 
         var playerLTW = SystemAPI.GetComponent<LocalToWorld>(player);
@@ -30,15 +37,14 @@ public partial class EnemyPerceptionSystem : SystemBase
         var ecb = SystemAPI
             .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(World.Unmanaged);
-
+        
         Entities
-            .WithAll<HostileNPCTag>() // ← без NPCBrain
+            .WithAll<HostileNPCTag>()
+            .WithNone<IsDeadTag>() 
             .ForEach((Entity e, in LocalToWorld ltw, in EnemyStats stats) =>
             {
                 float dist = math.distance(ltw.Position, playerLTW.Position);
                 bool inAggro = dist <= stats.AggroRadius;
-
-                Debug.DrawLine(ltw.Position, playerLTW.Position, inAggro ? Color.green : Color.gray, 0f, false);
 
                 bool has = SystemAPI.HasComponent<EnemySeenPlayer>(e);
                 if (inAggro)

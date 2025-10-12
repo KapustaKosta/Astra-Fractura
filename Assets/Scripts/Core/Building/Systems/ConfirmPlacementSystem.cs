@@ -1,15 +1,14 @@
-﻿﻿using Unity.Entities;
+﻿using Game.Buildings;
+using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;
 
 /// <summary>
-/// Подтверждает установку обычных (НЕ конвейерных) построек по ЛКМ.
-/// Вместо прямого создания здания, эта система создает PlaceBuildingRequest,
-/// который будет обработан FinalizeBuildingSystem для корректного списания ресурсов.
+/// Подтверждает установку построек по ЛКМ.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
+[UpdateAfter(typeof(RegularBuildingPreviewValidationSystem))] 
 public partial class ConfirmPlacementSystem : SystemBase
 {
     private bool wasPressedLastFrame; // Флаг для отслеживания состояния кнопки между кадрами.
@@ -20,7 +19,7 @@ public partial class ConfirmPlacementSystem : SystemBase
     protected override void OnCreate()
     {
         RequireForUpdate<GameState>();
-        RequireForUpdate<BuildingPreviewTag>(); // Работаем только когда есть превью
+        RequireForUpdate<BuildingPreviewTag>();
     }
 
     /// <summary>
@@ -69,8 +68,7 @@ public partial class ConfirmPlacementSystem : SystemBase
             BuildingPrefabToPlace = st.BuildingPrefabToPlace,
             ItemIDToConsume = st.BuildingItemID
         });
-
-
+        
         ecb.DestroyEntity(preview);
     }
 }

@@ -1,95 +1,76 @@
-﻿using Unity.Entities;
+﻿using Unity.Collections;
+using Unity.Entities;
 using Unity.Rendering;
+using Unity.Transforms;
 using UnityEngine;
 
-/// <summary>
-/// Система, которая динамически назначает материалы превью зданий в зависимости от того,
-/// можно ли их разместить в текущей позиции.
-/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
-public partial class PreviewMaterialSystem : SystemBase
+[UpdateAfter(typeof(RegularBuildingPreviewValidationSystem))]
+public sealed partial class PreviewMaterialSystem : SystemBase
 {
-    private UnityEngine.Rendering.BatchMaterialID validMatID;   // ID материала для валидного размещения.
-    private UnityEngine.Rendering.BatchMaterialID invalidMatID; // ID материала для невалидного размещения.
-    private bool initialized = false;                           // Флаг инициализации материалов.
+    private bool _initialized;
+    private UnityEngine.Rendering.BatchMaterialID _validID;
+    private UnityEngine.Rendering.BatchMaterialID _invalidID;
 
-    /// <summary>
-    /// Вызывается при создании системы. Требует наличия синглтона BuildingSettings.
-    /// </summary>
     protected override void OnCreate()
     {
         RequireForUpdate<BuildingSettings>();
+        RequireForUpdate<BuildingPreviewTag>();
+        _initialized = false;
     }
 
-    /// <summary>
-    /// Вызывается каждый кадр для обновления материалов превью.
-    /// Инициализирует ID материалов при первом запуске, затем применяет
-    /// соответствующий материал к превью зданий в зависимости от их тегов валидности.
-    /// </summary>
     protected override void OnUpdate()
     {
-        var gfx = World.GetExistingSystemManaged<EntitiesGraphicsSystem>();
-        
-        // Инициализация материалов при первом запуске или если EntitiesGraphicsSystem еще не готов.
-        if (!initialized && gfx != null)
+        if (!_initialized)
         {
-            var authoring = Object.FindFirstObjectByType<BuildingSettingsAuthoring>();
-            if (authoring != null)
+            var auth = Object.FindFirstObjectByType<BuildingSettingsAuthoring>();
+            if (auth != null && auth.validPlacementMaterial != null && auth.invalidPlacementMaterial != null)
             {
-                // Регистрируем материалы из Authoring-компонента и сохраняем их ID.
-                validMatID   = gfx.RegisterMaterial(authoring.validPlacementMaterial);
-                invalidMatID = gfx.RegisterMaterial(authoring.invalidPlacementMaterial);
+                var gfx = World.GetExistingSystemManaged<EntitiesGraphicsSystem>();
+                _validID = gfx.RegisterMaterial(auth.validPlacementMaterial);
+                _invalidID = gfx.RegisterMaterial(auth.invalidPlacementMaterial);
 
-                // Сохраняем полученные MaterialID в синглтоне BuildingSettings для доступа из других систем.
                 var bs = SystemAPI.GetSingletonRW<BuildingSettings>();
-                bs.ValueRW.ValidPlacementMaterialID   = validMatID;
-                bs.ValueRW.InvalidPlacementMaterialID = invalidMatID;
-
-                initialized = true;
+                bs.ValueRW.ValidPlacementMaterialID = _validID;
+                bs.ValueRW.InvalidPlacementMaterialID = _invalidID;
+                _initialized = true;
             }
-            else
+        }
+        if (!_initialized) return;
+
+        // 1. Находим единственный экземпляр превью
+        if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewRootEntity))
+        {
+            return;
+        }
+
+        // 2. Определяем, какой материал нужно применить, по тегам на корневом объекте
+        bool isInvalid = SystemAPI.HasComponent<PlacementInvalidTag>(previewRootEntity);
+        var targetMaterialID = isInvalid ? _invalidID : _validID;
+
+        // 3. Используем очередь для безопасного обхода всей иерархии (корень + все потомки)
+        var queue = new NativeQueue<Entity>(Allocator.Temp);
+        queue.Enqueue(previewRootEntity);
+
+        while (queue.TryDequeue(out var currentEntity))
+        {
+            // в прогрессе
+            if (SystemAPI.HasComponent<MaterialMeshInfo>(currentEntity) && 
+                SystemAPI.HasComponent<RenderBounds>(currentEntity))
             {
-                // Если Authoring-компонент не найден, пытаемся взять ID материалов из уже заполненного синглтона.
-                var bs = SystemAPI.GetSingleton<BuildingSettings>();
-                if (!bs.ValidPlacementMaterialID.Equals(default) &&
-                    !bs.InvalidPlacementMaterialID.Equals(default))
+                var mmi = SystemAPI.GetComponentRW<MaterialMeshInfo>(currentEntity);
+                mmi.ValueRW.MaterialID = targetMaterialID;  
+            }
+
+            // Добавляем дочерние сущности в очередь для обработки
+            if (SystemAPI.HasBuffer<Child>(currentEntity))
+            {
+                var children = SystemAPI.GetBuffer<Child>(currentEntity);
+                foreach (var child in children)
                 {
-                    validMatID   = bs.ValidPlacementMaterialID;
-                    invalidMatID = bs.InvalidPlacementMaterialID;
-                    initialized  = true;
-                }
-                else
-                {
-                    #if UNITY_EDITOR
-                    Debug.LogWarning("PreviewMaterialSystem: материалы превью не инициализированы — " +
-                                     "проверьте BuildingSettingsAuthoring.");
-                    #endif
+                    queue.Enqueue(child.Value);
                 }
             }
         }
-
-        // Если инициализация не прошла, прекращаем выполнение OnUpdate.
-        if (!initialized) return;
-
-        // Основная логика назначения материалов:
-
-        // 1. Применяем материал для невалидного размещения ко всем превью, имеющим PlacementInvalidTag.
-        foreach (var mmi in SystemAPI.Query<RefRW<MaterialMeshInfo>>()
-                                     .WithAll<BuildingPreviewTag, PlacementInvalidTag>())
-        {
-            mmi.ValueRW.MaterialID = invalidMatID;
-        }
-
-        // 2. Применяем материал для валидного размещения ко всем превью, имеющим PlacementValidTag,
-        // но не имеющим компонента MyOwnColor (чтобы не переопределять кастомный цвет).
-        foreach (var mmi in SystemAPI.Query<RefRW<MaterialMeshInfo>>()
-                                     .WithAll<BuildingPreviewTag, PlacementValidTag>()
-                                     .WithNone<MyOwnColor>())
-        {
-            mmi.ValueRW.MaterialID = validMatID;
-        }
-
-        // 3. Превью с PlacementValidTag и MyOwnColor остаются без изменений, сохраняя свой кастомный цвет.
     }
 }

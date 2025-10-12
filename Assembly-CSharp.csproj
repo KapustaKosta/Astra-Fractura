@@ -60,6 +60,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Core\Energy\Components\GeneratorComponent.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\PreviewMaterialSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\DeathAndLootComponents.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\NPCLocalAvoidanceSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\SetStationRecipeRequestSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Harvest\Systems\HarvestValidationSystem.cs" />
@@ -92,6 +93,8 @@
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\GoalEvaluationContextBuilder.cs" />
     <Compile Include="Assets\Scripts\Core\Building\DynamicFoundation\Systems\FoundationPreviewScalingSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\ConveyorRuntimeVisuals.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\DeathDebugSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Quarry\ECS\QuarryAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingHeightAdjustmentSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\Components\CombatComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewLifecycleSystem.cs" />
@@ -111,10 +114,14 @@
     <Compile Include="Assets\Scripts\ECS\CORE\CursorLockManager.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\RemoveConveyorSystem.cs" />
     <Compile Include="Assets\Scripts\Resources\ResourceItemMapping.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\InitDroppedVisualsSystem.cs" />
+    <Compile Include="Assets\Scripts\NPC\EnemyNPC\ECS\Systems\GoalCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\NewlyBuiltTag.cs" />
+    <Compile Include="Assets\Scripts\Core\Quarry\ECS\Systems\QuarrySystems.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopRequestHandlerSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\Systems\ConveyorVisualMotionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorGhostPoolResizeSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\DeathCleanupGateSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Components\QuickbarComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopPowerDemandSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\AIPathfindingBridgeSystem.cs" />
@@ -131,6 +138,7 @@
     <Compile Include="Assets\Scripts\Core\Wiring\Authorings\WirePreviewAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\NPCUISyncSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\UI\GeneratorUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Building\Systems\QuarryPreviewSystems.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Authorings\WireVisualAuthoring.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Components\RequestComponents.cs" />
     <Compile Include="Assets\Scripts\Tools\TerrainConverter.cs" />
@@ -139,6 +147,7 @@
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorConnectorHighlightSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryUISystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\ValidateCurrentGoalSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Quarry\ECS\Components\QuarryComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\ActiveItemSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\EnemyNPC\ECS\Components\PerformNpcAttackRequest.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\Components\ConveyorVisualProgressComponents.cs" />
@@ -161,6 +170,7 @@
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopOutputTransferSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\Pathfinding\HybridBuildingSpawner.cs" />
     <Compile Include="Assets\Scripts\Core\Settlement\SettlementAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\ItemTooltipController.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorPlacementInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\GoalDefinition.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\BuildingPreviewSetupSystem.cs" />
@@ -169,12 +179,15 @@
     <Compile Include="Assets\Scripts\NPC\ECS\Components\NpcAiComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Systems\WirePreviewSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIStateAndConditionTags.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\ImpactSystemConfigAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\DeadTag.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Systems\ConfirmPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\MaintainWorkshop\WorkshopMaintenanceExecutionSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\EnemyNPC\ECS\Components\AttackAIComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Tags\SnapToEndpointTag.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\WorkshopAuthoring.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\BasicRigidBodyPush.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\ShowDeathUIRequest.cs" />
     <Compile Include="Assets\Scripts\ECS\Authoring\GameStateAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestGoalExecutionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\Components\EnergyRequests.cs" />
@@ -185,17 +198,22 @@
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopStateTransitionSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\AttackPlayer\AttackPlayerGoalExecutionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\DynamicFoundation\Systems\FinalizeFoundationSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\PlayerUIController.cs" />
+    <Compile Include="Assets\Scripts\Player\DeathUIController.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\ItemVisualRegistryAuthoring.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\RotationPositionFixingSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\InventoryChangedCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\NPCPropertiesComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\Components\BatteryComponent.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\ItemVisualRotationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorPreviewLifecycleSystem.cs" />
     <Compile Include="Assets\Scripts\Tools\TerrainConverterEditor.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\Systems\RouteRecalculationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\Components\SpawnHybridBuildingTag.cs" />
+    <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestArrivalSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Production\ProductionRecipeRegistrySO.cs" />
     <Compile Include="Assets\Scripts\Core\Building\DynamicFoundation\FoundationPlacementTuningAuthoring.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\ClearDropRequestedFlagSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Production\Systems\ProductionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Building\DynamicFoundation\Systems\FoundationPlacementSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ItemRegistry.cs" />
@@ -218,6 +236,7 @@
     <Compile Include="Assets\Scripts\Core\Settlement\Components\PlayerSettlementCandidateTag.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\Systems\ConveyorRoutesUISystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorPreviewPoseComputeSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\LootSpawnSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\ConveyorQuantization.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorValidationSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\ReturnToBase\ReturnToBaseGoalExecutionSystem.cs" />
@@ -252,6 +271,7 @@
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorColliderBakeTransformSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarUI.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\ItemPickupSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConveyorPolylineInputSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\ECS\Systems\InventorySystem.cs" />
@@ -263,6 +283,7 @@
     <Compile Include="Assets\Scripts\Core\Combat\Systems\PlayerAttackIntentionSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\PlayerInventoryUi\InventoryUI.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\Movement\Pathfinding\NPCPathfindingSystem.cs" />
+    <Compile Include="Assets\Scripts\NPC\EnemyNPC\ECS\Systems\CancelGoalOnTargetDeathSystem.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\ECS\CORE\Systems\RequestCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestGoalDefinition.cs" />
@@ -275,6 +296,7 @@
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\AIPhysicsQuery.cs" />
     <Compile Include="Assets\Scripts\Core\Production\ProductionAspects.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\PlayerCraftingTimerUI.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Components\PlayerKnockback.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\ECS\Components\CraftingComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Components\WireComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\RemoveStationRequestSystem.cs" />
@@ -299,6 +321,7 @@
     <Compile Include="Assets\Scripts\Core\Energy\Authoring\RampAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Systems\WireConnectorHighlightSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Production\ProductionRecipeRegistry.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Systems\DropOnDeathSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\ToggleStationRequestSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\Systems\NetworkIdSyncSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConnectorCleanupSystem.cs" />
@@ -307,6 +330,7 @@
     <Compile Include="Assets\Scripts\Core\Energy\Systems\SubnetPropagationSystem.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\AttackPlayer\AttackPlayerGoalDefinition.cs" />
     <Compile Include="Assets\Scripts\Core\Conveyor\Systems\ConnectorVisibilitySystem.cs" />
+    <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\Harvest\HarvestRotationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\Authoring\GeneratorAuthoring.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\Systems\QuickbarItemUsageSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Systems\EnterWirePlacementModeSystem.cs" />
@@ -320,6 +344,7 @@
     <Compile Include="Assets\Scripts\Core\Combat\Systems\CorpseCleanupSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Energy\Components\ConsumerLoad.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Components\AIGoalSystemComponents.cs" />
+    <Compile Include="Assets\Scripts\Player\ECS\Systems\PlayerDeathSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Inventory\Quickbar\QuickbarSettings.cs" />
     <Compile Include="Assets\Scripts\Core\Production\ProductionBuildingAuthoring.cs" />
     <Compile Include="Assets\ThirdParty\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
@@ -342,6 +367,7 @@
     <Compile Include="Assets\Scripts\Core\Building\Systems\FinalizeBuildingSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Logistics\ConveyorRoutesUI.cs" />
     <Compile Include="Assets\Scripts\NPC\ECS\Systems\AI\Goals\MaintainWorkshop\MaintenanceConditionSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\ItemInteractionComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\CraftingQueueItemUI.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopDeactivationSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Wiring\Authorings\WireSettingsAuthoring.cs" />
@@ -361,6 +387,7 @@
     <Compile Include="Assets\Scripts\Player\ECS\Components\InputsData.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\Systems\WorkshopChainIntegritySystem.cs" />
     <Compile Include="Assets\Scripts\Core\Crafting\ECS\Systems\CraftingProcessingSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\Components\ItemLinkComponents.cs" />
     <Compile Include="Assets\Scripts\Core\Workshop\GeneralWorkerCardUI.cs" />
     <None Include="Assets\ThirdParty\PolygonNatureBiomes\PNB_Core\Shaders\SyntyStudios_CrystalShader.shader" />
     <None Include="Assets\ThirdParty\TextMesh Pro\Shaders\TMPro.cginc" />

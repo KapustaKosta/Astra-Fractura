@@ -20,8 +20,8 @@ public partial class NPCLocalAvoidanceSystem : SystemBase
     private const int   MaxNeighbors      = 12;
     private const float TimeHorizon       = 2.5f;
     private const float SideBiasStrength  = 0.12f;
-    private const float WallProbeDistance = 1.25f;
-    private const float WallPenalty       = 0.5f;
+    private const float WallProbeDistance = 2.0f;  
+    private const float WallPenalty       = 0.75f;
     private const float CoherenceTau      = 8.0f;
     private const float DeadZoneSqr       = 0.01f;
     private const float MinAngleDeg       = 5.0f;
@@ -42,7 +42,8 @@ public partial class NPCLocalAvoidanceSystem : SystemBase
             ComponentType.ReadOnly<LocalTransform>(),
             ComponentType.ReadOnly<Unity.Physics.PhysicsVelocity>(),
             ComponentType.ReadOnly<AvoidanceData>(),
-            ComponentType.ReadWrite<NPCMovementComponent>()
+            ComponentType.ReadWrite<NPCMovementComponent>(),
+            ComponentType.Exclude<IsDeadTag>() 
         );
         RequireForUpdate(_agentQuery);
         RequireForUpdate<PhysicsWorldSingleton>();
@@ -154,18 +155,19 @@ public partial class NPCLocalAvoidanceSystem : SystemBase
             float2 toTarget  = toTarget3.xz;
             float  distXZ    = math.length(toTarget);
 
-            if (movement.HasTarget && distXZ < OrbitEnterDist)
+
+            if (movement.HasTarget && distXZ < OrbitEnterDist && movement.StoppingDistance <= OrbitEnterDist)
             {
-                uint h = (uint)entity.Index * 1103515245u + 12345u;
+                uint h  = (uint)entity.Index * 1103515245u + 12345u;
                 float u1 = (float)((h & 0x00FFFFFFu)) / 16777216f;
                 float u2 = (float)(((h * 1664525u + 1013904223u) & 0x00FFFFFFu)) / 16777216f;
-
+                
                 float theta = u1 * (2f * math.PI);
                 float rad   = math.lerp(avoid.Radius * OrbitMinFactor, avoid.Radius * OrbitMaxFactor, u2);
 
                 float2 orbitOffset = new float2(math.cos(theta), math.sin(theta)) * rad;
-                float2 desiredDir = math.normalizesafe(toTarget + orbitOffset);
-                float  prefLen    = math.length(vPref);
+                float2 desiredDir  = math.normalizesafe(toTarget + orbitOffset);
+                float  prefLen     = math.length(vPref);
                 
                 vPref = (prefLen <= 1e-6f)
                     ? desiredDir * math.max(0.1f, movement.Speed)

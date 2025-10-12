@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Transforms; 
 using UnityEngine;
 
 /// <summary>
@@ -13,11 +14,12 @@ public partial class PlayerAttackIntentionSystem : SystemBase
         // Проверяем общее состояние игры. Атаковать можно только в стандартном режиме.
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         if (!SystemAPI.HasComponent<InDefaultMode>(gameStateEntity))
-        {
             return;
-        }
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI
+            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
@@ -25,12 +27,15 @@ public partial class PlayerAttackIntentionSystem : SystemBase
 
         Entities
             .WithoutBurst()
-            .ForEach((Entity playerEntity, ref AttackState attackState, in InputsData inputs, in ActiveEquippedItem equippedItem, in ActiveTarget activeTarget) =>
+            .ForEach((Entity playerEntity, ref AttackState attackState, in InputsData inputs, in ActiveEquippedItem equippedItem, in ActiveTarget activeTarget, in LocalToWorld ltw) =>
             {
                 // Проверяем, нажал ли игрок кнопку атаки.
                 if (!inputs.PrimaryAction) return;
-                
-                // Цель должна быть валидной и иметь компонент здоровья, иначе атаковать бессмысленно.
+
+                if (!EntityManager.Exists(activeTarget.Value) ||
+                    SystemAPI.HasComponent<Disabled>(activeTarget.Value))
+                    return;
+
                 if (!SystemAPI.HasComponent<HealthComponent>(activeTarget.Value)) return;
 
                 // Проверяем, что в руках у игрока действительно оружие.
@@ -39,7 +44,7 @@ public partial class PlayerAttackIntentionSystem : SystemBase
                 
                 // Проверяем кулдаун атаки, чтобы игрок не мог атаковать слишком часто.
                 if (currentTime < attackState.LastAttackTime + itemData.attackCooldown) return;
-                
+
                 Debug.Log($"[PlayerAttackIntentionSystem] Создан запрос PerformAttackRequest. Атакующий: {playerEntity}, Цель: {activeTarget.Value}");
                 
                 // Если все проверки пройдены, создаем одноразовую сущность-запрос на атаку.
@@ -48,12 +53,13 @@ public partial class PlayerAttackIntentionSystem : SystemBase
                 ecb.AddComponent(requestEntity, new PerformAttackRequest
                 {
                     Attacker = playerEntity,
-                    Target = activeTarget.Value
+                    Target   = activeTarget.Value,
+                    AttackerPosition = ltw.Position 
                 });
                 
                 // Обновляем время последней атаки для отсчета следующего кулдауна.
                 attackState.LastAttackTime = currentTime;
-
-            }).Run();
+            })
+            .Run();
     }
 }

@@ -39,6 +39,11 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         var controllerData = SystemAPI.GetSingleton<PlayerControllerData>();
 
         if (Camera.main == null) return;
+        
+
+        // Получаем сущность игрока для запроса на подбор
+        var playerEntity = SystemAPI.GetSingletonEntity<PlayerTag>();
+
 
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         var rayInput = new RaycastInput
@@ -62,6 +67,21 @@ public partial class PlayerContextualInteractionSystem : SystemBase
             {
                 ecb.AddComponent(requestEntity, new OpenNPCUIRequest { Target = interactedEntity });
             }
+            // Добавляем проверку на подбираемый предмет
+            else if (em.HasComponent<VisualFor>(interactedEntity))
+            {
+                var logicalEntity = em.GetComponentData<VisualFor>(interactedEntity).LogicalEntity;
+                if (em.HasComponent<WorldItem>(logicalEntity))
+                {
+                    // Создаем запрос на подбор, а не на открытие UI
+                    ecb.AddComponent(requestEntity, new PickupRequest
+                    {
+                        Player = playerEntity,
+                        LogicalItemEntity = logicalEntity
+                    });
+                }
+            }
+
             else if (em.HasComponent<SettlementComponent>(interactedEntity))
             {
                 ecb.AddComponent(requestEntity, new OpenSettlementUIRequest { Target = interactedEntity });

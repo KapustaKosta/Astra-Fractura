@@ -1,71 +1,116 @@
 ﻿using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
+using Unity.Physics; 
 using UnityEngine;
 
-/// <summary>
-/// Обрабатывает запросы на атаку, находя урон оружия и уменьшая здоровье цели.
-/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(PlayerAttackIntentionSystem))]
 public partial class DamageSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        // Получаем "Lookup" для компонента Health. 
-        var healthLookup = GetComponentLookup<HealthComponent>(false);
-        
-        // Получаем доступ к реестру предметов. Если он еще не загрузился, выходим.
+        var healthLookup = GetComponentLookup<HealthComponent>(isReadOnly: false);
+        healthLookup.Update(this);
+
+        var ecb = SystemAPI
+            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
         var itemRegistry = ItemRegistry.Instance;
         if (itemRegistry == null) return;
 
-        // Командный буфер для отложенных изменений, таких как добавление или изменение компонентов.
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        float currentTime = (float)SystemAPI.Time.ElapsedTime;
+
+        if (!SystemAPI.TryGetSingleton<ImpactSystemConfig>(out var impactConfig))
+        {
+            // Если конфига нет, просто выходим, чтобы не применять отталкивание.
+            impactConfig = default; 
+        }
+
+        float now = (float)SystemAPI.Time.ElapsedTime;
 
         Entities
-            .WithoutBurst() 
-            .ForEach((in PerformAttackRequest request) =>
+            .WithoutBurst()
+            .ForEach((Entity req, in PerformAttackRequest request) =>
             {
-                // Убеждаемся, что цель все еще существует, имеет здоровье и еще не мертва.
-                if (!healthLookup.HasComponent(request.Target) || SystemAPI.HasComponent<IsDeadTag>(request.Target))
+                // Цель должна быть валидной и живой на момент обработки
+                if (!healthLookup.HasComponent(request.Target) ||
+                    SystemAPI.HasComponent<IsDeadTag>(request.Target))
                 {
+                    ecb.DestroyEntity(req);
                     return;
                 }
-                
-                // Проверяем, что у атакующего все еще есть активный предмет.
+
+                // Должно быть оружие
                 if (!SystemAPI.HasComponent<ActiveEquippedItem>(request.Attacker))
                 {
+                    ecb.DestroyEntity(req);
                     return;
                 }
-                
-                // Получаем данные об оружии атакующего из реестра.
+
                 var attackerItem = SystemAPI.GetComponent<ActiveEquippedItem>(request.Attacker);
                 var itemData = itemRegistry.GetItemData(attackerItem.ItemID);
-
-                // Если у предмета нет данных или это не оружие, урон не наносится.
-                if (itemData == null || itemData.itemType != ItemType.Weapon) return;
-
-                // Наносим урон, изменяя значение здоровья цели.
-                var targetHealth = healthLookup[request.Target];
-                targetHealth.CurrentHealth -= itemData.weaponDamage;
-                healthLookup[request.Target] = targetHealth; 
-                
-                // Если атакован NPC, необходимо перевести его в боевое состояние.
-                if (SystemAPI.HasComponent<NPCComponent>(request.Target))
+                if (itemData == null || itemData.itemType != ItemType.Weapon)
                 {
-                    var newCombatState = new InCombat { LastDamageTime = currentTime };
-
-                    // Если у NPC уже есть компонент InCombat (это повторный удар), мы обновляем время.
-                    if (SystemAPI.HasComponent<InCombat>(request.Target))
-                    {
-                        ecb.SetComponent(request.Target, newCombatState);
-                    }
-                    // Если компонента нет (это первый удар), мы его добавляем.
-                    else
-                    {
-                        ecb.AddComponent(request.Target, newCombatState);
-                    }
+                    ecb.DestroyEntity(req);
+                    return;
                 }
+
+                // Наносим урон
+                var hc = healthLookup[request.Target];
+                hc.CurrentHealth -= itemData.weaponDamage;
+                healthLookup[request.Target] = hc;
+
+                // Обновляем LastHitInfo (направление/точка удара)
+                float3 targetPos = SystemAPI.HasComponent<LocalToWorld>(request.Target)
+                    ? SystemAPI.GetComponent<LocalToWorld>(request.Target).Position
+                    : float3.zero;
+
+                float3 hitDir = math.normalizesafe(targetPos - request.AttackerPosition);
+                var hitInfo = new LastHitInfo {
+                    AttackerPosition = request.AttackerPosition,
+                    HitPoint         = targetPos + new float3(0, 0.8f, 0),
+                    HitDirection     = hitDir,
+                    Damage           = itemData.weaponDamage,
+                    Time             = now
+                };
+
+                if (SystemAPI.HasComponent<LastHitInfo>(request.Target))
+                    ecb.SetComponent(request.Target, hitInfo);
+                else
+                    ecb.AddComponent(request.Target, hitInfo);
                 
-            }).Run();
+                if (impactConfig.PlayerAttackKnockback > 0 && SystemAPI.HasComponent<PhysicsVelocity>(request.Target))
+                {
+                    // Направление "от атакующего"
+                    float3 knockbackDirection = hitDir;
+                    knockbackDirection.y = 0; // Для основного импульса используем только горизонтальное направление
+                    
+                    // Собираем итоговый импульс: назад + вверх
+                    float3 impulse = (math.normalizesafe(knockbackDirection) * impactConfig.PlayerAttackKnockback) 
+                                     + new float3(0, impactConfig.KnockbackUpwardForce, 0);
+
+                    // Применяем импульс к цели
+                    var velocity = SystemAPI.GetComponent<PhysicsVelocity>(request.Target);
+                    velocity.Linear += impulse;
+                    ecb.SetComponent(request.Target, velocity);
+                }
+
+
+
+                // Помечаем "в бою" только если цель ещё жива
+                if (hc.CurrentHealth > 0f && SystemAPI.HasComponent<NPCComponent>(request.Target))
+                {
+                    var cs = new InCombat { LastDamageTime = now };
+                    if (SystemAPI.HasComponent<InCombat>(request.Target))
+                        ecb.SetComponent(request.Target, cs);
+                    else
+                        ecb.AddComponent(request.Target, cs);
+                }
+
+                // Запрос одноразовый
+                ecb.DestroyEntity(req);
+            })
+            .Run();
     }
 }

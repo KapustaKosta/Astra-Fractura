@@ -32,6 +32,7 @@ public partial class NPCPathFollowSystem : SystemBase
 
         Entities
         .WithName("NPCPathFollow_WithLookAhead_AndSpeedFloor")
+        .WithNone<IsDeadTag>()
         .ForEach((Entity e,
                   ref NPCMovementComponent movement,
                   ref NPCPathfindingComponent path,
@@ -99,12 +100,13 @@ public partial class NPCPathFollowSystem : SystemBase
             path.CurrentWaypointIndex = idx;
 
             bool isLastCorner = (idx == corners.Length - 1);
-            float baseStop    = math.max(0.1f, movement.StoppingDistance);
-            float midStop     = math.clamp(baseStop * 0.5f, 0.15f, 0.25f);
-            float activeStop  = isLastCorner ? baseStop : midStop;
+            float stopDistance = math.max(0.1f, movement.StoppingDistance);
+            float midStop = math.clamp(stopDistance * 0.5f, 0.15f, 1.0f);
+            float activeStop = isLastCorner ? stopDistance : midStop;
 
             float dist = math.sqrt(math.max(distSq, 0f));
-            float slowZone = math.clamp(baseStop * SlowDownRadiusFactor, 0.2f, 3.5f);
+            // Use the preserved stopping distance for slow down calculations instead of the removed baseStop.
+            float slowZone = math.clamp(stopDistance * SlowDownRadiusFactor, 0.2f, 3.5f);
 
             float3 vPref;
             if (dist > 1e-4f)
@@ -138,9 +140,8 @@ public partial class NPCPathFollowSystem : SystemBase
             {
                 movement.HasTarget = true;
             }
-
+            
             movement.TargetPosition    = wp3D;
-            movement.StoppingDistance  = activeStop;
             movement.PreferredVelocity = vPref;
         })
         .WithoutBurst()

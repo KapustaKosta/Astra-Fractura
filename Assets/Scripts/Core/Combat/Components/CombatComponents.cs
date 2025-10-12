@@ -1,52 +1,52 @@
-﻿using Unity.Entities;
+﻿// Assets/Scripts/Core/Combat/Components/CombatComponents.cs
+using Unity.Entities;
+using Unity.Mathematics;
 
-/// <summary>
-/// Компонент, хранящий информацию о здоровье сущности.
-/// </summary>
+/// <summary>Здоровье.</summary>
 public struct HealthComponent : IComponentData
 {
     public float MaxHealth;
     public float CurrentHealth;
 }
 
-/// <summary>
-/// Компонент для отслеживания времени последней атаки (для кулдауна).
-/// </summary>
+/// <summary>Состояние атаки (кулдаун).</summary>
 public struct AttackState : IComponentData
 {
     public float LastAttackTime;
 }
 
-/// <summary>
-/// Одноразовый запрос на выполнение атаки.
-/// </summary>
+/// <summary>Одноразовый запрос на атаку.</summary>
 public struct PerformAttackRequest : IRequestCleanup
 {
     public Entity Attacker;
     public Entity Target;
+    public float3 AttackerPosition;
 }
 
-/// <summary>
-/// Тег, который добавляется к сущности, когда ее здоровье падает до 0.
-/// </summary>
+/// <summary>Метка смерти.</summary>
 public struct IsDeadTag : IComponentData { }
 
-/// <summary>
-/// Компонент-состояние, указывающий, что сущность находится в бою.
-/// Хранит время последнего полученного урона для определения выхода из боя по таймауту.
-/// </summary>
+/// <summary>В бою.</summary>
 public struct InCombat : IComponentData
 {
     public float LastDamageTime;
 }
 
-/// <summary>
-/// Компонент-синглтон, который хранит ссылку на сущность NPC,
-/// находящуюся в фокусе боя. UI будет ориентироваться на этот компонент.
-/// Реализует IComponentData, чтобы быть валидным ECS-компонентом.
-/// </summary>
-
+/// <summary>Активная цель боя для UI и пр.</summary>
 public struct ActiveCombatTarget : IComponentData
 {
     public Entity TargetEntity;
+}
+
+/// <summary>
+/// [NEW] Последний "хит" по сущности — позиция/направление удара, время и урон.
+/// Используется DeathSystem для корректного импульса в сторону удара.
+/// </summary>
+public struct LastHitInfo : IComponentData
+{
+    public float3 AttackerPosition;  // откуда били
+    public float3 HitPoint;          // куда попали (верх корпуса)
+    public float3 HitDirection;      // нормализованное направление удара
+    public float  Damage;
+    public float  Time;
 }

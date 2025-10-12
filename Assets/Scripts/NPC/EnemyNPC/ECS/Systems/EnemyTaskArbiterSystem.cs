@@ -6,7 +6,7 @@ using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(HarvestConditionSystem))]
-[UpdateAfter(typeof(EnemyPerceptionSystem))] // важно: арбитр после перцепции
+[UpdateAfter(typeof(EnemyPerceptionSystem))] 
 public partial class EnemyTaskArbiterSystem : SystemBase
 {
     private GoalRegistrySystem _goalRegistry;
@@ -19,10 +19,14 @@ public partial class EnemyTaskArbiterSystem : SystemBase
         base.OnCreate();
         _goalRegistry = World.GetOrCreateSystemManaged<GoalRegistrySystem>();
         RequireForUpdate<GoalRegistrySystem.Initialized>();
+        
+        _enemyQuery = GetEntityQuery(
+            ComponentType.ReadOnly<HostileNPCTag>(),
+            ComponentType.Exclude<IsDeadTag>() 
+        );
 
-        // выбираем всех врагов только по тегу
-        _enemyQuery = GetEntityQuery(ComponentType.ReadOnly<HostileNPCTag>());
     }
+
 
     protected override void OnUpdate()
     {
@@ -67,8 +71,7 @@ public partial class EnemyTaskArbiterSystem : SystemBase
         foreach (var e in enemies)
         {
             considered++;
-
-            // Подробная диагностика входных условий
+            
             bool hasSeen = SystemAPI.HasComponent<EnemySeenPlayer>(e);
             if (!hasSeen)
             {
@@ -84,11 +87,13 @@ public partial class EnemyTaskArbiterSystem : SystemBase
                 //Debug.Log($"[EnemyTaskArbiter][Diag] {e.Index}: EnemySeenPlayer.Player == Null");
                 continue;
             }
-
-            bool hasPlayerLTW    = SystemAPI.HasComponent<LocalToWorld>(player);
-            bool hasPlayerHealth = SystemAPI.HasComponent<HealthComponent>(player);
-            bool isPlayerDead    = SystemAPI.HasComponent<IsDeadTag>(player);
-            bool movementFailed  = SystemAPI.HasComponent<MovementFailedTag>(e);
+            
+            // Проверяем, жив ли игрок, которого мы "видим".
+            if (SystemAPI.HasComponent<DeadTag>(player))
+            {
+                // Если игрок мертв, игнорируем его как цель.
+                continue;
+            }
 
             //Debug.Log($"[EnemyTaskArbiter][Diag] {e.Index}: seen=1, player={player.Index}, LTW={hasPlayerLTW}, HP={hasPlayerHealth}, dead={isPlayerDead}, moveFailed={movementFailed}");
 

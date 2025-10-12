@@ -36,7 +36,12 @@ public partial class NPCMovementSystem : SystemBase
         {
             DeltaTime      = dt,
             CollisionWorld = world
-        }.ScheduleParallel(Dependency);
+        }.ScheduleParallel(SystemAPI.QueryBuilder().
+            WithAll<LocalTransform,
+                PhysicsVelocity,
+                PhysicsDamping,
+                NPCMovementComponent>().
+            WithNone<IsDeadTag>().Build(), Dependency);
     }
 
     /// <summary>

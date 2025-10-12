@@ -51,8 +51,7 @@ public struct FoundationPlacementSnapshot : IComponentData
     public float TotalHeight;     // общая высота превью (от effectiveGroundY до верха)
     public float3 ExpectedPos;    // ожидаемая позиция пивота финального энтити на момент клика
     public byte HasData;          // 0/1
-
-    // Новое: если во время клика мы были примагничены к соседней палубе, сохраняем целевую DeckWorldY
+    
     public byte HasTargetDeckY;   // 0/1
     public float TargetDeckY;     // абсолютная высота верха палубы, к которой надо подогнать
 }

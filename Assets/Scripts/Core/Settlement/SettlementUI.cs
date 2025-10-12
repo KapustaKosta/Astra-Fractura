@@ -71,15 +71,30 @@ public class SettlementUI : MonoBehaviour
         if (gameStateQuery.IsEmpty) return;
 
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
+        
+    
+        // 1. Сначала проверяем, есть ли вообще компонент UIState. Если его нет, UI не может быть открыт.
+        if (!entityManager.HasComponent<UIState>(gameStateEntity))
+        {
+            // Если компонента нет, но панель почему-то активна, скрываем ее.
+            if (uiPanel.activeSelf)
+            {
+                Hide();
+            }
+            return; // Выходим из метода, чтобы избежать ошибки.
+        }
+    
 
+        var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
-                            entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.Settlement;
+                            uiState.ActiveUIType == UIType.Settlement;
+        
 
         if (uiPanel.activeSelf != shouldBeOpen)
         {
             if (shouldBeOpen)
             {
-                var uiState = entityManager.GetComponentData<UIState>(gameStateEntity);
+                // Здесь uiState уже получена, повторно получать не нужно.
                 if (entityManager.Exists(uiState.ActiveUITarget) && entityManager.HasComponent<SettlementComponent>(uiState.ActiveUITarget))
                 {
                     currentSettlementEntity = uiState.ActiveUITarget;

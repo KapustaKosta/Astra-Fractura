@@ -1,86 +1,93 @@
-﻿using Unity.Entities;
+﻿// HarvestGoalExecutionSystem.cs
+using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
 /// <summary>
-/// Система выполнения цели "Сбор ресурсов" для ИИ-агентов.
-/// Управляет переходом NPC в режим добычи при достижении цели,
-/// контролируя начало и завершение процесса сбора ресурсов.
+/// Исполнение цели "Сбор ресурсов".
+/// Добыча стартует ТОЛЬКО после реального прибытия и полной остановки.
+/// Используем IsAtHarvestTargetTag как единственный валидный триггер старта,
+/// и дополнительно проверяем отсутствие движения (HasTarget==false и скорости ~0).
+/// Введён гистерезис, чтобы не дёргать состояние при мелких колебаниях.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(NPCTaskCleanupSystem))]
 public partial class HarvestGoalExecutionSystem : SystemBase
 {
-    /// <summary>
-    /// Основной метод системы, обрабатывающий выполнение цели сбора ресурсов.
-    /// Управляет перемещением NPC и установкой меток для начала сбора.
-    /// </summary>
+    // Небольшие пороги, чтобы отсечь «дрожание»
+    private const float VelEpsSqr = 0.01f;   // ~|v|<0.1
+    private const float Hys = 0.15f;         // гистерезис по дистанции
+
     protected override void OnUpdate()
     {
-        var entityManager = this.EntityManager;
+        var em = EntityManager;
 
         Entities
-            .WithStructuralChanges()
-            .ForEach((Entity entity, 
-                     ref NPCMovementComponent movement, 
-                     in ActiveGoal goal, 
-                     in HarvesterSettings harvesterSettings, 
-                     in LocalToWorld npcTransform,
-                     in DynamicBuffer<NPCPathBufferElement> pathBuffer) => 
+        .WithStructuralChanges()
+        .ForEach((Entity e,
+                  ref NPCMovementComponent move,
+                  in ActiveGoal goal,
+                  in HarvesterSettings hs,
+                  in LocalToWorld npcLTW) =>
+        {
+            // Базовая валидация цели
+            if (goal.Type != GoalType.Harvest || goal.Target == Entity.Null || !em.HasComponent<LocalToWorld>(goal.Target))
             {
-                // Проверяем базовые условия
-                if (goal.Type != GoalType.Harvest || 
-                    goal.Target == Entity.Null || 
-                    !entityManager.HasComponent<LocalToWorld>(goal.Target) ||
-                    pathBuffer.Length == 0) 
+                if (em.HasComponent<WantsToHarvestTag>(e)) em.RemoveComponent<WantsToHarvestTag>(e);
+                if (em.HasComponent<ActiveTarget>(e))      em.RemoveComponent<ActiveTarget>(e);
+                return;
+            }
+
+            var tgtLTW = em.GetComponentData<LocalToWorld>(goal.Target);
+            float2 dXZ = new float2(tgtLTW.Position.x - npcLTW.Position.x,
+                                    tgtLTW.Position.z - npcLTW.Position.z);
+            float dist = math.length(dXZ);
+
+            bool isAtTag = em.HasComponent<IsAtHarvestTargetTag>(e); // ставится на прибытии (каноничный триггер) :contentReference[oaicite:4]{index=4}
+
+            // «Реально движется?» — если есть цель или скорости не близки к нулю
+            bool moving =
+                move.HasTarget ||                                  // ведёт путь / не завершил следование :contentReference[oaicite:5]{index=5}
+                math.lengthsq(move.TargetVelocity.xz) > VelEpsSqr || // задаётся avoid-системой :contentReference[oaicite:6]{index=6}
+                math.lengthsq(move.PreferredVelocity.xz) > VelEpsSqr;
+
+            bool harvesting = em.HasComponent<WantsToHarvestTag>(e);
+
+            // Условия запуска: ТОЛЬКО после прибытия и полной остановки
+            if (!harvesting)
+            {
+                if (isAtTag && !moving)
                 {
-                    return;
+                    // Жёстко фиксируем остановку (на случай расхождения систем)
+                    move.HasTarget         = false;
+                    move.PreferredVelocity = float3.zero;
+                    move.TargetVelocity    = float3.zero;
+
+                    em.AddComponent<WantsToHarvestTag>(e);
+                    if (!em.HasComponent<ActiveTarget>(e))
+                        em.AddComponentData(e, new ActiveTarget { Value = goal.Target });
                 }
-                
-                // 1. NPC считает, что он прибыл (движение остановлено)
-                bool hasArrived = !movement.HasTarget;
-                
-                // 2. Получаем конечную точку, к которой он реально шел
-                float3 finalWaypoint = pathBuffer[pathBuffer.Length - 1].Waypoint;
-
-                // 3. Проверяем, действительно ли NPC находится у конечной точки пути
-                //    Используем квадрат радиуса остановки для точности
-                float stopRadius = movement.StoppingDistance + 0.2f; // небольшой запас
-                bool isAtFinalWaypoint = math.distancesq(npcTransform.Position, finalWaypoint) 
-                                         <= stopRadius * stopRadius;
-
-                // 4. Дополнительно проверяем, что сама конечная точка пути находится в рендже взаимодействия с целью.
-                //    Это защита от случаев, когда путь построен к точке, которая на самом деле далеко от ресурса.
-                var targetTransform = entityManager.GetComponentData<LocalToWorld>(goal.Target);
-                bool isWaypointCloseToTarget = math.distancesq(finalWaypoint, targetTransform.Position) 
-                                               <= harvesterSettings.InteractionRange * harvesterSettings.InteractionRange;
-
-                // Проверяем наличие метки активного сбора
-                bool wantsToHarvest = entityManager.HasComponent<WantsToHarvestTag>(entity);
-                
-                if (hasArrived && isAtFinalWaypoint && isWaypointCloseToTarget)
-                {
-                    // Условия выполнены - начинаем или продолжаем сбор
-                    if (!wantsToHarvest)
-                    {
-                        // Активируем режим сбора:
-                        entityManager.AddComponent<WantsToHarvestTag>(entity);
-                        // Устанавливаем целевой объект для взаимодействия
-                        entityManager.AddComponentData(entity, new ActiveTarget { Value = goal.Target });
-                    }
-                }
+                // иначе — ещё не прибыли/не остановились: гарантируем отсутствие флага добычи
                 else
                 {
-                    // Условия НЕ выполнены - прекращаем сбор
-                    if (wantsToHarvest)
-                    {
-                        // Деактивируем режим сбора:
-                        entityManager.RemoveComponent<WantsToHarvestTag>(entity);
-                        // Очищаем ссылку на активную цель
-                        entityManager.RemoveComponent<ActiveTarget>(entity);
-                    }
+                    if (em.HasComponent<WantsToHarvestTag>(e)) em.RemoveComponent<WantsToHarvestTag>(e);
+                    if (em.HasComponent<ActiveTarget>(e))      em.RemoveComponent<ActiveTarget>(e);
                 }
-
-            }).Run();
+            }
+            else
+            {
+                // Уже добываем — держим состояние, пока не начнём явное движение
+                // или не выйдем за InteractionRange + гистерезис
+                float stopDist = hs.InteractionRange + Hys;
+                bool leftArea  = dist > stopDist;
+                if (moving || leftArea)
+                {
+                    // Сброс добычи, возобновление похода (если цель ещё активна — другой системы)
+                    if (em.HasComponent<WantsToHarvestTag>(e)) em.RemoveComponent<WantsToHarvestTag>(e);
+                    if (em.HasComponent<ActiveTarget>(e))      em.RemoveComponent<ActiveTarget>(e);
+                }
+            }
+        })
+        .Run();
     }
 }

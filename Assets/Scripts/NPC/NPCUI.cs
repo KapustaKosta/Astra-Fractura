@@ -125,6 +125,12 @@ public class NPCUI : MonoBehaviour
         var gameStateQuery = entityManager.CreateEntityQuery(typeof(GameState));
         if (gameStateQuery.IsEmpty) return;
         var gameStateEntity = gameStateQuery.GetSingletonEntity();
+        if (!entityManager.HasComponent<UIState>(gameStateEntity))
+        {
+            // Если компонента нет, значит UI не должен быть активен.
+            if (npcMenu.activeSelf) Hide();
+            return;
+        }
 
         bool shouldBeOpen = entityManager.HasComponent<InUIMode>(gameStateEntity) &&
                             entityManager.GetComponentData<UIState>(gameStateEntity).ActiveUIType == UIType.NPC;

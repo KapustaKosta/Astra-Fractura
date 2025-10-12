@@ -9,7 +9,6 @@ using UnityEngine.AI;
 /// Преобразует цели ИИ в запросы на перемещение для навигационной системы.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(HarvestGoalExecutionSystem))]
 [UpdateAfter(typeof(ReturnToBaseGoalExecutionSystem))]
 [UpdateBefore(typeof(NPCPathfindingSystem))]
 public partial class AIPathfindingBridgeSystem : SystemBase
@@ -39,6 +38,7 @@ public partial class AIPathfindingBridgeSystem : SystemBase
             .WithReadOnly(playerTagLookup)
             .WithReadOnly(hostileTagLookup)
             .WithAny<NPCBrain, HostileNPCTag>()
+            .WithNone<IsDeadTag>()
             .WithNone<WantsToHarvestTag, InsideBuildingTag, IsAttackingTag>()
             .ForEach((Entity e,
                       ref NPCMovementComponent movement,
@@ -59,22 +59,49 @@ public partial class AIPathfindingBridgeSystem : SystemBase
                 float3 centralTargetPos = targetLtw.Position;
                 float   stoppingRadius   = baseStats.StoppingDistance;
 
-                if (arrivalLookup.HasComponent(goal.Target))
+                float distributionRadius = 1.5f;  
+
+                bool hasArrivalData = arrivalLookup.HasComponent(goal.Target);
+                if (hasArrivalData)
                 {
                     var arrivalData = arrivalLookup[goal.Target];
                     centralTargetPos += math.mul(targetLtw.Rotation, arrivalData.Offset);
                     stoppingRadius    = math.max(stoppingRadius, arrivalData.Radius);
+                    distributionRadius = arrivalData.Radius;  
                 }
 
                 float3 finalDesiredPos = centralTargetPos;
 
                 if (!isHostile && !isTargetDynamic)
                 {
-                    const float distributionRadius = 1.5f;
-                    uint  hash   = (uint)e.Index * 2654435761u;
-                    float angle  = (hash % 360) * math.PI / 180f;
-                    float3 offset = new float3(math.cos(angle), 0, math.sin(angle)) * distributionRadius;
-                    finalDesiredPos += offset;
+                    uint hash = (uint)e.Index * 2654435761u;
+                    float angle = (hash % 360) * math.PI / 180f;
+                    float3 offsetDir = math.normalizesafe(new float3(math.cos(angle), 0, math.sin(angle)));
+
+                    // Если у цели есть ArrivalData, то это либо ресурс для добычи, либо точка
+                    // на базе/укрытии.
+                    if (hasArrivalData)
+                    {
+                        if (goal.Type == GoalType.Harvest)
+                        {
+                            // Используем фиксированную длину — разместить на границе радиуса
+                            finalDesiredPos += offsetDir * distributionRadius;
+                        }
+                        else
+                        {
+                            // Для других Arrival целей варьируем радиус от 60% до 100%
+                            uint h2  = (uint)e.Index * 1664525u + 1013904223u;
+                            float u  = (float)(h2 & 0x00FFFFFFu) / 16777216f; // [0,1)
+                            float radiusFactor = math.lerp(0.6f, 1.0f, u);
+                            finalDesiredPos += offsetDir * (distributionRadius * radiusFactor);
+                        }
+                    }
+                    else
+                    {
+                        // Для целей без ArrivalData оставляем лёгкую вариацию радиуса (0.8–1.2)
+                        float randomFactor = 0.8f + (hash % 1000) / 1000f * 0.4f;  // 0.8-1.2 для вариации
+                        finalDesiredPos += offsetDir * (distributionRadius * randomFactor);
+                    }
                 }
 
                 bool  isSameTarget        = goal.Target == path.CurrentGoalTarget;
@@ -86,7 +113,8 @@ public partial class AIPathfindingBridgeSystem : SystemBase
                     return;
                 }
 
-                if (NavMesh.SamplePosition(finalDesiredPos, out var hit, 3.0f, NavMesh.AllAreas))
+                
+                if (NavMesh.SamplePosition(finalDesiredPos, out var hit, 10.0f, NavMesh.AllAreas))
                 {
                     movement.TargetPosition   = hit.position;
                     movement.StoppingDistance = stoppingRadius;

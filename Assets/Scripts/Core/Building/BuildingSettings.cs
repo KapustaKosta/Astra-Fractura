@@ -3,7 +3,6 @@ using UnityEngine;
 
 /// <summary>
 /// Синглтон-компонент, хранящий глобальные настройки для системы строительства.
-/// Позволяет конфигурировать слои и углы наклона через инспектор.
 /// </summary>
 public struct BuildingSettings : IComponentData
 {
@@ -32,13 +31,14 @@ public struct BuildingSettings : IComponentData
     /// </summary>
     public int PreviewLayer;
 
-    /// <summary>
-    /// ID валидного материала для превью (для рендера).
-    /// </summary>
+    // Материалы превью (валид/невалид)
     public UnityEngine.Rendering.BatchMaterialID ValidPlacementMaterialID;
 
     /// <summary>
     /// ID невалидного материала для превью (для рендера).
     /// </summary>
     public UnityEngine.Rendering.BatchMaterialID InvalidPlacementMaterialID;
+
+    // материал подсветки ресурсного узла во время установки карьера
+    public UnityEngine.Rendering.BatchMaterialID ResourceHighlightMaterialID;
 }

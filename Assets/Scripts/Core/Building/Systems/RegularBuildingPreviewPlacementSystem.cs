@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-using UnityEngine; 
+using UnityEngine;
 
 using URay = UnityEngine.Ray;
 using PhRaycastHit = Unity.Physics.RaycastHit;
@@ -14,15 +14,15 @@ using PhRaycastHit = Unity.Physics.RaycastHit;
 /// Также выполняет базовую проверку наклона поверхности.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BuildingHeightAdjustmentSystem))] // Убедимся, что смещение высоты применено
-[UpdateBefore(typeof(RotateBuildingSystem))] // Позиционируем до поворота, так как поворот может быть применен к новой позиции
-[UpdateBefore(typeof(RegularBuildingPreviewValidationSystem))] // Позиционируем до валидации
+[UpdateAfter(typeof(BuildingHeightAdjustmentSystem))]
+[UpdateBefore(typeof(RotateBuildingSystem))]
+[UpdateBefore(typeof(RegularBuildingPreviewValidationSystem))]
 public partial class RegularBuildingPreviewPlacementSystem : SystemBase
 {
     protected override void OnCreate()
     {
         RequireForUpdate<PhysicsWorldSingleton>();
-        RequireForUpdate<BuildingPreviewTag>(); 
+        RequireForUpdate<BuildingPreviewTag>();
         RequireForUpdate<BuildingSettings>();
         // Эта система специально исключает фундаменты и здания, привязанные к конечным точкам,
         // поскольку их логика позиционирования обрабатывается в других местах.
@@ -32,22 +32,16 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
     {
         if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity) || !SystemAPI.Exists(previewEntity))
             return;
-        
-        if (SystemAPI.HasComponent<FoundationTag>(previewEntity))
-            return;
-        if (SystemAPI.HasComponent<SnapToEndpointTag>(previewEntity))
+
+        if (SystemAPI.HasComponent<FoundationTag>(previewEntity) || SystemAPI.HasComponent<SnapToEndpointTag>(previewEntity))
             return;
 
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var settings = SystemAPI.GetSingleton<BuildingSettings>();
         var em = EntityManager;
-        
+
         var cam = Camera.main;
-        if (cam == null)
-        {
-            SetPlacementInvalid(previewEntity, em);
-            return;
-        }
+        if (cam == null) return;
 
         URay mainRay = cam.ScreenPointToRay(Input.mousePosition);
         var rayInput = new RaycastInput
@@ -58,34 +52,40 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
         };
 
         var lt = em.GetComponentData<LocalTransform>(previewEntity);
-        bool placementPossible = false;
+        bool placementPossible;
 
         if (physicsWorld.CollisionWorld.CastRay(rayInput, out PhRaycastHit mainHit))
         {
-            // Теперь вызываем логику позиционирования и ориентации, аналогичную HandleRegularBuildingPlacement
+            // Успешный основной луч
             placementPossible = CalculateRegularBuildingPlacement(ref lt, previewEntity, mainHit.Position, in physicsWorld, in settings);
         }
         else
         {
-            // Если главный луч не попадает ни во что, здание "висит в воздухе".
-            // Его позиция останется прежней, но мы явно помечаем как невалидное.
-            SetPlacementInvalid(previewEntity, em);
+            // Основной луч никуда не попал
+            Debug.Log($"<color=cyan>[Placement]</color> Main raycast from camera did not hit any buildable surface.");
+            SetPlacementInvalid(previewEntity, em, "Raycast miss");
+            em.SetComponentData(previewEntity, lt);
             return;
         }
-        
-        em.SetComponentData(previewEntity, lt);
 
-        // Обновляем тег валидности на основе только что выполненной проверки наклона
-        if (placementPossible)
+        em.SetComponentData(previewEntity, lt);
+        
+        if (!placementPossible)
         {
-            SetPlacementValid(previewEntity, em);
+            // Если уклон плохой, ставим тег невалидности.
+            SetPlacementInvalid(previewEntity, em, "Slope check failed");
         }
         else
         {
-            SetPlacementInvalid(previewEntity, em);
+            // Если уклон хороший, мы должны УБРАТЬ тег невалидности, если он был.
+            if (em.HasComponent<PlacementInvalidTag>(previewEntity))
+            {
+                Debug.Log($"<color=cyan>[Placement]</color> Slope check PASSED. Removing previous InvalidTag before handing over to ValidationSystem.");
+                em.RemoveComponent<PlacementInvalidTag>(previewEntity);
+            }
         }
     }
-    
+
     private bool CalculateRegularBuildingPlacement(ref LocalTransform lt, Entity previewEntity, float3 centerHitPos, in PhysicsWorldSingleton physicsWorld, in BuildingSettings settings)
     {
         var em = EntityManager;
@@ -98,7 +98,7 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
             : float3.zero;
 
         float2 halfSize = footprintSize * 0.5f;
-        var localOffsets = new NativeArray<float3>(5, Allocator.Temp) // Центр + 4 угла
+        var localOffsets = new NativeArray<float3>(5, Allocator.Temp)
         {
             [0] = float3.zero,
             [1] = new float3(halfSize.x, 0, halfSize.y),
@@ -119,35 +119,21 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
             float3 rayStart = centerHitPos + rotatedOffset + new float3(0, 2.0f, 0);
             float3 rayEnd = rayStart - new float3(0, 4.0f, 0);
 
-            var rayInput = new RaycastInput
-            {
-                Start = rayStart,
-                End = rayEnd,
-                Filter = new CollisionFilter
-                {
-                    BelongsTo = ~0u,
-                    CollidesWith = (uint)settings.BuildableSurfaceLayerMask,
-                    GroupIndex = 0
-                }
-            };
+            var rayInput = new RaycastInput { Start = rayStart, End = rayEnd, Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 } };
             
-            // #if UNITY_EDITOR
-            // Debug.DrawRay(rayInput.Start, rayInput.End - rayInput.Start, Color.yellow, 0.1f, true);
-            // #endif
-
             if (physicsWorld.CollisionWorld.CastRay(rayInput, out PhRaycastHit hit))
             {
                 hitPoints.Add(hit.Position);
                 hitNormals.Add(hit.SurfaceNormal);
             }
         }
-
         localOffsets.Dispose();
 
         // Если не удалось найти достаточно точек для определения поверхности, размещение невозможно.
         // Оригинальный код использовал 3, сохраним это.
         if (hitPoints.Length < 3)
         {
+            Debug.LogWarning($"<color=cyan>[Placement]</color> Not enough footprint points hit the ground ({hitPoints.Length} < 3). Placement is likely impossible.");
             hitPoints.Dispose();
             hitNormals.Dispose();
             return false;
@@ -164,54 +150,25 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
         hitPoints.Dispose();
         hitNormals.Dispose();
 
-        // Устанавливаем вращение, чтобы здание смотрело "вперед" относительно камеры
-        // и "вверх" по нормали поверхности.
-        quaternion targetRotation = quaternion.LookRotation(MathUtil.GetForwardFromRotation(lt.Rotation, avgNormal), avgNormal);
-
-        lt.Rotation = targetRotation;
-        // Устанавливаем позицию, учитывая офсет пивота
         lt.Position = avgPosition - math.mul(lt.Rotation, pivotOffset);
+        
+        bool isSlopeAllowed = SlopeUtil.IsSlopeAllowed(avgNormal, settings.MaxPlacementSlopeAngle);
+        if (!isSlopeAllowed)
+        {
+            Debug.Log($"<color=cyan>[Placement]</color> Slope check FAILED. Surface normal: {avgNormal}, Angle > {settings.MaxPlacementSlopeAngle}");
+        }
 
-        // Возвращаем результат проверки наклона. Это базовая проверка,
-        // полная валидация будет в RegularBuildingPreviewValidationSystem.
-        return SlopeUtil.IsSlopeAllowed(avgNormal, settings.MaxPlacementSlopeAngle);
+        return isSlopeAllowed;
     }
 
-    private void SetPlacementValid(Entity previewEntity, EntityManager em)
-    {
-        if (!em.HasComponent<PlacementValidTag>(previewEntity))
-            em.AddComponentData(previewEntity, new PlacementValidTag());
-        if (em.HasComponent<PlacementInvalidTag>(previewEntity))
-            em.RemoveComponent<PlacementInvalidTag>(previewEntity);
-    }
-
-    private void SetPlacementInvalid(Entity previewEntity, EntityManager em)
+    private void SetPlacementInvalid(Entity previewEntity, EntityManager em, string reason)
     {
         if (!em.HasComponent<PlacementInvalidTag>(previewEntity))
-            em.AddComponentData(previewEntity, new PlacementInvalidTag());
-        if (em.HasComponent<PlacementValidTag>(previewEntity))
-            em.RemoveComponent<PlacementValidTag>(previewEntity);
-    }
-}
-
-public static class MathUtil 
-{
-    public static float3 GetForwardFromRotation(quaternion originalRotation, float3 surfaceNormal)
-    {
-        float3 originalForward = math.mul(originalRotation, new float3(0, 0, 1));
-        float3 forwardOnPlane = originalForward - math.dot(originalForward, surfaceNormal) * surfaceNormal;
-
-        if (math.lengthsq(forwardOnPlane) < 0.001f)
         {
-            float3 worldForward = new float3(0, 0, 1);
-            forwardOnPlane = worldForward - math.dot(worldForward, surfaceNormal) * surfaceNormal;
-
-            if (math.lengthsq(forwardOnPlane) < 0.001f)
-            {
-                float3 worldRight = new float3(1, 0, 0);
-                forwardOnPlane = worldRight - math.dot(worldRight, surfaceNormal) * surfaceNormal;
-            }
+            Debug.Log($"<color=cyan>[Placement]</color> Setting state to INVALID. Reason: {reason}. Adding PlacementInvalidTag.");
+            em.AddComponentData(previewEntity, new PlacementInvalidTag());
+            if (em.HasComponent<PlacementValidTag>(previewEntity))
+                em.RemoveComponent<PlacementValidTag>(previewEntity);
         }
-        return math.normalize(forwardOnPlane);
     }
 }

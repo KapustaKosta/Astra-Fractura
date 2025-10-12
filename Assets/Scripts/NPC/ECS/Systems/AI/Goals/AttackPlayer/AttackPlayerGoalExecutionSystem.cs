@@ -5,11 +5,9 @@ using Unity.Transforms;
 /// <summary>
 /// Выполняет цель "Атаковать игрока".
 /// Система управляет состоянием атаки NPC:
-/// 1. Если цель в радиусе атаки, добавляет тег IsAttackingTag, который сигнализирует
-///    другим системам, что NPC должен остановиться.
-/// 2. Если цель вышла из радиуса, убирает IsAttackingTag, позволяя NPC снова двигаться.
-/// 3. Когда NPC находится в состоянии атаки (с тегом IsAttackingTag),
-///    она создает запросы на атаку (PerformNpcAttackRequest) по кулдауну.
+/// 1. Если цель в радиусе и в конусе атаки, добавляет тег IsAttackingTag.
+/// 2. Если цель вышла из зоны досягаемости, убирает IsAttackingTag.
+/// 3. В состоянии атаки создает запросы на урон (PerformNpcAttackRequest) по кулдауну.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(NPCTaskCleanupSystem))]
@@ -21,13 +19,13 @@ public partial class AttackPlayerGoalExecutionSystem : SystemBase
                            .CreateCommandBuffer(World.Unmanaged);
         
         float time = (float)SystemAPI.Time.ElapsedTime;
-        var em = EntityManager; // Кэшируем EntityManager для проверок
+        var em = EntityManager; 
 
         Entities
             .WithAll<HostileNPCTag, NPCBrain>()
+            .WithNone<IsDeadTag>() 
             .ForEach((Entity e,
                       ref NPCMovementComponent movement,
-                      // ref AttackState, т.к. мы будем менять LastAttackTime
                       ref AttackState attackState, 
                       in NPCBaseMovementStats baseMove,
                       in EnemyStats stats,
@@ -54,25 +52,42 @@ public partial class AttackPlayerGoalExecutionSystem : SystemBase
                 // Проверяем, находится ли NPC уже в состоянии атаки
                 bool isCurrentlyAttacking = em.HasComponent<IsAttackingTag>(e);
 
+                
+                bool canAttack = false; // Флаг, который определит, можем ли мы атаковать в этом кадре
+                
                 if (inRange)
                 {
-                    // Если мы еще не в состоянии атаки, переключаемся в него.
-                    // Этот тег теперь является сигналом для AIPathfindingBridgeSystem, чтобы он
-                    // прекратил назначать этому NPC путь.
+                    // Цель в радиусе. Теперь проверяем направление.
+                    float3 npcForward = math.forward(ltw.Rotation);
+                    float3 directionToPlayer = math.normalize(tgtLTW.Position - ltw.Position);
+                    float dotProduct = math.dot(npcForward, directionToPlayer);
+
+                    // Порог 0.5f соответствует углу обзора ~120 градусов.
+                    const float attackAngleThreshold = 0.5f;
+
+                    if (dotProduct > attackAngleThreshold)
+                    {
+                        // Цель и в радиусе, и в конусе атаки.
+                        canAttack = true;
+                    }
+                }
+                
+
+                if (canAttack)
+                {
+                    // Переключаемся в состояние атаки, если еще не в нем.
                     if (!isCurrentlyAttacking)
                     {
                         ecb.AddComponent<IsAttackingTag>(e);
                     }
-
+                    
                     // Устанавливаем желаемую дистанцию остановки, чтобы NPC не толкал игрока.
-                    // Он будет стараться держаться на 90% дистанции атаки.
                     float desiredStop = math.max(baseMove.StoppingDistance, atkR * 0.9f);
                     movement.StoppingDistance = desiredStop;
 
                     // Атака по кулдауну
                     if (time >= attackState.LastAttackTime + stats.AttackCooldown)
                     {
-                        // Создаем одноразовый запрос на нанесение урона
                         var req = ecb.CreateEntity();
                         ecb.AddComponent(req, new PerformNpcAttackRequest
                         {
@@ -80,22 +95,19 @@ public partial class AttackPlayerGoalExecutionSystem : SystemBase
                             Target   = goal.Target,
                             Damage   = stats.Damage
                         });
-
-                        // Обновляем время последней атаки
                         attackState.LastAttackTime = time;
                     }
                 }
                 else
                 {
-                    // Если мы были в состоянии атаки, но цель вышла из радиуса,
-                    // выключаем это состояние, чтобы NPC снова начал двигаться к цели.
+                    // Цель не в зоне досягаемости (слишком далеко или не по направлению)
+                    // Выключаем состояние атаки, чтобы NPC мог двигаться/поворачиваться.
                     if (isCurrentlyAttacking)
                     {
                         ecb.RemoveComponent<IsAttackingTag>(e);
                     }
-
-                    // Возвращаем стандартную дистанцию остановки, чтобы NPC
-                    // подходил к цели вплотную перед атакой.
+                    
+                    // Возвращаем стандартную дистанцию остановки.
                     movement.StoppingDistance = baseMove.StoppingDistance;
                 }
             })

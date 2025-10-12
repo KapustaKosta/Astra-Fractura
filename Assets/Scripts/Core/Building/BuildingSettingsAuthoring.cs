@@ -3,8 +3,9 @@ using UnityEngine;
 using Unity.Rendering;
 
 /// <summary>
-/// Authoring-компонент для глобальных настроек системы строительства.
-/// Позволяет задать слои и углы наклона через инспектор и преобразовать их в ECS-синглтон.
+/// Глобальные настройки строительства. Материалы задаются в инспекторе:
+/// - validPlacementMaterial / invalidPlacementMaterial — материал превью (зелёный/красный)
+/// - resourceHighlightMaterial — материал подсветки РЕСУРСНОГО УЗЛА в момент установки карьера
 /// </summary>
 public class BuildingSettingsAuthoring : MonoBehaviour
 {
@@ -17,35 +18,39 @@ public class BuildingSettingsAuthoring : MonoBehaviour
 
     [Tooltip("Слой, на который будет временно помещено превью здания.")]
     public LayerMask previewLayer;
-    
-    [Range(0f, 90f)]
-    [Tooltip("Максимальный угол наклона поверхности, на которой можно строить.")]
-    public float maxPlacementSlopeAngle = 25f;
 
-    [Tooltip("Максимальная дистанция от камеры для размещения здания.")]
+    [Range(0f, 90f)] public float maxPlacementSlopeAngle = 25f;
     public float maxPlacementDistance = 100f;
 
-    [Header("Preview Materials")]
-    [Tooltip("Материал для превью, когда размещение валидно.")]
+    [Header("Preview Materials (Preview entity)")]
+    [Tooltip("Материал превью, когда размещение валидно.")]
     public Material validPlacementMaterial;
-    [Tooltip("Материал для превью, когда размещение невалидно.")]
+    [Tooltip("Материал превью, когда размещение невалидно.")]
     public Material invalidPlacementMaterial;
+
+    [Header("Quarry Resource Highlight (Resource Node entity)")]
+    [Tooltip("Материал подсветки ресурсного узла во время установки карьера.")]
+    public Material resourceHighlightMaterial;
 
     private class Baker : Baker<BuildingSettingsAuthoring>
     {
         public override void Bake(BuildingSettingsAuthoring authoring)
         {
-            var entity = GetEntity(TransformUsageFlags.None); 
+            var entity = GetEntity(TransformUsageFlags.None);
 
             AddComponent(entity, new BuildingSettings
             {
                 BuildableSurfaceLayerMask = authoring.buildableSurfaceLayer.value,
-                ObstacleLayerMask = authoring.obstacleLayer.value,
-                MaxPlacementSlopeAngle = authoring.maxPlacementSlopeAngle,
-                MaxPlacementDistance = authoring.maxPlacementDistance,
-                PreviewLayer = GetFirstLayer(authoring.previewLayer),
-                ValidPlacementMaterialID = default, 
-                InvalidPlacementMaterialID = default
+                ObstacleLayerMask         = authoring.obstacleLayer.value,
+                MaxPlacementSlopeAngle    = authoring.maxPlacementSlopeAngle,
+                MaxPlacementDistance      = authoring.maxPlacementDistance,
+                PreviewLayer              = GetFirstLayer(authoring.previewLayer),
+
+                // ID материалов регистрируются рантайм-системой,
+                // здесь просто заполняем default.
+                ValidPlacementMaterialID     = default,
+                InvalidPlacementMaterialID   = default,
+                ResourceHighlightMaterialID  = default
             });
         }
 
@@ -57,10 +62,9 @@ public class BuildingSettingsAuthoring : MonoBehaviour
             int value = mask.value;
             if (value == 0) return -1;
             for (int i = 0; i < 32; i++)
-            {
                 if ((value & (1 << i)) != 0) return i;
-            }
             return -1;
         }
     }
 }
+

@@ -41,6 +41,7 @@ public partial class NPCTaskCleanupSystem : SystemBase
         // Обрабатываем запросы на очистку завершенных целей
         Entities
             .WithAll<CleanupGoalRequest>()
+            .WithNone<HostileNPCTag>()
             .WithoutBurst() // Требуется для рефлексии и доступа к управляемым данным
             .ForEach((Entity entity, in CleanupGoalRequest request) =>
             {

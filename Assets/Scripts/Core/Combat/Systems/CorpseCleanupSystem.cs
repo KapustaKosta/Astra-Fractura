@@ -1,99 +1,81 @@
-﻿using Unity.Entities;
+﻿// Assets/Scripts/Core/Combat/Systems/CorpseCleanupSystem.cs
+using Unity.Entities;
 using Unity.Collections;
 using Unity.Transforms;
 using UnityEngine;
 
-/// <summary>
-/// Финальная версия. Находит корень иерархии умирающего NPC и уничтожает все,
-/// начиная с него, чтобы предотвратить появление любых сущностей-сирот.
-/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup), OrderLast = true)]
 public partial class CorpseCleanupSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-
-        // Этот блок ищет корневые сущности, которые были помечены для уничтожения в прошлом кадре.
-        // Он запускает рекурсивное удаление всей иерархии, начиная с этого корня.
         Entities
+            .WithStructuralChanges()
             .WithoutBurst()
-            .WithAll<IsDeadTag, Disabled>() // Ищем сущности, помеченные как мертвые и готовые к удалению.
+            .WithAll<IsDeadTag, DeadCleanupReady, Disabled>()
             .ForEach((Entity rootEntity) =>
             {
-                // Используем рекурсивную функцию для гарантированного уничтожения всех дочерних сущностей.
-                DestroyHierarchy(rootEntity, ecb);
-
-                // Дополнительно уничтожаем связанный GameObject, если он есть у корневой сущности.
-                // Это необходимо для корректной очистки префабов, которые не являются чисто ECS-ными.
-                if (EntityManager.HasComponent<GameObjectLink>(rootEntity))
+                // 1. Сначала уничтожаем GameObject, пока сущность еще существует
+                if (EntityManager.Exists(rootEntity) &&
+                    EntityManager.HasComponent<GameObjectLink>(rootEntity))
                 {
                     var goLink = EntityManager.GetComponentObject<GameObjectLink>(rootEntity);
                     if (goLink?.Value != null)
-                    {
                         Object.Destroy(goLink.Value);
+
+                    // Удаляем компонент-ссылку, чтобы избежать повторных попыток
+                    if (EntityManager.Exists(rootEntity) &&
+                        EntityManager.HasComponent<GameObjectLink>(rootEntity))
+                    {
+                        EntityManager.RemoveComponent<GameObjectLink>(rootEntity);
                     }
                 }
-            }).Run();
 
-        // Этот блок находит сущности, которые только что умерли.
-        Entities
-            .WithAll<IsDeadTag>()
-            .WithNone<Disabled>()
-            .ForEach((Entity entity) =>
-            {
-                ecb.AddComponent<Disabled>(entity);
+                // 2. Теперь безопасно уничтожаем саму сущность и ее иерархию
+                DestroyHierarchySafe(rootEntity);
+            })
+            .Run();
 
-            }).Run();
-        
-        // После потенциального удаления NPC обновляем счетчик населения в поселении.
         UpdatePopulation();
     }
 
-    /// <summary>
-    /// Рекурсивно ставит в очередь на уничтожение сущность и всех ее потомков.
-    /// </summary>
-    private void DestroyHierarchy(Entity entity, EntityCommandBuffer ecb)
+    private void DestroyHierarchySafe(Entity e)
     {
-        // Сначала рекурсивно вызываем для всех детей.
-        if (SystemAPI.HasBuffer<Child>(entity))
+        if (!EntityManager.Exists(e)) return;
+
+        if (EntityManager.HasBuffer<Child>(e))
         {
-            foreach (var child in SystemAPI.GetBuffer<Child>(entity))
-            {
-                DestroyHierarchy(child.Value, ecb);
-            }
+            // Копируем буфер ДО структурных изменений
+            var children = EntityManager.GetBuffer<Child>(e).ToNativeArray(Allocator.Temp);
+            for (int i = 0; i < children.Length; i++)
+                DestroyHierarchySafe(children[i].Value);
+            children.Dispose();
         }
-        // После того как все дети поставлены в очередь на уничтожение, уничтожаем саму сущность.
-        ecb.DestroyEntity(entity);
+
+        if (EntityManager.Exists(e))
+            EntityManager.DestroyEntity(e);
     }
 
-    /// <summary>
-    /// Проверяет список NPC в поселении и удаляет из него несуществующие сущности.
-    /// </summary>
     private void UpdatePopulation()
     {
         if (SystemAPI.TryGetSingletonEntity<PlayerSettlementTag>(out var settlementEntity))
         {
             var settlementRW = SystemAPI.GetComponentRW<SettlementComponent>(settlementEntity);
-            var currentNpcs = settlementRW.ValueRW.NPCs;
-            bool listChanged = false;
-            
-            // Итерируем с конца, чтобы безопасно удалять элементы из списка во время перебора.
+            var currentNpcs  = settlementRW.ValueRW.NPCs;
+            bool changed     = false;
+
             for (int i = currentNpcs.Length - 1; i >= 0; i--)
             {
                 var npcEntity = currentNpcs[i];
                 if (!EntityManager.Exists(npcEntity))
                 {
                     currentNpcs.RemoveAt(i);
-                    listChanged = true;
+                    changed = true;
                 }
             }
 
-            // Обновляем счетчик населения только если список реально изменился.
-            if (listChanged)
-            {
+            if (changed)
                 settlementRW.ValueRW.Population = currentNpcs.Length;
-            }
         }
     }
 }

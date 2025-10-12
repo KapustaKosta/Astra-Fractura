@@ -2,9 +2,8 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
-using Unity.Physics.Systems; 
 using Unity.Transforms;
-using UnityEngine; 
+using UnityEngine;
 
 using URay = UnityEngine.Ray;
 using PhRaycastHit = Unity.Physics.RaycastHit; 
@@ -15,141 +14,139 @@ using PhRaycastHit = Unity.Physics.RaycastHit;
 /// Поддерживает как обычные здания, так и те, что привязываются к конечным точкам (SnapToEndpointTag).
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))] // После позиционирования обычных зданий мышью
-[UpdateAfter(typeof(RotateBuildingSystem))] // После применения поворота
-// Она также должна запускаться после любой системы, которая устанавливает позицию для сущностей SnapToEndpointTag.
-[UpdateBefore(typeof(PreviewMaterialSystem))] // Чтобы материалы могли обновляться на основе валидности
-[UpdateBefore(typeof(ConfirmPlacementSystem))] // Чтобы ConfirmPlacementSystem мог проверить валидность
-public partial class RegularBuildingPreviewValidationSystem : SystemBase
+[UpdateAfter(typeof(RegularBuildingPreviewPlacementSystem))]
+public partial struct RegularBuildingPreviewValidationSystem : ISystem
 {
-    protected override void OnCreate()
+    public void OnCreate(ref SystemState state)
     {
-        RequireForUpdate<PhysicsWorldSingleton>();
-        RequireForUpdate<BuildingPreviewTag>(); 
-        RequireForUpdate<BuildingSettings>();
+        state.RequireForUpdate<PhysicsWorldSingleton>();
+        state.RequireForUpdate<BuildingSettings>();
     }
 
-    protected override void OnUpdate()
+    public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity) || !SystemAPI.Exists(previewEntity))
-            return;
-        
-        // Эта система не проверяет фундаменты; FoundationPlacementSystem обрабатывает это.
-        if (SystemAPI.HasComponent<FoundationTag>(previewEntity))
+        if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var preview))
             return;
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+        if (SystemAPI.HasComponent<FoundationTag>(preview) || SystemAPI.HasComponent<SnapToEndpointTag>(preview))
+            return;
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+        var physics = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var settings = SystemAPI.GetSingleton<BuildingSettings>();
-        
-        bool isPlacementValid = true; // Считаем валидным, пока не докажем обратное
-        
-        var currentTransform = SystemAPI.GetComponent<LocalTransform>(previewEntity);
-        float3 previewPosition = currentTransform.Position;
+        var transform = SystemAPI.GetComponent<LocalTransform>(preview);
 
-        // Используем настроенные маски слоев для проверки коллизий.
-        uint buildableSurfaceLayerMask = (uint)settings.BuildableSurfaceLayerMask;
-        uint obstacleLayerMask = (uint)settings.ObstacleLayerMask; 
+        // Этап 1: Сбор результатов всех проверок
+        Debug.Log($"<color=orange>[Validation]</color> ===== FRAME START for entity {preview.Index} =====");
 
+        // 1. Проверка уклона (результат из предыдущей системы)
+        bool isSlopeValid = !SystemAPI.HasComponent<PlacementInvalidTag>(preview);
+        Debug.Log($"<color=orange>[Validation]</color> 1. Slope Check Passed: {isSlopeValid}");
 
-        bool noOverlap = true;
-        bool allBottomSupported = true;
-
-        if (SystemAPI.HasComponent<PhysicsCollider>(previewEntity))
+        // 2. Проверка на пересечение (Overlap Check)
+        bool isOverlapValid = true;
+        if (SystemAPI.HasComponent<PhysicsCollider>(preview))
         {
-            var collider = SystemAPI.GetComponent<PhysicsCollider>(previewEntity);
-            var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(currentTransform.Rotation, previewPosition)); // Используем текущее вращение!
-
-            float3 min = aabb.Min;
-            float3 max = aabb.Max;
-
-            // 1. Проверка на пересечение с препятствиями (только реальные препятствия)
-            var overlapInput = new OverlapAabbInput
-            {
-                Aabb = aabb,
-                Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = obstacleLayerMask, GroupIndex = 0 }
-            };
+            var collider = SystemAPI.GetComponent<PhysicsCollider>(preview);
+            var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(transform.Rotation, transform.Position));
+            var overlapInput = new OverlapAabbInput { Aabb = aabb, Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.ObstacleLayerMask, GroupIndex = 0 } };
+            
             var overlappingBodies = new NativeList<int>(Allocator.Temp);
-            if (physicsWorld.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies))
+            if (physics.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies))
             {
-                noOverlap = false;
-                // Debug.Log($"<color=red>Validation FAILED ({previewEntity}): Overlap with {overlappingBodies.Length} obstacles.</color>");
+                isOverlapValid = false;
             }
             overlappingBodies.Dispose();
-            if (!noOverlap) isPlacementValid = false;
+        }
+        Debug.Log($"<color=orange>[Validation]</color> 2. Overlap Check Passed: {isOverlapValid}");
 
-            // 2. Проверка полной поддержки нижней части (общая для всех превью, кроме фундаментов)
-            float yBottomCheck = min.y + 0.01f; // Чуть выше абсолютного дна, чтобы гарантировать попадание
-            float3[] bottomPoints = new float3[5]; // Углы + Центр нижней грани
-            bottomPoints[0] = new float3(min.x, yBottomCheck, min.z);
-            bottomPoints[1] = new float3(max.x, yBottomCheck, min.z);
-            bottomPoints[2] = new float3(min.x, yBottomCheck, max.z);
-            bottomPoints[3] = new float3(max.x, yBottomCheck, max.z);
-            bottomPoints[4] = new float3((min.x+max.x)*0.5f, yBottomCheck, (min.z+max.z)*0.5f);
+        // 3. Проверка опоры (луч вниз)
+        bool isGrounded = false;
+        var rayInput = new RaycastInput { Start = transform.Position + new float3(0, 2.0f, 0), End = transform.Position + new float3(0, -5.0f, 0), Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 } };
+        if (physics.CastRay(rayInput, out _))
+        {
+            isGrounded = true;
+        }
+        Debug.Log($"<color=orange>[Validation]</color> 3. Grounded Check Passed: {isGrounded}");
 
-            float downCheckDepth = 0.6f; 
-            float upCheckHeight = 1.0f;   // Проверка на препятствие непосредственно над точкой
+        // 4. Логика валидации карьера
+        bool isQuarryCheckValid = true;
+        bool isQuarry = SystemAPI.HasComponent<QuarryPlacementTag>(preview);
+        if (isQuarry)
+        {
+            Debug.Log($"<color=orange>[Validation]</color> 4. Is a Quarry. Starting specific checks...");
+            var quarrySettings = SystemAPI.GetComponent<QuarrySettings>(preview);
+            float interactionRangeSq = quarrySettings.InteractionRange * quarrySettings.InteractionRange;
 
-            for (int i = 0; i < bottomPoints.Length; i++)
+            Entity closestNode = Entity.Null;
+            float closestDistSq = float.MaxValue;
+
+            var occupiedNodes = new NativeHashSet<Entity>(16, Allocator.Temp);
+            foreach (var stateRO in SystemAPI.Query<RefRO<QuarryState>>())
             {
-                // Проверка на наличие поверхности под точкой
-                var downRay = new RaycastInput
-                {
-                    Start = bottomPoints[i],
-                    End = bottomPoints[i] + new float3(0, -downCheckDepth, 0),
-                    Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = buildableSurfaceLayerMask, GroupIndex = 0 }
-                };
-                
-                // #if UNITY_EDITOR // Визуализация лучей в редакторе для отладки
-                // Debug.DrawRay(downRay.Start, downRay.End - downRay.Start, Color.blue, 0.1f, true);
-                // #endif
+                if (stateRO.ValueRO.TargetResourceNode != Entity.Null)
+                    occupiedNodes.Add(stateRO.ValueRO.TargetResourceNode);
+            }
 
-                if (!physicsWorld.CollisionWorld.CastRay(downRay, out PhRaycastHit _))
-                {
-                    allBottomSupported = false;
-                    // Debug.Log($"<color=red>Validation FAILED ({previewEntity}): Point {i} at {bottomPoints[i]} has no bottom support.</color>");
-                    break;
-                }
-                // Проверка на препятствие непосредственно над точкой поддержки (например, попытка разместить внутри земли)
-                var upRay = new RaycastInput
-                {
-                    Start = bottomPoints[i],
-                    End = bottomPoints[i] + new float3(0, upCheckHeight, 0),
-                    Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = buildableSurfaceLayerMask, GroupIndex = 0 }
-                };
+            foreach (var (_, nodeTransform, nodeEntity) in SystemAPI.Query<ResourceNode, RefRO<LocalToWorld>>().WithEntityAccess())
+            {
+                if (occupiedNodes.Contains(nodeEntity)) continue;
 
-                // #if UNITY_EDITOR // Визуализация лучей в редакторе для отладки
-                // Debug.DrawRay(upRay.Start, upRay.End - upRay.Start, Color.red, 0.1f, true);
-                // #endif
-
-                if (physicsWorld.CollisionWorld.CastRay(upRay, out PhRaycastHit _))
+                float distSq = math.distancesq(transform.Position, nodeTransform.ValueRO.Position);
+                if (distSq < interactionRangeSq && distSq < closestDistSq)
                 {
-                    allBottomSupported = false;
-                    // Debug.Log($"<color=red>Validation FAILED ({previewEntity}): Point {i} at {bottomPoints[i]} is obstructed from above (inside ground).</color>");
-                    break;
+                    closestDistSq = distSq;
+                    closestNode = nodeEntity;
                 }
             }
-            if (!allBottomSupported) isPlacementValid = false;
-        }
-        else // Если у сущности превью нет PhysicsCollider, мы не можем выполнить детальные проверки.
-        {
-            isPlacementValid = false;
-            // Debug.Log($"<color=red>Validation FAILED ({previewEntity}): Preview entity has no PhysicsCollider.</color>");
-        }
+            occupiedNodes.Dispose();
 
-        // Окончательное решение о валидности размещения
-        // Debug.Log($"<color=green>Final Validity for {previewEntity}: {isPlacementValid} (Overlap: {noOverlap}, Support: {allBottomSupported})</color>");
+            if (closestNode != Entity.Null)
+            {
+                isQuarryCheckValid = true;
+                Debug.Log($"<color=green>[Validation]</color> Quarry Check Passed. Found closest free node: {closestNode.Index}.");
+                ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, true);
+                ecb.SetComponent(preview, new QuarryPreviewTarget { TargetNode = closestNode });
+            }
+            else
+            {
+                isQuarryCheckValid = false;
+                Debug.Log($"<color=red>[Validation]</color> Quarry Check FAILED. No free resource node in range.");
+                ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, false);
+            }
+        }
+        
+        // Финальное решение и применение тегов
+        bool isPlacementValid = isSlopeValid && isOverlapValid && isGrounded && isQuarryCheckValid;
+        Debug.Log($"<color=yellow>[Validation]</color> FINAL DECISION: isPlacementValid = {isPlacementValid} (Slope:{isSlopeValid}, Overlap:{isOverlapValid}, Grounded:{isGrounded}, Quarry:{isQuarryCheckValid})");
         
         // Обновляем теги валидности размещения.
         if (isPlacementValid)
         {
-            ecb.AddComponent<PlacementValidTag>(previewEntity);
-            ecb.RemoveComponent<PlacementInvalidTag>(previewEntity);
+            if (!SystemAPI.HasComponent<PlacementValidTag>(preview))
+            {
+                Debug.Log($"<color=yellow>[Validation]</color> -> Adding PlacementValidTag.");
+                ecb.AddComponent<PlacementValidTag>(preview);
+            }
+            if (SystemAPI.HasComponent<PlacementInvalidTag>(preview))
+            {
+                Debug.Log($"<color=yellow>[Validation]</color> -> Removing PlacementInvalidTag.");
+                ecb.RemoveComponent<PlacementInvalidTag>(preview);
+            }
         }
         else
         {
-            ecb.AddComponent<PlacementInvalidTag>(previewEntity);
-            ecb.RemoveComponent<PlacementValidTag>(previewEntity);
+            if (!SystemAPI.HasComponent<PlacementInvalidTag>(preview))
+            {
+                Debug.Log($"<color=yellow>[Validation]</color> -> Adding PlacementInvalidTag.");
+                ecb.AddComponent<PlacementInvalidTag>(preview);
+            }
+            if (SystemAPI.HasComponent<PlacementValidTag>(preview))
+            {
+                Debug.Log($"<color=yellow>[Validation]</color> -> Removing PlacementValidTag.");
+                ecb.RemoveComponent<PlacementValidTag>(preview);
+            }
         }
+        Debug.Log($"<color=orange>[Validation]</color> ===== FRAME END =====");
     }
 }

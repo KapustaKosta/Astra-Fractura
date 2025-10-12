@@ -353,7 +353,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 1
-  ExtraLocalOffset: {x: 0, y: 0, z: 0}
+  ownerAuthoring: {fileID: 0}
 --- !u!1 &1637814853347770581
 GameObject:
   m_ObjectHideFlags: 0
@@ -540,6 +540,7 @@ GameObject:
   - component: {fileID: 5961341184714505219}
   - component: {fileID: -8926743852909475575}
   - component: {fileID: -2457835467312507200}
+  - component: {fileID: 8621845302392410335}
   m_Layer: 9
   m_Name: Machn_1
   m_TagString: Untagged
@@ -835,6 +836,22 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
+--- !u!114 &8621845302392410335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5592962962919423203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a06f79767b1486d819b86f33439bac7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  harvestInterval: 2
+  interactionRange: 5
+  storageCapacity: 20
+  energyConsumptionKW: 5
 --- !u!1 &6855559125169596485
 GameObject:
   m_ObjectHideFlags: 0
@@ -1165,7 +1182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 0
-  ExtraLocalOffset: {x: 0, y: 0, z: 0}
+  ownerAuthoring: {fileID: 0}
 --- !u!1 &7185983768209784243
 GameObject:
   m_ObjectHideFlags: 0

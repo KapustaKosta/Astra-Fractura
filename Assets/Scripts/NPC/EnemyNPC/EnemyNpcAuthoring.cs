@@ -1,6 +1,8 @@
 ﻿using Unity.Entities;
 using UnityEngine;
 using Unity.Mathematics;
+using Unity.Collections;
+using Unity.Physics;
 
 /// <summary>
 /// Авторинг вражеского NPC. Набор компонентов зеркалирует дружественного NPC:
@@ -16,6 +18,9 @@ public class EnemyNpcAuthoring : MonoBehaviour
     public float AttackRange = 1.8f;
     public float AttackCooldown = 0.8f;
     public float Damage = 10f;
+    
+    [Header("Health")]
+    public float MaxHealth = 50f;
 
     [Header("Movement (как в NPCAuthoring)")]
     public float MoveSpeed = 3.5f;
@@ -43,6 +48,19 @@ public class EnemyNpcAuthoring : MonoBehaviour
                 Damage         = a.Damage
             });
             AddComponent<AttackState>(e);
+
+
+            // Добавляем NPCComponent, чтобы враг считался валидной целью для атаки и смерти
+            AddComponent(e, new NPCComponent
+            {
+                Name = new FixedString64Bytes("Hostile NPC"), 
+            });
+            
+            AddComponent(e, new HealthComponent
+            {
+                MaxHealth = a.MaxHealth,
+                CurrentHealth = a.MaxHealth
+            });
 
             // Движение/избежание
             AddComponent(e, new NPCBaseMovementStats
@@ -75,6 +93,11 @@ public class EnemyNpcAuthoring : MonoBehaviour
             AddComponent<NPCBrain>(e);
             AddComponent<NPCPathfindingComponent>(e);
             AddBuffer<NPCPathBufferElement>(e);
+            
+            AddComponent(e, new PhysicsGravityFactor
+            {
+                Value = 1f // Стандартная гравитация
+            });
             
         }
     }

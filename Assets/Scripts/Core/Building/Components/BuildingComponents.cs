@@ -21,7 +21,6 @@ public struct PlacementInvalidTag : IComponentData { }
 /// </summary>
 public struct NeedsPreviewSetupTag : IComponentData { }
 
-// 💡 НОВЫЙ КОМПОНЕНТ: Тег, указывающий, что сущность будет уничтожена в этом же кадре.
 /// <summary>
 /// Тег, указывающий, что сущность будет уничтожена в этом же кадре.
 /// Используется для предотвращения конфликтов EntityCommandBuffer.

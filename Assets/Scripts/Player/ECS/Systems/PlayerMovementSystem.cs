@@ -9,25 +9,37 @@ using Unity.Transforms;
 //
 // ОСНОВНЫЕ ИДЕИ:
 // - На земле: проецируем движение на плоскость склона, чтобы скорость по поверхности была постоянной.
-// - Перед препятствием: пробуем "шаг" (step offset): проверка вперёд -> проверка свободного места сверху -> поиск площадки вниз.
-// - Если шаг невозможен: скользим вдоль препятствия (удаляем компонент скорости в нормаль стены).
+// - Перед препятствием: "шаг" (step offset) -> если нельзя, скользим вдоль препятствия.
 // - В воздухе: обычная гравитация + ограниченный air control.
+// - КНОКБЕК встроен в один джоб: если есть компонент PlayerKnockback — применяем импульс и выходим.
+//   Когда импульс затух — снимаем компонент через параллельный ECB.
 //
-
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(InputsSystem))]
+[UpdateBefore(typeof(PhysicsSystemGroup))] 
 public partial class PlayerMovementSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        var deltaTime = SystemAPI.Time.DeltaTime;
+        var deltaTime    = SystemAPI.Time.DeltaTime;
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+
+
+        var knockbackLookup = SystemAPI.GetComponentLookup<PlayerKnockback>(isReadOnly: false);
+
+
+        var ecbSingleton = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbParallel  = ecbSingleton.CreateCommandBuffer(World.Unmanaged).AsParallelWriter();
 
         Dependency = new PlayerMovementJob
         {
-            DeltaTime = deltaTime,
-            CollisionWorld = physicsWorld
+            DeltaTime       = deltaTime,
+            CollisionWorld  = physicsWorld,
+            KnockbackLookup = knockbackLookup,
+            Ecb             = ecbParallel
         }.ScheduleParallel(Dependency);
+
+        
     }
 
     [BurstCompile]
@@ -36,7 +48,14 @@ public partial class PlayerMovementSystem : SystemBase
         public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
 
+        // Дадим джобу доступ к кнокбеку у ТЕКУЩЕЙ сущности
+        [NativeDisableParallelForRestriction]
+        public ComponentLookup<PlayerKnockback> KnockbackLookup;
+
+        public EntityCommandBuffer.ParallelWriter Ecb;
+
         public void Execute(
+            [EntityIndexInQuery] int sortKey,
             Entity entity,
             ref LocalTransform transform,
             ref PhysicsVelocity velocity,
@@ -46,30 +65,121 @@ public partial class PlayerMovementSystem : SystemBase
             in PlayerControllerData controller,
             in PlayerGroundCheckData groundCheck,
             in InputsData inputs,
-            in PhysicsCollider physicsCollider 
+            in PhysicsCollider physicsCollider
         )
         {
-            // 1) Ground check + нормаль опоры 
-            var sphereCenter = transform.Position + new float3(0f, controller.GroundedOffset, 0f);
 
+            bool hadKnockback = KnockbackLookup.HasComponent(entity); // RW-lookup, прокинут в джоб
+            // DEBUG: if (hadKnockback) { /* log: "Knockback active, initial kVel=" + kbRef.ValueRO.Velocity */ }
+            if (hadKnockback)
+            {
+                var kbRef = KnockbackLookup.GetRefRW(entity);
+                float3 kVel = kbRef.ValueRO.Velocity;
+
+                // Гравитация + терминальная скорость
+                kVel.y += controller.Gravity * DeltaTime;
+                if (kVel.y < controller.TerminalVelocity)
+                    kVel.y = controller.TerminalVelocity;
+
+                // Применяем к физике
+                velocity.Linear  = kVel;
+                velocity.Angular = float3.zero;
+
+                // Затухание импульса и синхронизация
+                kVel *= kbRef.ValueRO.Damping;
+                stateData.verticalVelocity = kVel.y;
+
+                // Записываем обратно в компонент
+                kbRef.ValueRW.Velocity = kVel;
+
+                // Порог завершения импульса
+                const float endEpsilonSq     = 0.01f; // ~0.1 m/s
+                const float groundedEpsSq    = 0.04f; // ~0.2 m/s — если на земле, снимаем щедрее
+
+                // Быстрый чек "на земле?" (локально, только для завершения кнокбека) — с фильтрацией нормали (из предыдущего фикса)
+                bool groundedQuick = false;
+                float bestDotQuick = -1f;
+                {
+                    float3 sphereCenter = transform.Position + new float3(0f, controller.GroundedOffset, 0f);
+                    var tmpHits = new NativeList<DistanceHit>(Allocator.Temp);
+                    var groundFilter = new CollisionFilter
+                    {
+                        BelongsTo    = 1u << 0,
+                        CollidesWith = (uint)controller.GroundLayers,
+                        GroupIndex   = 0
+                    };
+                    bool overlappedQuick = CollisionWorld.OverlapSphere(
+                        sphereCenter,
+                        controller.GroundedRadius,
+                        ref tmpHits,
+                        groundFilter
+                    );
+                    if (overlappedQuick)
+                    {
+                        for (int i = 0; i < tmpHits.Length; i++)
+                        {
+                            var h = tmpHits[i];
+                            if (h.Entity == entity) continue;
+
+                            float d = math.dot(h.SurfaceNormal, new float3(0f, 1f, 0f));
+                            if (d > controller.MaxSlopeCosine && d > bestDotQuick)
+                            {
+                                bestDotQuick = d;
+                                groundedQuick = true;
+                            }
+                        }
+                    }
+                    tmpHits.Dispose();
+                }
+
+                // DEBUG: /* log: "Knockback: kVel=" + kVel + ", groundedQuick=" + groundedQuick + ", bestDotQuick=" + bestDotQuick + ", MaxSlopeCosine=" + controller.MaxSlopeCosine */ 
+
+                // Решение о снятии
+                float kLenSq = math.lengthsq(kVel);
+                bool shouldEnd = (kLenSq <= endEpsilonSq) || (groundedQuick && kLenSq <= groundedEpsSq);
+
+                // DEBUG: /* log: "Knockback decision: kLenSq=" + kLenSq + ", endEpsilonSq=" + endEpsilonSq + ", groundedEpsSq=" + groundedEpsSq + ", shouldEnd=" + shouldEnd */ 
+
+                if (shouldEnd)
+                {
+                    // Снимаем компонент прямо сейчас (через параллельный ECB)
+                    Ecb.RemoveComponent<PlayerKnockback>(sortKey, entity);
+                    hadKnockback = false; 
+                    velocity.Linear = new float3(0f, stateData.verticalVelocity, 0f);
+
+                    // DEBUG: /* log: "Knockback ended, reset horiz vel to 0, vVel=" + stateData.verticalVelocity */ 
+                }
+                else
+                {
+                    // Импульс ещё идёт — обычное движение пропускаем
+                    // DEBUG: /* log: "Knockback continues, skipping movement" */ 
+                    return;
+                }
+            }
+            else
+            {
+                // DEBUG: /* log: "No knockback, proceeding to normal movement" */ 
+            }
+            
+            var sphereCenterMain = transform.Position + new float3(0f, controller.GroundedOffset, 0f);
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
             var filter = new CollisionFilter
             {
-                BelongsTo = 1u << 0,                       // по умолчанию
-                CollidesWith = (uint)controller.GroundLayers, 
-                GroupIndex = 0
+                BelongsTo    = 1u << 0,
+                CollidesWith = (uint)controller.GroundLayers,
+                GroupIndex   = 0
             };
 
             bool overlapped = CollisionWorld.OverlapSphere(
-                sphereCenter,
+                sphereCenterMain,
                 controller.GroundedRadius,
                 ref hits,
                 filter
             );
 
-            bool isGrounded = false;
-            float3 groundNormal = new float3(0, 1, 0);
-            float bestDot = -1f;
+            bool   isGrounded   = false;
+            float3 groundNormal = new float3(0f, 1f, 0f);
+            float  bestDot      = -1f;
 
             if (overlapped)
             {
@@ -78,25 +188,27 @@ public partial class PlayerMovementSystem : SystemBase
                     var h = hits[i];
                     if (h.Entity == entity) continue;
 
-                    float d = math.dot(h.SurfaceNormal, new float3(0, 1, 0));
+                    float d = math.dot(h.SurfaceNormal, new float3(0f, 1f, 0f));
                     if (d > controller.MaxSlopeCosine && d > bestDot)
                     {
-                        bestDot = d;
+                        bestDot      = d;
                         groundNormal = h.SurfaceNormal;
-                        isGrounded = true;
+                        isGrounded   = true;
                     }
                 }
             }
             hits.Dispose();
 
             groundedState.IsGrounded = isGrounded;
-            stateData.isGrounded = isGrounded;
+            stateData.isGrounded     = isGrounded;
 
-            // 2) Таймауты прыжка/падения 
+            // DEBUG: /* log: "Ground check: overlapped=" + overlapped + ", isGrounded=" + isGrounded + ", bestDot=" + bestDot + ", MaxSlopeCosine=" + controller.MaxSlopeCosine + ", hits count=" + hits.Length (но hits disposed, используйте counter) */ 
+
+
             if (stateData.jumpTimeoutDelta > 0f) stateData.jumpTimeoutDelta -= DeltaTime;
             if (stateData.fallTimeoutDelta > 0f) stateData.fallTimeoutDelta -= DeltaTime;
 
-            // 3) Вертикальная скорость (прыжок / гравитация)
+
             if (isGrounded)
             {
                 stateData.fallTimeoutDelta = controller.FallTimeout;
@@ -126,12 +238,14 @@ public partial class PlayerMovementSystem : SystemBase
                     stateData.verticalVelocity = controller.TerminalVelocity;
             }
 
-            // 4) Целевая горизонтальная скорость
-            float targetSpeed = math.lengthsq(inputs.move) < 1e-6f
+            // DEBUG: /* log: "Vertical: isGrounded=" + isGrounded + ", vVel after=" + stateData.verticalVelocity + ", jump pressed=" + inputs.jump + ", fallTimeout=" + stateData.fallTimeoutDelta */ 
+            
+            float2 inputVec   = inputs.move;
+            float  targetSpeed = math.lengthsq(inputVec) < 1e-6f
                 ? 0f
                 : (inputs.sprint ? controller.SprintSpeed : controller.MoveSpeed);
 
-            float inputMag = inputs.analogMovement ? math.length(inputs.move) : 1f;
+            float inputMag = inputs.analogMovement ? math.length(inputVec) : 1f;
             targetSpeed *= inputMag;
 
             float accel = controller.SpeedChangeRate * (isGrounded ? 1f : controller.AirControlMultiplier);
@@ -139,91 +253,80 @@ public partial class PlayerMovementSystem : SystemBase
             if (math.abs(stateData.currentSpeed - targetSpeed) < controller.SpeedSnapThreshold)
                 stateData.currentSpeed = targetSpeed;
 
-            // направление в мировых координатах (до проекции на склон)
-            float3 moveDir = new float3(0, 0, 0);
-            if (math.lengthsq(inputs.move) > 1e-6f)
+            float3 moveDir = new float3(0f, 0f, 0f);
+            if (math.lengthsq(inputVec) > 1e-6f)
             {
-                // Основано на повороте игрока (его local forward/right)
-                float3 local = new float3(inputs.move.x, 0f, inputs.move.y);
+                float3 local = new float3(inputVec.x, 0f, inputVec.y);
                 moveDir = math.normalize(math.mul(transform.Rotation, local));
             }
 
             // 5) Проекция движения на плоскость склона
             if (isGrounded && math.lengthsq(moveDir) > 1e-6f)
-            {
-                // v' = v - (v·n) n — убираем компонент в нормаль пола
-                moveDir = math.normalize(Reject(moveDir, groundNormal));
-            }
+                moveDir = math.normalize(moveDir - math.normalizesafe(groundNormal) * math.dot(moveDir, math.normalizesafe(groundNormal)));
 
             float3 desiredHorizVel = moveDir * stateData.currentSpeed;
 
-            // 6) STEP OFFSET + SLIDE вдоль препятствий (только на земле и при движении)
+            // DEBUG: /* log: "Horizontal: inputVec=" + inputVec + ", targetSpeed=" + targetSpeed + ", currentSpeed before lerp=" + stateData.currentSpeed + ", accel=" + accel + ", airMultiplier=" + controller.AirControlMultiplier + ", moveDir len=" + math.length(moveDir) + ", desiredHorizVel len=" + math.length(desiredHorizVel) */ 
+            
             if (isGrounded && math.lengthsq(desiredHorizVel) > 1e-6f)
             {
-                // 6.1. Проверка препятствия впереди (RayCast от "ног")
-                float3 fwd = math.normalize(desiredHorizVel);
-                float3 rayStart = transform.Position + new float3(0, StepRayStartHeight, 0);
-                float checkDist = math.max(StepForwardCheckMin, math.length(desiredHorizVel) * DeltaTime + Skin);
+                const float StepMaxHeight        = 0.35f;
+                const float StepRayStartHeight   = 0.10f;
+                const float StepForwardCheckMin  = 0.40f;
+                const float StepClearanceUp      = 0.05f;
+                const float StepExtraForward     = 0.05f;
+                const float StepMaxRiseSpeed     = 10.0f;
+                const float Skin                 = 0.02f;
 
-                Unity.Physics.RaycastHit fwdHit;
+                float3 fwd       = math.normalize(desiredHorizVel);
+                float3 rayStart  = transform.Position + new float3(0f, StepRayStartHeight, 0f);
+                float  checkDist = math.max(StepForwardCheckMin, math.length(desiredHorizVel) * DeltaTime + Skin);
+
                 var fwdInput = new RaycastInput
                 {
-                    Start = rayStart,
-                    End = rayStart + fwd * checkDist,
+                    Start  = rayStart,
+                    End    = rayStart + fwd * checkDist,
                     Filter = filter
                 };
 
-                bool hasFrontHit = CollisionWorld.CastRay(fwdInput, out fwdHit);
+                bool hasFrontHit = CollisionWorld.CastRay(fwdInput, out var fwdHit);
 
                 if (hasFrontHit)
                 {
-                    // Стена/уступ? (малый вклад по Y — почти вертикальная поверхность)
-                    float wallY = math.abs(math.dot(fwdHit.SurfaceNormal, new float3(0, 1, 0)));
+                    float wallY         = math.abs(math.dot(fwdHit.SurfaceNormal, new float3(0f, 1f, 0f)));
+                    bool  looksLikeWall = wallY < 0.2f;
+                    bool  stepped       = false;
 
-                    bool looksLikeWall = wallY < 0.2f;
-
-                    bool stepped = false;
+                    // DEBUG: /* log: "Step check: hasFrontHit=" + hasFrontHit + ", looksLikeWall=" + looksLikeWall + ", wallY=" + wallY */ 
 
                     if (looksLikeWall)
                     {
-                        // 6.2. Проверка свободного места сверху (ray на той же дистанции, но с поднятием)
-                        float3 topStart = transform.Position + new float3(0, StepMaxHeight + StepClearanceUp, 0);
+                        float3 topStart = transform.Position + new float3(0f, StepMaxHeight + StepClearanceUp, 0f);
                         var topInput = new RaycastInput
                         {
-                            Start = topStart,
-                            End = topStart + fwd * checkDist,
+                            Start  = topStart,
+                            End    = topStart + fwd * checkDist,
                             Filter = filter
                         };
 
-                        bool blockedAbove = CollisionWorld.CastRay(topInput, out _);
-
-                        if (!blockedAbove)
+                        if (!CollisionWorld.CastRay(topInput, out _))
                         {
-                            // 6.3. Ищем площадку вниз в точке впереди
                             float3 downStart = topStart + fwd * math.min(checkDist, fwdHit.Fraction * checkDist + StepExtraForward);
                             var downInput = new RaycastInput
                             {
-                                Start = downStart,
-                                End = downStart + new float3(0, -(StepMaxHeight + 0.75f), 0),
+                                Start  = downStart,
+                                End    = downStart + new float3(0f, -(StepMaxHeight + 0.75f), 0f),
                                 Filter = filter
                             };
 
-                            Unity.Physics.RaycastHit downHit;
-                            bool hasDown = CollisionWorld.CastRay(downInput, out downHit);
-
-                            if (hasDown)
+                            if (CollisionWorld.CastRay(downInput, out var downHit))
                             {
-                                float targetY = downHit.Position.y + controller.GroundedOffset; // небольшое прижатие
-                                float dy = targetY - transform.Position.y;
-
-                                // Успешный шаг — поднимаемся, если в пределах высоты шага и поверхность пригодна (не круче MaxSlope)
-                                float slopeDot = math.dot(downHit.SurfaceNormal, new float3(0, 1, 0));
+                                float targetY  = downHit.Position.y + controller.GroundedOffset;
+                                float dy       = targetY - transform.Position.y;
+                                float slopeDot = math.dot(downHit.SurfaceNormal, new float3(0f, 1f, 0f));
                                 if (dy > 0.01f && dy <= StepMaxHeight + 0.05f && slopeDot > controller.MaxSlopeCosine)
                                 {
-                                    // Задаём вертикальную скорость, чтобы «успеть» подняться за кадр
                                     stateData.verticalVelocity = math.clamp(dy / math.max(DeltaTime, 1e-5f), 0f, StepMaxRiseSpeed);
-
-                                    // Чуть продвигаем по горизонтали (остальная часть сделается скоростью)
                                     stepped = true;
                                 }
                             }
@@ -231,15 +334,13 @@ public partial class PlayerMovementSystem : SystemBase
                     }
 
                     if (!stepped)
-                    {
-                        // 6.4. Если шаг невозможен — скользим вдоль поверхности (удаляем компонент в нормаль препятствия)
-                        float3 n = fwdHit.SurfaceNormal;
-                        desiredHorizVel = Reject(desiredHorizVel, n);
-                    }
+                        desiredHorizVel = desiredHorizVel - math.normalizesafe(fwdHit.SurfaceNormal) * math.dot(desiredHorizVel, math.normalizesafe(fwdHit.SurfaceNormal));
+
+                    // DEBUG: /* log: "Step result: stepped=" + stepped + ", final desiredHorizVel len=" + math.length(desiredHorizVel) */ 
                 }
             }
 
-            // 7) Применение демпфирования и итоговой скорости
+
             damping.Linear = isGrounded ? controller.GroundDamping : controller.AirDamping;
 
             velocity.Linear = new float3(
@@ -247,8 +348,9 @@ public partial class PlayerMovementSystem : SystemBase
                 stateData.verticalVelocity,
                 desiredHorizVel.z
             );
+            velocity.Angular = float3.zero;
 
-            velocity.Angular = new float3(0, 0, 0);
+            // DEBUG: /* log: "Final: damping=" + damping.Linear + ", final vel len horiz=" + math.length(new float3(velocity.Linear.x, 0, velocity.Linear.z)) + ", v y=" + velocity.Linear.y + ", isGrounded=" + isGrounded */ 
         }
 
         // Убирает проекцию A на N (A' = A - (A·N)N).
@@ -258,12 +360,12 @@ public partial class PlayerMovementSystem : SystemBase
             return a - nn * math.dot(a, nn);
         }
 
-        private const float StepMaxHeight = 0.35f; // максимальная высота уступа (в юнитах мира)
-        private const float StepRayStartHeight = 0.10f; // высота старта "луча ног" над землёй
-        private const float StepForwardCheckMin = 0.40f; // минимальная дистанция вперёд для проверки шага
-        private const float StepClearanceUp = 0.05f; // запас свободного места над головой при шаге
-        private const float StepExtraForward = 0.05f; // небольшой "заглядывающий" шаг вперёд при касте вниз
-        private const float StepMaxRiseSpeed = 10.0f; // ограничение скорости подъёма при шаге (чтобы не дёргало)
-        private const float Skin = 0.02f; // маленький припуск, чтобы не упираться из-за точности
+        private const float StepMaxHeight       = 0.35f;
+        private const float StepRayStartHeight  = 0.10f;
+        private const float StepForwardCheckMin = 0.40f;
+        private const float StepClearanceUp     = 0.05f;
+        private const float StepExtraForward    = 0.05f;
+        private const float StepMaxRiseSpeed    = 10.0f;
+        private const float Skin                = 0.02f;
     }
 }
