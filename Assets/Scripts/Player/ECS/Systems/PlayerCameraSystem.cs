@@ -21,6 +21,7 @@ public partial class PlayerCameraSystem : SystemBase
         Entities
             .WithoutBurst()
             .WithAll<PlayerInitializedTag>()
+            .WithNone<DeadTag>() 
             .ForEach((ref LocalTransform playerTransform, ref PlayerStateData stateData, in PlayerControllerData controllerData, in InputsData inputs, in CameraTargetData cameraTarget) =>
             {
                 var proxy = cameraTarget.ProxyTarget;

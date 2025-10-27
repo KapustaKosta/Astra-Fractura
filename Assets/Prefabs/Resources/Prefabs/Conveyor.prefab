@@ -550,6 +550,7 @@ GameObject:
   - component: {fileID: 5778043811088863253}
   - component: {fileID: 1066809000814352706}
   - component: {fileID: 668961594080703763}
+  - component: {fileID: 626255630064942539}
   m_Layer: 9
   m_Name: Conveyor
   m_TagString: Untagged
@@ -595,6 +596,7 @@ MonoBehaviour:
   MaxLength: 8.1076
   ItemsPerMinute: 120
   SpeedMetersPerSecond: 2
+  EnergyConsumptionPerSegmentKW: 0.1
   AutoMeasureBounds: 0
   LengthAxis: {x: 0, y: 0, z: 1}
 --- !u!114 &5778043811088863253
@@ -804,6 +806,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   BuildingName: Conveyor
+--- !u!208 &626255630064942539
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6801349528839152945}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.91, y: 0.685, z: 4.33}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0.62, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &6867705780481801936
 GameObject:
   m_ObjectHideFlags: 0

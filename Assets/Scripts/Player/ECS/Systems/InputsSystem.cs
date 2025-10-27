@@ -113,6 +113,28 @@ public partial class InputsSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        // ИСПРАВЛЕНО: Объявляем 'inputs' один раз в начале метода.
+        var inputs = SystemAPI.GetSingletonRW<InputsData>();
+
+        // ИСПРАВЛЕНО: Проверяем, что запрос НЕ ПУСТОЙ, вместо HasSingleton().
+        if (!SystemAPI.QueryBuilder().WithAll<PlayerTag, DeadTag>().Build().IsEmpty)
+        {
+            // Используем уже объявленную переменную 'inputs' для сброса данных.
+            inputs.ValueRW.move = float2.zero;
+            inputs.ValueRW.look = float2.zero;
+            inputs.ValueRW.sprint = false;
+            inputs.ValueRW.jump = false;
+            inputs.ValueRW.PrimaryAction = false;
+            inputs.ValueRW.QuickbarDigitKeyPressed = 0;
+            inputs.ValueRW.QuickbarScrollDelta = 0f;
+            
+            inventoryRequested = false;
+            rightClickRequested = false;
+            jumpRequested = false;
+            
+            return;
+        }
+        
         var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
                            .CreateCommandBuffer(World.Unmanaged);
 
@@ -203,9 +225,7 @@ public partial class InputsSystem : SystemBase
         bool currentPrimaryAction = !isUI && primaryActionInput;
         int currentQuickbarDigit = isUI ? 0 : quickbarDigitPressed;
         float currentQuickbarScroll = isUI ? 0f : quickbarScrollDelta;
-
-        // Обновляем синглтон InputsData, который служит источником правды о вводе для других систем
-        var inputs = SystemAPI.GetSingletonRW<InputsData>();
+        
         inputs.ValueRW.move = currentMove;
         inputs.ValueRW.look = currentLook;
         inputs.ValueRW.sprint = currentSprint;

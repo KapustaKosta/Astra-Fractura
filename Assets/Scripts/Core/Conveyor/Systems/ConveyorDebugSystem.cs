@@ -6,39 +6,53 @@ using UnityEngine;
 
 namespace Conveyor
 {
+#if UNITY_EDITOR
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class ConveyorDebugSystem : SystemBase
     {
-        private EntityQuery _freeQ;
-        private EntityQuery _occQ;
-
-        protected override void OnCreate()
-        {
-            _freeQ = GetEntityQuery(new EntityQueryDesc
-            {
-                All = new[] { ComponentType.ReadOnly<ConveyorConnector>(), ComponentType.ReadOnly<LocalToWorld>() },
-                None = new[] { ComponentType.ReadOnly<ConveyorOccupiedTag>(), ComponentType.ReadOnly<ConveyorGhostTag>() } // ИСПРАВЛЕНО
-            });
-
-            _occQ = GetEntityQuery(new EntityQueryDesc
-            {
-                All = new[] { ComponentType.ReadOnly<ConveyorConnector>(), ComponentType.ReadOnly<LocalToWorld>(), ComponentType.ReadOnly<ConveyorOccupiedTag>() }, // ИСПРАВЛЕНО
-                None = new[] { ComponentType.ReadOnly<ConveyorGhostTag>() }
-            });
-        }
+        private double _nextLogTime = 0.0;
 
         protected override void OnUpdate()
         {
-            int free = _freeQ.CalculateEntityCount();
-            int occ = _occQ.CalculateEntityCount();
-
-            Entity snapTarget = Entity.Null;
-            if (SystemAPI.TryGetSingletonEntity<GameState>(out var gs) &&
-                SystemAPI.HasComponent<ConveyorState>(gs))
+            foreach(var (ltw, runtimeLength)
+                    in SystemAPI.Query<RefRO<LocalToWorld>, RefRO<ConveyorSegmentRuntimeLength>>())
             {
-                var st = SystemAPI.GetComponent<ConveyorState>(gs);
-                snapTarget = st.StartConnector;
+                var position = ltw.ValueRO.Position;
+                var forward = ltw.ValueRO.Forward;
+                var length = runtimeLength.ValueRO.Value;
+
+                float3 startPoint = position - forward * (length / 2f);
+                float3 endPoint = position + forward * (length / 2f);
+                
+                Debug.DrawLine(startPoint, endPoint, Color.cyan);
+                Debug.DrawRay(startPoint, Vector3.up * 0.5f, Color.yellow);
+                Debug.DrawRay(endPoint, Vector3.up * 0.5f, Color.red);
+            }
+            
+            if (SystemAPI.Time.ElapsedTime < _nextLogTime)
+            {
+                return;
+            }
+            _nextLogTime = SystemAPI.Time.ElapsedTime + 1.0; 
+
+            var itemQuery = SystemAPI.QueryBuilder().WithAll<LocalToWorld, ItemVisualTag, ConveyorVisualProgress>().Build();
+            if (itemQuery.IsEmpty) return;
+            
+            using (var items = itemQuery.ToEntityArray(Allocator.Temp))
+            {
+                if (items.Length > 0)
+                {
+                    Entity firstItemEntity = items[0];
+                    var itemLtw = SystemAPI.GetComponent<LocalToWorld>(firstItemEntity);
+                    var itemProgress = SystemAPI.GetComponent<ConveyorVisualProgress>(firstItemEntity);
+                    
+                    Debug.Log($"<color=yellow>[ConveyorItem] Pos: {itemLtw.Position}," +
+                              $" Progress: (Joint: {itemProgress.CurrentJointIndex}," +
+                              $" DistOnSeg: {itemProgress.DistanceOnSegment:F2})" +
+                              $" Speed: {itemProgress.Speed:F2}</color>");
+                }
             }
         }
     }
+#endif
 }

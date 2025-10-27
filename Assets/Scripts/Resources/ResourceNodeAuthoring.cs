@@ -1,6 +1,8 @@
 using Unity.Entities;
 using UnityEngine;
 using System;
+using Unity.Mathematics; 
+using Unity.Rendering;  
 
 class ResourceNodeAuthoring : MonoBehaviour
 {
@@ -14,15 +16,15 @@ class ResourceNodeAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            //var resourceLayer = 1 << LayerMask.NameToLayer("Resources");
-            //authoring.gameObject.layer = resourceLayer;
-
             AddComponent(entity, new ResourceNode
             {
                 speedOfCollection = authoring.speedOfCollection,
                 resourceType = authoring.resourceType,
                 wealthDeposit = authoring.wealthDeposit
             });
+            
+            // Добавляем компонент для управления цветом, чтобы система подсветки могла работать.
+            AddComponent(entity, new URPMaterialPropertyBaseColor { Value = new float4(1,1,1,1) });
         }
     }
 }

@@ -214,3 +214,21 @@ public struct ConfirmConveyorPlacementRequest : IRequestCleanup { public int Ite
 /// Запрос на удаление конвейера под курсором.
 /// </summary>
 public struct RemoveConveyorUnderCursorRequest : IRequestCleanup { }
+
+public struct OpenQuarryUIRequest : IRequestCleanup { public Entity Target; }
+
+public struct ToggleQuarryRequest : IRequestCleanup { public Entity Target; }
+
+/// <summary>
+/// Запрос на открытие UI вражеского поселения.
+/// </summary>
+public struct OpenEnemySettlementUIRequest : IRequestCleanup { public Entity Target; }
+
+/// <summary>
+/// Запрос на захват вражеского поселения игроком.
+/// </summary>
+public struct CaptureSettlementRequest : IRequestCleanup 
+{ 
+    public Entity PlayerEntity; 
+    public Entity SettlementEntity; 
+}

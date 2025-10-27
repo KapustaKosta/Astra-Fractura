@@ -5,7 +5,7 @@
 /// <summary>
 /// Перечисление всех возможных типов глобальных целей для NPC.
 /// </summary>
-public enum GoalType { Idle, Harvest, ReturnToBase, Flee, MaintainWorkshop, Attack, Wander } // ДОБАВЛЕНО: Wander
+public enum GoalType { Idle, Harvest, ReturnToBase, Flee, MaintainWorkshop, Attack, Wander } 
 
 /// <summary>
 /// Компонент текущей цели NPC. Хранит информацию о типе цели, 

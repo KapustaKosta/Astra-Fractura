@@ -27,6 +27,16 @@ public class NPCAuthoring : MonoBehaviour
     [Tooltip("Общий запас 'рабочей силы' (молотков) на цикл.")]
     public float hammerPoolCapacity = 35f;
 
+    [Header("Жизненные показатели (Vitals)")]
+    [Tooltip("Максимальный запас голода.")]
+    public float maxHunger = 100f;
+    [Tooltip("На сколько единиц голод снижается в минуту.")]
+    public float hungerDecayPerMinute = 1.0f;
+    [Tooltip("Максимальный запас усталости (сил).")]
+    public float maxFatigue = 100f;
+    [Tooltip("На сколько единиц усталость снижается в минуту во время активной работы (не ходьбы или бездействия).")]
+    public float fatigueDecayPerMinuteWhileWorking = 2.0f;
+
     [Header("Параметры движения")]
     [Tooltip("Скорость передвижения NPC в м/с.")]
     public float moveSpeed = 3.5f;
@@ -71,6 +81,21 @@ public class NPCAuthoring : MonoBehaviour
             {
                 MaxHealth     = a.maxHealth,
                 CurrentHealth = a.maxHealth
+            });
+
+            // Добавляем новые компоненты для голода и усталости
+            AddComponent(e, new NpcVitalsConfig
+            {
+                MaxHunger = a.maxHunger,
+                HungerDecayPerMinute = a.hungerDecayPerMinute,
+                MaxFatigue = a.maxFatigue,
+                FatigueDecayPerMinuteWhileWorking = a.fatigueDecayPerMinuteWhileWorking
+            });
+
+            AddComponent(e, new NpcVitalsComponent
+            {
+                CurrentHunger = a.maxHunger,
+                CurrentFatigue = a.maxFatigue
             });
 
             // Ссылка на исходный GameObject (если требуется для мостов/визуала)

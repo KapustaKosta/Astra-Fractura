@@ -24,14 +24,12 @@ namespace Conveyor
             int nSpawnable = qSpawnable.CalculateEntityCount();
             int nVisuals = qVisuals.CalculateEntityCount();
 
-            // Lookups, которые реально используем в лямбдах
+
             var hasTransitLookup = GetComponentLookup<ItemInTransit>(true);
-            var initFlagLookup = GetComponentLookup<ConveyorVisualInitializedTag>(true);
 
             int ownerMissing = 0;
-            int initDisabled = 0;
 
-            // Владелец логики отсутствует/потерял ItemInTransit — считаем
+
             Entities
                 .WithAll<ItemVisualTag>()
                 .WithReadOnly(hasTransitLookup)
@@ -42,20 +40,10 @@ namespace Conveyor
                 })
                 .Run();
 
-            // Считаем у каких визуалов enableable-тег присутствует, но выключен
-            Entities
-                .WithAll<ItemVisualTag>()
-                .WithReadOnly(initFlagLookup)
-                .ForEach((Entity e) =>
-                {
-                    if (initFlagLookup.HasComponent(e) && !initFlagLookup.IsComponentEnabled(e))
-                        initDisabled++;
-                })
-                .Run();
 
             Debug.Log($"<color=#87CEFA>[Conveyor/Visual Debug]</color> " +
                       $"transit={nTransit} spawnable(no visual)={nSpawnable} visuals={nVisuals} " +
-                      $"ownerMissing={ownerMissing} initDisabled={initDisabled}");
+                      $"ownerMissing={ownerMissing}");
 #endif
         }
     }

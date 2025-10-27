@@ -1,6 +1,7 @@
 ﻿using Unity.Entities;
 using UnityEngine;
 using Unity.Rendering;
+using Unity.Mathematics;
 
 /// <summary>
 /// Глобальные настройки строительства. Материалы задаются в инспекторе:
@@ -28,29 +29,47 @@ public class BuildingSettingsAuthoring : MonoBehaviour
     [Tooltip("Материал превью, когда размещение невалидно.")]
     public Material invalidPlacementMaterial;
 
-    [Header("Quarry Resource Highlight (Resource Node entity)")]
-    [Tooltip("Материал подсветки ресурсного узла во время установки карьера.")]
-    public Material resourceHighlightMaterial;
+    [Header("Quarry Resource Highlight (Overlay)")]
+    [Tooltip("URP Unlit, Surface=Transparent — будет отрисован поверх ресурса.")]
+    public Material resourceHighlightOverlayMaterial;
+    [Tooltip("RGB подсветки ресурса.")]
+    public Color resourceHighlightColor = new Color(0.20f, 0.50f, 1.00f, 1.0f);
+    [Range(0f, 1f)]
+    [Tooltip("Прозрачность вуали.")]
+    public float resourceHighlightAlpha = 0.5f;
+
+    [Header("Quarry Range Visualization (fallback/aux)")]
+    public Mesh     quarryRangeMesh;
+    public Material quarryRangeMaterial;
 
     private class Baker : Baker<BuildingSettingsAuthoring>
     {
-        public override void Bake(BuildingSettingsAuthoring authoring)
+        public override void Bake(BuildingSettingsAuthoring a)
         {
-            var entity = GetEntity(TransformUsageFlags.None);
+            var e = GetEntity(TransformUsageFlags.None);
 
-            AddComponent(entity, new BuildingSettings
+            float4 hlColor = new float4(a.resourceHighlightColor.r,
+                                        a.resourceHighlightColor.g,
+                                        a.resourceHighlightColor.b,
+                                        a.resourceHighlightColor.a);
+
+            AddComponent(e, new BuildingSettings
             {
-                BuildableSurfaceLayerMask = authoring.buildableSurfaceLayer.value,
-                ObstacleLayerMask         = authoring.obstacleLayer.value,
-                MaxPlacementSlopeAngle    = authoring.maxPlacementSlopeAngle,
-                MaxPlacementDistance      = authoring.maxPlacementDistance,
-                PreviewLayer              = GetFirstLayer(authoring.previewLayer),
+                BuildableSurfaceLayerMask = a.buildableSurfaceLayer.value,
+                ObstacleLayerMask         = a.obstacleLayer.value,
+                MaxPlacementSlopeAngle    = a.maxPlacementSlopeAngle,
+                MaxPlacementDistance      = a.maxPlacementDistance,
+                PreviewLayer              = GetFirstLayer(a.previewLayer),
 
-                // ID материалов регистрируются рантайм-системой,
-                // здесь просто заполняем default.
-                ValidPlacementMaterialID     = default,
-                InvalidPlacementMaterialID   = default,
-                ResourceHighlightMaterialID  = default
+                ValidPlacementMaterialID           = default,
+                InvalidPlacementMaterialID         = default,
+
+                ResourceHighlightOverlayMaterialID = default,
+                ResourceHighlightColor             = hlColor,
+                ResourceHighlightAlpha             = Mathf.Clamp01(a.resourceHighlightAlpha),
+
+                QuarryRangeMaterialID              = default,
+                QuarryRangeMeshID                  = default
             });
         }
 
@@ -67,4 +86,3 @@ public class BuildingSettingsAuthoring : MonoBehaviour
         }
     }
 }
-

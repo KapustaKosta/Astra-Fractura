@@ -1,5 +1,4 @@
-﻿// Assets/Scripts/Core/Combat/Components/DeathAndLootComponents.cs
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 
 public struct Dying : IComponentData
@@ -54,7 +53,6 @@ public struct DeathTrace : IComponentData
 
 public struct DeathFinalizedTag : IComponentData { }
 
-// =============== NEW: Отложенный спавн лута ===============
 
 /// <summary>
 /// Тикет на отложенный спавн лута. Живёт отдельно от трупа.

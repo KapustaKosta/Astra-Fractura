@@ -1,4 +1,4 @@
-﻿﻿using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Transforms;
 
 
@@ -12,15 +12,14 @@ public partial class BuildingPreviewLifecycleSystem : SystemBase
 {
     protected override void OnUpdate()
     {
-        var ecb = SystemAPI
-            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
-            .CreateCommandBuffer(World.Unmanaged);
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                           .CreateCommandBuffer(World.Unmanaged);
 
         // Проверяем существование синглтона GameState.
         if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gs)) return;
 
         bool inBuildMode = SystemAPI.HasComponent<InBuildingMode>(gs);
-        bool hasPreview = SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity);
+        bool hasPreview  = SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var previewEntity);
 
         if (inBuildMode && !hasPreview)
         {
@@ -30,39 +29,43 @@ public partial class BuildingPreviewLifecycleSystem : SystemBase
                 if (st.BuildingPrefabToPlace != Entity.Null)
                 {
                     var rootPrefab = ResolvePrefabRoot(st.BuildingPrefabToPlace);
-                    var g = ecb.Instantiate(rootPrefab);
+                    var g          = ecb.Instantiate(rootPrefab);
 
                     ecb.AddComponent<BuildingPreviewTag>(g);
                     ecb.AddComponent<NeedsPreviewSetupTag>(g);
-                    ecb.AddComponent<BuildingHeightOffset>(g);
-                    ecb.AddComponent<BuildingPreviewLink>(g);
-                    ecb.AddComponent<PreviewGroundPosition>(g);
 
-                    ecb.RemoveComponent<Parent>(g);
+                    // Карьер — проверяем и исходный префаб, и корень
+                    bool isQuarry =
+                        SystemAPI.HasComponent<QuarryTag>(st.BuildingPrefabToPlace) ||
+                        SystemAPI.HasComponent<QuarryTag>(rootPrefab);
+
+                    if (isQuarry)
+                    {
+                        ecb.AddComponent<QuarryPlacementTag>(g);
+                        ecb.AddComponent<QuarryPreviewTarget>(g);
+                        ecb.SetComponentEnabled<QuarryPreviewTarget>(g, false);
+                        ecb.AddComponent<NeedsRangeVisSetup>(g);
+                        ecb.AddComponent<AllowRenderingTag>(g); // разрешаем рендер превью
+                    }
+                    else
+                    {
+                        ecb.AddComponent<AllowRenderingTag>(g); // обычные превью тоже рисуем
+                    }
                 }
             }
         }
         else if (!inBuildMode && hasPreview)
         {
-            if (SystemAPI.HasComponent<BuildingPreviewLink>(previewEntity))
-            {
-                var link = SystemAPI.GetComponent<BuildingPreviewLink>(previewEntity);
-                if (link.FoundationPreviewEntity != Entity.Null && EntityManager.Exists(link.FoundationPreviewEntity))
-                {
-                    ecb.DestroyEntity(link.FoundationPreviewEntity);
-                }
-            }
             ecb.DestroyEntity(previewEntity);
         }
     }
 
     private Entity ResolvePrefabRoot(Entity anyPrefabEntity)
     {
-        var e = anyPrefabEntity;
-        while (SystemAPI.HasComponent<Parent>(e))
+        while (SystemAPI.HasComponent<Parent>(anyPrefabEntity))
         {
-            e = SystemAPI.GetComponent<Parent>(e).Value;
+            anyPrefabEntity = SystemAPI.GetComponent<Parent>(anyPrefabEntity).Value;
         }
-        return e;
+        return anyPrefabEntity;
     }
 }

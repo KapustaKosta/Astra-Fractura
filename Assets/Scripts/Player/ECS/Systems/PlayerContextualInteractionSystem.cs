@@ -41,7 +41,6 @@ public partial class PlayerContextualInteractionSystem : SystemBase
         if (Camera.main == null) return;
         
 
-        // Получаем сущность игрока для запроса на подбор
         var playerEntity = SystemAPI.GetSingletonEntity<PlayerTag>();
 
 
@@ -67,13 +66,11 @@ public partial class PlayerContextualInteractionSystem : SystemBase
             {
                 ecb.AddComponent(requestEntity, new OpenNPCUIRequest { Target = interactedEntity });
             }
-            // Добавляем проверку на подбираемый предмет
             else if (em.HasComponent<VisualFor>(interactedEntity))
             {
                 var logicalEntity = em.GetComponentData<VisualFor>(interactedEntity).LogicalEntity;
                 if (em.HasComponent<WorldItem>(logicalEntity))
                 {
-                    // Создаем запрос на подбор, а не на открытие UI
                     ecb.AddComponent(requestEntity, new PickupRequest
                     {
                         Player = playerEntity,
@@ -81,10 +78,16 @@ public partial class PlayerContextualInteractionSystem : SystemBase
                     });
                 }
             }
-
             else if (em.HasComponent<SettlementComponent>(interactedEntity))
             {
-                ecb.AddComponent(requestEntity, new OpenSettlementUIRequest { Target = interactedEntity });
+                if (em.HasComponent<EnemySettlementTag>(interactedEntity))
+                {
+                    ecb.AddComponent(requestEntity, new OpenEnemySettlementUIRequest { Target = interactedEntity });
+                }
+                else
+                {
+                    ecb.AddComponent(requestEntity, new OpenSettlementUIRequest { Target = interactedEntity });
+                }
             }
             else if (em.HasComponent<WorkshopTag>(interactedEntity))
             {
@@ -101,6 +104,10 @@ public partial class PlayerContextualInteractionSystem : SystemBase
             else if (em.HasComponent<BatteryComponent>(interactedEntity))
             {
                 ecb.AddComponent(requestEntity, new OpenBatteryUIRequest { Target = interactedEntity });
+            }
+            else if (em.HasComponent<QuarryTag>(interactedEntity))
+            {
+                ecb.AddComponent(requestEntity, new OpenQuarryUIRequest { Target = interactedEntity });
             }
             else
             {

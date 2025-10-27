@@ -1,24 +1,17 @@
 ﻿using Unity.Entities;
-using UnityEngine;
+using Unity.Rendering;            
+using Unity.Mathematics;
+using UnityEngine.Rendering;
 
 /// <summary>
-/// Синглтон-компонент, хранящий глобальные настройки для системы строительства.
+/// Глобальные настройки строительства + зарегистрированные графические ресурсы.
+/// Заполняется из BuildingSettingsAuthoring.Baker и в рантайме (MaterialRegistrationSystem).
 /// </summary>
 public struct BuildingSettings : IComponentData
 {
-    /// <summary>
-    /// Маска слоев, на которых можно размещать здания.
-    /// </summary>
-    public int BuildableSurfaceLayerMask;
-
-    /// <summary>
-    /// Маска слоев, объекты на которых считаются препятствиями для строительства.
-    /// </summary>
-    public int ObstacleLayerMask;
-
-    /// <summary>
-    /// Максимальный угол наклона поверхности, на которой можно строить (в градусах).
-    /// </summary>
+    // Правила размещения/проверок
+    public int   BuildableSurfaceLayerMask;
+    public int   ObstacleLayerMask;
     public float MaxPlacementSlopeAngle;
 
     /// <summary>
@@ -31,14 +24,16 @@ public struct BuildingSettings : IComponentData
     /// </summary>
     public int PreviewLayer;
 
-    // Материалы превью (валид/невалид)
-    public UnityEngine.Rendering.BatchMaterialID ValidPlacementMaterialID;
+    // Материалы превью
+    public BatchMaterialID ValidPlacementMaterialID;
+    public BatchMaterialID InvalidPlacementMaterialID;
 
-    /// <summary>
-    /// ID невалидного материала для превью (для рендера).
-    /// </summary>
-    public UnityEngine.Rendering.BatchMaterialID InvalidPlacementMaterialID;
+    // Подсветка ресурса (overlay поверх исходного материала)
+    public BatchMaterialID ResourceHighlightOverlayMaterialID; // URP Unlit Transparent
+    public float4          ResourceHighlightColor;             // RGB берём отсюда
+    public float           ResourceHighlightAlpha;             // 0..1 — прозрачность вуали
 
-    // материал подсветки ресурсного узла во время установки карьера
-    public UnityEngine.Rendering.BatchMaterialID ResourceHighlightMaterialID;
+    // Визуализация радиуса (и fallback)
+    public BatchMeshID     QuarryRangeMeshID;
+    public BatchMaterialID QuarryRangeMaterialID;
 }

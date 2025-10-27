@@ -42,3 +42,12 @@ public struct BuildingPivotOffset : IComponentData
 {
     public float3 Value;
 }
+
+
+/// Маркер: этим сущностям разрешён рендер, несмотря на глобальный «шлюз».
+public struct AllowRenderingTag : IComponentData {}
+
+/// <summary>
+/// Маркер «нужна настройка визуализации радиуса» (ожидается BuildingPreviewLifecycleSystem).
+/// </summary>
+public struct NeedsRangeVisSetup : IComponentData {}

@@ -23,41 +23,46 @@ public partial class RequestCleanupSystem : SystemBase
         var queryDesc = new EntityQueryDesc
         {
             Any = new ComponentType[]
-            {
-                ComponentType.ReadWrite<EnterBuildingModeRequest>(),
-                ComponentType.ReadWrite<ExitBuildingModeRequest>(),
-                ComponentType.ReadWrite<PlaceBuildingRequest>(),
-                ComponentType.ReadWrite<ToggleInventoryRequest>(),
-                ComponentType.ReadWrite<OpenNPCUIRequest>(),
-                ComponentType.ReadWrite<OpenSettlementUIRequest>(),
-                ComponentType.ReadWrite<OpenTradeUIRequest>(),
-                ComponentType.ReadWrite<CloseAllUIRequest>(),
-                ComponentType.ReadWrite<InteractionRequest>(),
-                ComponentType.ReadWrite<HireNPCRequest>(),
-                ComponentType.ReadWrite<AddItemRequest>(),
-                ComponentType.ReadWrite<RemoveItemRequest>(),
-                ComponentType.ReadWrite<MoveItemRequest>(),
-                ComponentType.ReadWrite<SplitStackRequest>(),
-                ComponentType.ReadWrite<PlayerAssignHarvestRequest>(),
-                ComponentType.ReadWrite<OpenProductionUIRequest>(),
-                ComponentType.ReadWrite<PerformAttackRequest>(),
-                ComponentType.ReadWrite<OpenWorkshopUIRequest>(),
-                ComponentType.ReadWrite<EnterWirePlacementModeRequest>(),
-                ComponentType.ReadWrite<ExitWirePlacementModeRequest>(),
-                ComponentType.ReadWrite<EnterConveyorModeRequest>(),
-                ComponentType.ReadWrite<ExitConveyorModeRequest>(),
-                ComponentType.ReadWrite<OpenGeneratorUIRequest>(),
-                ComponentType.ReadWrite<OpenBatteryUIRequest>(),
-                ComponentType.ReadWrite<ToggleGeneratorRequest>(),
-                ComponentType.ReadWrite<SetRouteItemRequest>(),
-                ComponentType.ReadWrite<ToggleRouteRequest>(),
-                ComponentType.ReadWrite<OpenConveyorRoutesUIRequest>(),
-                ComponentType.ReadWrite<ConfirmConveyorPlacementRequest>(),
-                ComponentType.ReadWrite<RemoveConveyorUnderCursorRequest>()
-            }
-        };
-        m_RequestQuery = GetEntityQuery(queryDesc);
-    }
+        {
+            ComponentType.ReadWrite<EnterBuildingModeRequest>(),
+            ComponentType.ReadWrite<ExitBuildingModeRequest>(),
+            ComponentType.ReadWrite<PlaceBuildingRequest>(),
+            ComponentType.ReadWrite<ToggleInventoryRequest>(),
+            ComponentType.ReadWrite<OpenNPCUIRequest>(),
+            ComponentType.ReadWrite<OpenSettlementUIRequest>(),
+            ComponentType.ReadWrite<OpenTradeUIRequest>(),
+            ComponentType.ReadWrite<CloseAllUIRequest>(),
+            ComponentType.ReadWrite<InteractionRequest>(),
+            ComponentType.ReadWrite<HireNPCRequest>(),
+            ComponentType.ReadWrite<AddItemRequest>(),
+            ComponentType.ReadWrite<RemoveItemRequest>(),
+            ComponentType.ReadWrite<MoveItemRequest>(),
+            ComponentType.ReadWrite<SplitStackRequest>(),
+            ComponentType.ReadWrite<PlayerAssignHarvestRequest>(),
+            ComponentType.ReadWrite<OpenProductionUIRequest>(),
+            ComponentType.ReadWrite<PerformAttackRequest>(),
+            ComponentType.ReadWrite<OpenWorkshopUIRequest>(),
+            ComponentType.ReadWrite<EnterWirePlacementModeRequest>(),
+            ComponentType.ReadWrite<ExitWirePlacementModeRequest>(),
+            ComponentType.ReadWrite<EnterConveyorModeRequest>(),
+            ComponentType.ReadWrite<ExitConveyorModeRequest>(),
+            ComponentType.ReadWrite<OpenGeneratorUIRequest>(),
+            ComponentType.ReadWrite<OpenBatteryUIRequest>(),
+            ComponentType.ReadWrite<ToggleGeneratorRequest>(),
+            ComponentType.ReadWrite<SetRouteItemRequest>(),
+            ComponentType.ReadWrite<ToggleRouteRequest>(),
+            ComponentType.ReadWrite<OpenConveyorRoutesUIRequest>(),
+            ComponentType.ReadWrite<ConfirmConveyorPlacementRequest>(),
+            ComponentType.ReadWrite<RemoveConveyorUnderCursorRequest>(),
+            ComponentType.ReadWrite<OpenQuarryUIRequest>(),
+            ComponentType.ReadWrite<ToggleQuarryRequest>(),
+            ComponentType.ReadWrite<OpenEnemySettlementUIRequest>(),
+            ComponentType.ReadWrite<CaptureSettlementRequest>()
+        }
+    };
+    m_RequestQuery = GetEntityQuery(queryDesc);
+}
+
 
     /// <summary>
     /// Вызывается каждый кадр. Уничтожает все сущности, соответствующие запросу m_RequestQuery.

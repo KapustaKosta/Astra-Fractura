@@ -257,7 +257,9 @@ public partial class ToggleInventorySystem : SystemBase
             !SystemAPI.QueryBuilder().WithAll<OpenTradeUIRequest>().Build().IsEmpty ||
             !SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build().IsEmpty ||
             !SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build().IsEmpty;
+            !SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenQuarryUIRequest>().Build().IsEmpty ||
+            !SystemAPI.QueryBuilder().WithAll<OpenEnemySettlementUIRequest>().Build().IsEmpty;
 
         if (!hasAnyOpenRequest) return;
 
@@ -289,6 +291,8 @@ public partial class ToggleInventorySystem : SystemBase
         var generatorRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build();
         var batteryRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build();
         var conveyorRoutesRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build();
+        var quarryRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenQuarryUIRequest>().Build();
+        var enemySettlementRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenEnemySettlementUIRequest>().Build();
 
         if (!inventoryRequestQuery.IsEmpty)
         {
@@ -342,6 +346,18 @@ public partial class ToggleInventorySystem : SystemBase
             var req = SystemAPI.GetSingleton<OpenBatteryUIRequest>();
             ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Battery, ActiveUITarget = req.Target });
             ecb.DestroyEntity(batteryRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!quarryRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenQuarryUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Quarry, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(quarryRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!enemySettlementRequestQuery.IsEmpty)
+        {
+            var req = SystemAPI.GetSingleton<OpenEnemySettlementUIRequest>();
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.EnemySettlement, ActiveUITarget = req.Target });
+            ecb.DestroyEntity(enemySettlementRequestQuery, EntityQueryCaptureMode.AtPlayback);
         }
     }
 }

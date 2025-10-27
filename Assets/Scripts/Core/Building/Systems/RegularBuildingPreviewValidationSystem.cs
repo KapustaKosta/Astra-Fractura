@@ -4,8 +4,6 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
-
-using URay = UnityEngine.Ray;
 using PhRaycastHit = Unity.Physics.RaycastHit; 
 
 /// <summary>
@@ -25,128 +23,133 @@ public partial struct RegularBuildingPreviewValidationSystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var preview))
-            return;
-
-        if (SystemAPI.HasComponent<FoundationTag>(preview) || SystemAPI.HasComponent<SnapToEndpointTag>(preview))
-            return;
+        if (!SystemAPI.TryGetSingletonEntity<BuildingPreviewTag>(out var preview)) return;
+        if (SystemAPI.HasComponent<FoundationTag>(preview) || SystemAPI.HasComponent<SnapToEndpointTag>(preview)) return;
 
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
         var physics = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var settings = SystemAPI.GetSingleton<BuildingSettings>();
         var transform = SystemAPI.GetComponent<LocalTransform>(preview);
 
-        // Этап 1: Сбор результатов всех проверок
-        Debug.Log($"<color=orange>[Validation]</color> ===== FRAME START for entity {preview.Index} =====");
+        // 1. Стандартные проверки
+        bool isGroundedAndSlopeValid = IsGroundedAndSlopeValid(transform.Position, in physics, in settings);
+        bool isOverlapValid = IsOverlapValid(preview, transform, in physics, in settings, ref state);
 
-        // 1. Проверка уклона (результат из предыдущей системы)
-        bool isSlopeValid = !SystemAPI.HasComponent<PlacementInvalidTag>(preview);
-        Debug.Log($"<color=orange>[Validation]</color> 1. Slope Check Passed: {isSlopeValid}");
-
-        // 2. Проверка на пересечение (Overlap Check)
-        bool isOverlapValid = true;
-        if (SystemAPI.HasComponent<PhysicsCollider>(preview))
-        {
-            var collider = SystemAPI.GetComponent<PhysicsCollider>(preview);
-            var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(transform.Rotation, transform.Position));
-            var overlapInput = new OverlapAabbInput { Aabb = aabb, Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.ObstacleLayerMask, GroupIndex = 0 } };
-            
-            var overlappingBodies = new NativeList<int>(Allocator.Temp);
-            if (physics.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies))
-            {
-                isOverlapValid = false;
-            }
-            overlappingBodies.Dispose();
-        }
-        Debug.Log($"<color=orange>[Validation]</color> 2. Overlap Check Passed: {isOverlapValid}");
-
-        // 3. Проверка опоры (луч вниз)
-        bool isGrounded = false;
-        var rayInput = new RaycastInput { Start = transform.Position + new float3(0, 2.0f, 0), End = transform.Position + new float3(0, -5.0f, 0), Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 } };
-        if (physics.CastRay(rayInput, out _))
-        {
-            isGrounded = true;
-        }
-        Debug.Log($"<color=orange>[Validation]</color> 3. Grounded Check Passed: {isGrounded}");
-
-        // 4. Логика валидации карьера
+        // 2. Расширенная проверка для карьера
         bool isQuarryCheckValid = true;
-        bool isQuarry = SystemAPI.HasComponent<QuarryPlacementTag>(preview);
-        if (isQuarry)
+        if (SystemAPI.HasComponent<QuarryPlacementTag>(preview))
         {
-            Debug.Log($"<color=orange>[Validation]</color> 4. Is a Quarry. Starting specific checks...");
-            var quarrySettings = SystemAPI.GetComponent<QuarrySettings>(preview);
-            float interactionRangeSq = quarrySettings.InteractionRange * quarrySettings.InteractionRange;
-
-            Entity closestNode = Entity.Null;
-            float closestDistSq = float.MaxValue;
-
-            var occupiedNodes = new NativeHashSet<Entity>(16, Allocator.Temp);
-            foreach (var stateRO in SystemAPI.Query<RefRO<QuarryState>>())
-            {
-                if (stateRO.ValueRO.TargetResourceNode != Entity.Null)
-                    occupiedNodes.Add(stateRO.ValueRO.TargetResourceNode);
-            }
-
-            foreach (var (_, nodeTransform, nodeEntity) in SystemAPI.Query<ResourceNode, RefRO<LocalToWorld>>().WithEntityAccess())
-            {
-                if (occupiedNodes.Contains(nodeEntity)) continue;
-
-                float distSq = math.distancesq(transform.Position, nodeTransform.ValueRO.Position);
-                if (distSq < interactionRangeSq && distSq < closestDistSq)
-                {
-                    closestDistSq = distSq;
-                    closestNode = nodeEntity;
-                }
-            }
-            occupiedNodes.Dispose();
-
-            if (closestNode != Entity.Null)
-            {
-                isQuarryCheckValid = true;
-                Debug.Log($"<color=green>[Validation]</color> Quarry Check Passed. Found closest free node: {closestNode.Index}.");
-                ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, true);
-                ecb.SetComponent(preview, new QuarryPreviewTarget { TargetNode = closestNode });
-            }
-            else
-            {
-                isQuarryCheckValid = false;
-                Debug.Log($"<color=red>[Validation]</color> Quarry Check FAILED. No free resource node in range.");
-                ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, false);
-            }
+            isQuarryCheckValid = IsQuarryPlacementValid(preview, transform, ref state, ecb);
         }
         
-        // Финальное решение и применение тегов
-        bool isPlacementValid = isSlopeValid && isOverlapValid && isGrounded && isQuarryCheckValid;
-        Debug.Log($"<color=yellow>[Validation]</color> FINAL DECISION: isPlacementValid = {isPlacementValid} (Slope:{isSlopeValid}, Overlap:{isOverlapValid}, Grounded:{isGrounded}, Quarry:{isQuarryCheckValid})");
+        // 3. Финальное решение
+        bool isPlacementValid = isGroundedAndSlopeValid && isOverlapValid && isQuarryCheckValid;
         
-        // Обновляем теги валидности размещения.
+        // 4. Применение тегов
         if (isPlacementValid)
         {
-            if (!SystemAPI.HasComponent<PlacementValidTag>(preview))
-            {
-                Debug.Log($"<color=yellow>[Validation]</color> -> Adding PlacementValidTag.");
-                ecb.AddComponent<PlacementValidTag>(preview);
-            }
-            if (SystemAPI.HasComponent<PlacementInvalidTag>(preview))
-            {
-                Debug.Log($"<color=yellow>[Validation]</color> -> Removing PlacementInvalidTag.");
-                ecb.RemoveComponent<PlacementInvalidTag>(preview);
-            }
+            if (!SystemAPI.HasComponent<PlacementValidTag>(preview)) ecb.AddComponent<PlacementValidTag>(preview);
+            if (SystemAPI.HasComponent<PlacementInvalidTag>(preview)) ecb.RemoveComponent<PlacementInvalidTag>(preview);
         }
         else
         {
-            if (!SystemAPI.HasComponent<PlacementInvalidTag>(preview))
-            {
-                Debug.Log($"<color=yellow>[Validation]</color> -> Adding PlacementInvalidTag.");
-                ecb.AddComponent<PlacementInvalidTag>(preview);
-            }
-            if (SystemAPI.HasComponent<PlacementValidTag>(preview))
-            {
-                Debug.Log($"<color=yellow>[Validation]</color> -> Removing PlacementValidTag.");
-                ecb.RemoveComponent<PlacementValidTag>(preview);
-            }
+            if (!SystemAPI.HasComponent<PlacementInvalidTag>(preview)) ecb.AddComponent<PlacementInvalidTag>(preview);
+            if (SystemAPI.HasComponent<PlacementValidTag>(preview)) ecb.RemoveComponent<PlacementValidTag>(preview);
         }
-        Debug.Log($"<color=orange>[Validation]</color> ===== FRAME END =====");
     }
+
+    private bool IsGroundedAndSlopeValid(float3 position, in PhysicsWorldSingleton physics, in BuildingSettings settings)
+    {
+        var rayInput = new RaycastInput
+        {
+            Start = position + new float3(0, 1.5f, 0), End = position - new float3(0, 3.0f, 0),
+            Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 }
+        };
+        if (physics.CastRay(rayInput, out PhRaycastHit hit))
+        {
+            return SlopeUtil.IsSlopeAllowed(hit.SurfaceNormal, settings.MaxPlacementSlopeAngle);
+        }
+        return false;
+    }
+
+    private bool IsOverlapValid(Entity preview, LocalTransform transform, in PhysicsWorldSingleton physics, in BuildingSettings settings, ref SystemState state)
+    {
+        if (!SystemAPI.HasComponent<PhysicsCollider>(preview)) return true;
+        
+        var collider = SystemAPI.GetComponent<PhysicsCollider>(preview);
+        var aabb = collider.Value.Value.CalculateAabb(new RigidTransform(transform.Rotation, transform.Position));
+        var overlapInput = new OverlapAabbInput { Aabb = aabb, Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.ObstacleLayerMask, GroupIndex = 0 } };
+        
+
+        var overlappingBodies = new NativeList<int>(Allocator.Temp);
+        bool hasOverlap = physics.CollisionWorld.OverlapAabb(overlapInput, ref overlappingBodies);
+        overlappingBodies.Dispose(); 
+        
+        return !hasOverlap;
+    }
+
+    private bool IsQuarryPlacementValid(Entity preview, LocalTransform transform, ref SystemState state, EntityCommandBuffer ecb)
+{
+    // Гарантируем наличие enableable-компонента перед SetComponentEnabled
+    if (!SystemAPI.HasComponent<QuarryPreviewTarget>(preview))
+    {
+        ecb.AddComponent(preview, new QuarryPreviewTarget { TargetNode = Entity.Null });
+        // По умолчанию выключен
+        UnityEngine.Debug.Log($"<color=#56D2FF>[Quarry-Validate]</color> Added QuarryPreviewTarget to preview {preview.Index}");
+    }
+
+    var quarrySettings = SystemAPI.GetComponent<QuarrySettings>(preview); // радиус берём из превью
+    float interactionRangeSq = quarrySettings.InteractionRange * quarrySettings.InteractionRange;
+
+    Entity closestNode = Entity.Null;
+    float closestDistSq = float.MaxValue;
+
+    // Узлы, которые уже заняты другими карьерами
+    var occupiedNodes = new Unity.Collections.NativeHashSet<Entity>(16, Unity.Collections.Allocator.Temp);
+    foreach (var quarryState in SystemAPI.Query<RefRO<QuarryState>>())
+        if (quarryState.ValueRO.TargetResourceNode != Entity.Null) occupiedNodes.Add(quarryState.ValueRO.TargetResourceNode);
+
+    int candidates = 0;
+    foreach (var (nodeTransform, nodeEntity) in SystemAPI.Query<RefRO<LocalToWorld>>().WithAll<ResourceNode>().WithEntityAccess())
+    {
+        float distSq = math.distancesq(transform.Position, nodeTransform.ValueRO.Position);
+        bool inRange = distSq < interactionRangeSq;
+        bool free    = !occupiedNodes.Contains(nodeEntity);
+
+        if (inRange) candidates++;
+
+        // DEBUG-кольцо вокруг кандидатов
+        if (inRange)
+            UnityEngine.Debug.DrawLine(transform.Position,
+                nodeTransform.ValueRO.Position, UnityEngine.Color.cyan, 0f, false);
+
+        if (inRange && free && distSq < closestDistSq)
+        {
+            closestDistSq = distSq;
+            closestNode   = nodeEntity;
+        }
+    }
+    occupiedNodes.Dispose();
+
+    if (closestNode != Entity.Null)
+    {
+        // Включаем и пишем цель
+        ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, true);
+        ecb.SetComponent(preview, new QuarryPreviewTarget { TargetNode = closestNode });
+
+        // DEBUG
+        UnityEngine.Debug.Log($"<color=#56D2FF>[Quarry-Validate]</color>" +
+                              $" Found target Node={closestNode.Index}," +
+                              $" candidates={candidates}, distSq={closestDistSq:F2}");
+        return true;
+    }
+
+    // Нет цели — выключаем (только если уже включён)
+    if (SystemAPI.IsComponentEnabled<QuarryPreviewTarget>(preview))
+        ecb.SetComponentEnabled<QuarryPreviewTarget>(preview, false);
+
+    UnityEngine.Debug.Log($"<color=#56D2FF>[Quarry-Validate]</color> " +
+                          $"No target in range. candidates={candidates}");
+    return false;
+}
 }

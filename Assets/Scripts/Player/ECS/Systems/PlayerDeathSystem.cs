@@ -24,13 +24,14 @@ public partial class PlayerDeathSystem : SystemBase
                 var uiRequestEntity = ecb.CreateEntity();
                 ecb.AddComponent<ShowDeathUIRequest>(uiRequestEntity);
 
-                // 3. Переключаем состояние игры в режим UI, чтобы остановить ввод и взаимодействие
+                // 3. Принудительно переключаем состояние игры в режим UI.
                 var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-                if (SystemAPI.HasComponent<InDefaultMode>(gameStateEntity))
-                {
-                    ecb.RemoveComponent<InDefaultMode>(gameStateEntity);
-                    ecb.AddComponent<InUIMode>(gameStateEntity);
-                }
+                
+                // Сначала очищаем ВСЕ возможные режимы (InBuilding, InUIMode с открытым инвентарем и т.д.)
+                StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameStateEntity);
+                
+                // Затем устанавливаем чистый режим UI для экрана смерти.
+                ecb.AddComponent<InUIMode>(gameStateEntity);
             }
         }
     }

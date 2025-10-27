@@ -1,5 +1,4 @@
-﻿using Game.Buildings;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;

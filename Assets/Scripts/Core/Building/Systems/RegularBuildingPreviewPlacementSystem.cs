@@ -75,15 +75,6 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
             // Если уклон плохой, ставим тег невалидности.
             SetPlacementInvalid(previewEntity, em, "Slope check failed");
         }
-        else
-        {
-            // Если уклон хороший, мы должны УБРАТЬ тег невалидности, если он был.
-            if (em.HasComponent<PlacementInvalidTag>(previewEntity))
-            {
-                Debug.Log($"<color=cyan>[Placement]</color> Slope check PASSED. Removing previous InvalidTag before handing over to ValidationSystem.");
-                em.RemoveComponent<PlacementInvalidTag>(previewEntity);
-            }
-        }
     }
 
     private bool CalculateRegularBuildingPlacement(ref LocalTransform lt, Entity previewEntity, float3 centerHitPos, in PhysicsWorldSingleton physicsWorld, in BuildingSettings settings)
@@ -119,7 +110,9 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
             float3 rayStart = centerHitPos + rotatedOffset + new float3(0, 2.0f, 0);
             float3 rayEnd = rayStart - new float3(0, 4.0f, 0);
 
-            var rayInput = new RaycastInput { Start = rayStart, End = rayEnd, Filter = new CollisionFilter { BelongsTo = ~0u, CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 } };
+            var rayInput = new RaycastInput { Start = rayStart, End = rayEnd, Filter =
+                new CollisionFilter { BelongsTo = ~0u,
+                    CollidesWith = (uint)settings.BuildableSurfaceLayerMask, GroupIndex = 0 } };
             
             if (physicsWorld.CollisionWorld.CastRay(rayInput, out PhRaycastHit hit))
             {
@@ -130,10 +123,10 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
         localOffsets.Dispose();
 
         // Если не удалось найти достаточно точек для определения поверхности, размещение невозможно.
-        // Оригинальный код использовал 3, сохраним это.
         if (hitPoints.Length < 3)
         {
-            Debug.LogWarning($"<color=cyan>[Placement]</color> Not enough footprint points hit the ground ({hitPoints.Length} < 3). Placement is likely impossible.");
+            Debug.LogWarning($"<color=cyan>[Placement]</color> Not enough footprint points hit the ground" +
+                             $" ({hitPoints.Length} < 3). Placement is likely impossible.");
             hitPoints.Dispose();
             hitNormals.Dispose();
             return false;
@@ -149,13 +142,24 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
 
         hitPoints.Dispose();
         hitNormals.Dispose();
+        
+        // 1. Получаем текущее "горизонтальное" направление вперед, заданное игроком.
+        float3 desiredForward = math.forward(lt.Rotation);
+        
+        // 2. Ортогонализуем этот вектор: убираем из него проекцию на нормаль поверхности.
+        float3 forwardOnSlope = math.normalize(desiredForward - math.dot(desiredForward, avgNormal) * avgNormal);
+
+        // 3. Создаем кватернион, используя новый, правильный вектор "вперед" и нормаль в качестве "вверх".
+        // Теперь оба вектора гарантированно ортогональны, и результат будет корректным.
+        lt.Rotation = quaternion.LookRotation(forwardOnSlope, avgNormal);
 
         lt.Position = avgPosition - math.mul(lt.Rotation, pivotOffset);
         
         bool isSlopeAllowed = SlopeUtil.IsSlopeAllowed(avgNormal, settings.MaxPlacementSlopeAngle);
         if (!isSlopeAllowed)
         {
-            Debug.Log($"<color=cyan>[Placement]</color> Slope check FAILED. Surface normal: {avgNormal}, Angle > {settings.MaxPlacementSlopeAngle}");
+            Debug.Log($"<color=cyan>[Placement]</color> Slope check FAILED." +
+                      $" Surface normal: {avgNormal}, Angle > {settings.MaxPlacementSlopeAngle}");
         }
 
         return isSlopeAllowed;
@@ -165,7 +169,8 @@ public partial class RegularBuildingPreviewPlacementSystem : SystemBase
     {
         if (!em.HasComponent<PlacementInvalidTag>(previewEntity))
         {
-            Debug.Log($"<color=cyan>[Placement]</color> Setting state to INVALID. Reason: {reason}. Adding PlacementInvalidTag.");
+            Debug.Log($"<color=cyan>[Placement]</color> Setting state to INVALID. Reason:" +
+                      $" {reason}. Adding PlacementInvalidTag.");
             em.AddComponentData(previewEntity, new PlacementInvalidTag());
             if (em.HasComponent<PlacementValidTag>(previewEntity))
                 em.RemoveComponent<PlacementValidTag>(previewEntity);

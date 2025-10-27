@@ -6,8 +6,16 @@ using Conveyor;
 using Game.Production;
 using Unity.Collections;
 
+/// <summary>
+/// Основной MonoBehaviour-контроллер для окна интерфейса, отображающего список всех конвейерных маршрутов в игре.
+/// Реализован как синглтон и служит мостом между миром ECS и UI.
+/// Он отвечает за динамическое создание списка маршрутов и обработку пользовательских действий по их настройке.
+/// </summary>
 public class ConveyorRoutesUI : MonoBehaviour
 {
+    /// <summary>
+    /// Статический экземпляр класса для глобального доступа (синглтон).
+    /// </summary>
     public static ConveyorRoutesUI Instance { get; private set; }
 
     [Header("Main Panel")]
@@ -21,12 +29,19 @@ public class ConveyorRoutesUI : MonoBehaviour
     private List<GameObject> activeRouteItems = new List<GameObject>();
     private bool isInitialized = false;
 
+    /// <summary>
+    /// Awake, реализующий паттерн синглтон.
+    /// </summary>
     void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
     }
 
+    /// <summary>
+    /// Start, вызывается при старте. Пытается инициализировать EntityManager
+    /// и назначает обработчик на кнопку закрытия.
+    /// </summary>
     void Start()
     {
         TryInitialize();
@@ -34,6 +49,9 @@ public class ConveyorRoutesUI : MonoBehaviour
         mainPanel.SetActive(false);
     }
 
+    /// <summary>
+    /// Безопасно инициализирует EntityManager, если он еще не был получен.
+    /// </summary>
     private void TryInitialize()
     {
         if (isInitialized) return;
@@ -44,6 +62,9 @@ public class ConveyorRoutesUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Показывает панель UI и обновляет список маршрутов.
+    /// </summary>
     public void Show()
     {
         TryInitialize();
@@ -52,17 +73,27 @@ public class ConveyorRoutesUI : MonoBehaviour
         RefreshRoutesList();
     }
 
+    /// <summary>
+    /// Скрывает панель UI.
+    /// </summary>
     public void Hide()
     {
         mainPanel.SetActive(false);
     }
 
+    /// <summary>
+    /// Обработчик нажатия на кнопку закрытия панели.
+    /// </summary>
     private void OnCloseButtonPressed()
     {
         Hide();
         GameBridge.Instance?.HandleUICloseAction();
     }
 
+    /// <summary>
+    /// Ключевой метод, который обновляет UI. Он запрашивает у ECS все сущности-маршруты
+    /// и для каждого из них создает и настраивает соответствующий элемент в списке UI.
+    /// </summary>
     private void RefreshRoutesList()
     {
         if (!isInitialized) return;
@@ -81,14 +112,18 @@ public class ConveyorRoutesUI : MonoBehaviour
             string routeName = $"{startName}  ->  {endName}";
 
             var itemData = ItemRegistry.Instance.GetItemData(routeDef.ItemID);
-            bool isActive = entityManager.HasComponent<ActiveRouteTag>(routeEntity);
-
+            
             GameObject itemGO = Instantiate(routeListItemPrefab, routesListContent);
-            itemGO.GetComponent<RouteListItemUI>().Initialize(entityManager, routeEntity, routeName, itemData, isActive);
+            itemGO.GetComponent<RouteListItemUI>().Initialize(entityManager, routeEntity, routeName, itemData);
             activeRouteItems.Add(itemGO);
         }
     }
 
+    /// <summary>
+    /// Вспомогательный метод для получения читаемого имени здания-владельца коннектора.
+    /// </summary>
+    /// <param name="connectorEntity">Сущность коннектора.</param>
+    /// <returns>Имя здания или стандартная строка, если имя не найдено.</returns>
     private string GetOwnerBuildingName(Entity connectorEntity)
     {
         if (!isInitialized || !entityManager.Exists(connectorEntity) || !entityManager.HasComponent<Conveyor.ConveyorConnector>(connectorEntity))
@@ -108,6 +143,11 @@ public class ConveyorRoutesUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Вызывается из элемента списка UI, когда пользователь хочет выбрать предмет для маршрута.
+    /// Открывает UI инвентаря для выбора ресурса из здания-источника.
+    /// </summary>
+    /// <param name="routeEntity">Целевой маршрут для настройки.</param>
     public void RequestSourceInventoryForRoute(Entity routeEntity)
     {
         if (!isInitialized || !entityManager.Exists(routeEntity)) return;
@@ -120,6 +160,7 @@ public class ConveyorRoutesUI : MonoBehaviour
             currentRouteToConfigure = routeEntity;
             Hide();
 
+            // Открываем UI выбора предметов, передавая ему колбэк на случай успешного выбора.
             if (entityManager.HasComponent<OutputInventoryCapacity>(ownerBuilding))
             {
                 TradeUI.Instance.ShowForItemSelection(ownerBuilding, InventoryType.Output, OnResourceSelectedForRoute);
@@ -135,10 +176,16 @@ public class ConveyorRoutesUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Коллбэк, который вызывается после того, как пользователь выбрал предмет в `TradeUI`.
+    /// Создает ECS-сущность-запрос для изменения предмета на маршруте.
+    /// </summary>
+    /// <param name="selectedItem">Выбранный предмет.</param>
     private void OnResourceSelectedForRoute(Item selectedItem)
     {
         if (selectedItem != null)
         {
+            // Создаем запрос, который будет обработан ConveyorRoutesUISystem.
             var requestEntity = entityManager.CreateEntity();
             entityManager.AddComponentData(requestEntity, new SetRouteItemRequest
             {
@@ -146,6 +193,6 @@ public class ConveyorRoutesUI : MonoBehaviour
                 NewItemID = selectedItem.itemID
             });
         }
-        Show();
+        Show(); // Возвращаемся к списку маршрутов.
     }
 }

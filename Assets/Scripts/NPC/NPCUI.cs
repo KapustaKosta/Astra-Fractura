@@ -171,6 +171,16 @@ public class NPCUI : MonoBehaviour
         sb.AppendLine($"Имя: {npcData.Name}");
         sb.AppendLine($"Возраст: {npcData.Age}");
 
+        // Добавляем отображение голода и усталости
+        if (entityManager.HasComponent<NpcVitalsComponent>(npcEntity) && 
+            entityManager.HasComponent<NpcVitalsConfig>(npcEntity))
+        {
+            var vitals = entityManager.GetComponentData<NpcVitalsComponent>(npcEntity);
+            var config = entityManager.GetComponentData<NpcVitalsConfig>(npcEntity);
+            sb.AppendLine($"Голод: {vitals.CurrentHunger:F0} / {config.MaxHunger:F0}");
+            sb.AppendLine($"Усталость: {vitals.CurrentFatigue:F0} / {config.MaxFatigue:F0}");
+        }
+
         if (entityManager.HasComponent<NPCWorkForce>(npcEntity))
         {
             var workForce = entityManager.GetComponentData<NPCWorkForce>(npcEntity);

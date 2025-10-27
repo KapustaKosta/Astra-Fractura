@@ -1,6 +1,5 @@
 ﻿using Unity.Entities;
 
-// Перечисление UIType остается, так как оно полезно для компонента UIState
 public enum UIType
 {
     None,
@@ -12,5 +11,7 @@ public enum UIType
     Battery,
     Production,
     Workshop,
-    ConveyorRoutes
+    ConveyorRoutes,
+    Quarry,
+    EnemySettlement
 }

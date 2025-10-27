@@ -11,19 +11,29 @@ namespace Conveyor
         protected override void OnUpdate()
         {
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
-            float currentTime = (float)SystemAPI.Time.ElapsedTime;
+            float deltaTime = SystemAPI.Time.DeltaTime;
 
             var itemRegistry = ItemRegistry.Instance;
             if (itemRegistry == null) return;
 
             var inputInvLookup = GetBufferLookup<InputInventorySlot>(false);
             var generalInvLookup = GetBufferLookup<InventoryItemElement>(false);
+            var powerScalingLookup = GetComponentLookup<RoutePowerScaling>(true);
 
             Entities
-                .ForEach((Entity entity, in ItemInTransit item) =>
+                .WithReadOnly(powerScalingLookup)
+                .ForEach((Entity entity, ref ItemInTransit item) =>
                 {
-                    float arrivalTime = item.StartTime + item.TravelDuration;
-                    if (currentTime >= arrivalTime)
+                    float speedMultiplier = powerScalingLookup.TryGetComponent(item.RouteEntity, out var scaling)
+                        ? scaling.SpeedMultiplier
+                        : 0.0f; 
+
+                    if (speedMultiplier > 0.001f)
+                    {
+                        item.CurrentTravelTime += deltaTime; // TravelTime is now independent of speed, speed affects visual only
+                    }
+
+                    if (item.CurrentTravelTime >= item.TravelDuration)
                     {
                         bool itemDelivered = false;
 
