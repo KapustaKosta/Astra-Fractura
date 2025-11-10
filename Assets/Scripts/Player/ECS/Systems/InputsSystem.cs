@@ -41,14 +41,14 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onQuickbarDigit += OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll += OnQuickbarScroll;
         StarterAssetsInputs.onRotate += OnRotate;
-    StarterAssetsInputs.onResearch += OnResearch;
+        StarterAssetsInputs.onResearch += OnResearch;
 
         inventoryRequested = false;
         rightClickRequested = false;
         jumpRequested = false;
         primaryActionInput = false;
         lastJumpTime = double.NegativeInfinity;
-    researchToggleRequested = false;
+        researchToggleRequested = false;
 
         // Инициализируем поля для квикбара.
         quickbarDigitPressed = 0;
@@ -70,15 +70,13 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onQuickbarDigit -= OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll -= OnQuickbarScroll;
         StarterAssetsInputs.onRotate -= OnRotate;
-    StarterAssetsInputs.onResearch -= OnResearch;
+        StarterAssetsInputs.onResearch -= OnResearch;
     }
 
     /// <summary>
     /// Обработчик события движения.
     /// </summary>
     private void OnMove(Vector2 input) => moveInput = input;
-
-    /// <summary>
 
     /// <summary>
     /// Обработчик открытия исследования.

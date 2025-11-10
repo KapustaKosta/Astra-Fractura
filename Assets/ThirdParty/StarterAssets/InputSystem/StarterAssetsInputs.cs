@@ -36,10 +36,10 @@ namespace StarterAssets
         /// </summary>
         public static event Action onInventory;
 
-    /// <summary>
-    /// Событие, вызываемое при нажатии клавиши исследования (например, TAB).
-    /// </summary>
-    public static event Action onResearch;
+        /// <summary>
+        /// Событие, вызываемое при нажатии клавиши исследования (CAPS).
+        /// </summary>
+        public static event Action onResearch;
 
         /// <summary>
         /// Событие, вызываемое при однократном нажатии правой кнопки мыши (или эквивалентного вторичного действия).

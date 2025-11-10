@@ -1594,6 +1594,7 @@ MonoBehaviour:
   GroundDamping: 0
   AirDamping: 0
   SpeedSnapThreshold: 0.1
+  startingResearchPoints: 1
 --- !u!4 &1313986269
 Transform:
   m_ObjectHideFlags: 0
@@ -2902,6 +2903,51 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 98e291a2de629dd4887d9f2d5226d595, type: 3}
+--- !u!1 &2000730637
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2000730639}
+  - component: {fileID: 2000730638}
+  m_Layer: 0
+  m_Name: ResearchTree
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2000730638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000730637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4e4006138cc04540b245fbba8ccba0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  treeDefinition: {fileID: 11400000, guid: 42ad4384afe3bfd4185b6dc9d0a5312e, type: 2}
+--- !u!4 &2000730639
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000730637}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2026356860
 GameObject:
   m_ObjectHideFlags: 0
@@ -2930,7 +2976,7 @@ Transform:
   m_GameObject: {fileID: 2026356860}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.17142558, z: 0}
+  m_LocalPosition: {x: 0, y: -0.17142725, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3109,3 +3155,4 @@ SceneRoots:
   - {fileID: 36630719}
   - {fileID: 1540165065}
   - {fileID: 73347801}
+  - {fileID: 2000730639}

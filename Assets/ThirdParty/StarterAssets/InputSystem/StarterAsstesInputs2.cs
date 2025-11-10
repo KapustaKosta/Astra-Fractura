@@ -243,6 +243,15 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Research"",
+                    ""type"": ""Button"",
+                    ""id"": ""da5b150a-3a99-4185-b54c-2ea2cc7c3e5c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -465,7 +474,7 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
                     ""action"": ""Rotate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
-                }, 
+                },
                 {
                     ""name"": """",
                     ""id"": ""00016959-a73b-4858-bf2a-68ce1ed10a05"",
@@ -564,6 +573,17 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
                     ""action"": ""QuickbarAlpha8"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""451c49d6-3b4e-4e6a-ba37-1f40bc6dfb2c"",
+                    ""path"": ""<Keyboard>/capsLock"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";KeyboardMouse"",
+                    ""action"": ""Research"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -627,7 +647,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         m_Player_Inventory = m_Player.FindAction("Inventory", throwIfNotFound: true);
         m_Player_RightClick = m_Player.FindAction("RightClick", throwIfNotFound: true);
         m_Player_Fire = m_Player.FindAction("Fire", throwIfNotFound: true);
-
         m_Player_Rotate = m_Player.FindAction("Rotate", throwIfNotFound: true);
         m_Player_QuickbarScroll = m_Player.FindAction("QuickbarScroll", throwIfNotFound: true);
         m_Player_QuickbarAlpha1 = m_Player.FindAction("QuickbarAlpha1", throwIfNotFound: true);
@@ -638,6 +657,7 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         m_Player_QuickbarAlpha6 = m_Player.FindAction("QuickbarAlpha6", throwIfNotFound: true);
         m_Player_QuickbarAlpha7 = m_Player.FindAction("QuickbarAlpha7", throwIfNotFound: true);
         m_Player_QuickbarAlpha8 = m_Player.FindAction("QuickbarAlpha8", throwIfNotFound: true);
+        m_Player_Research = m_Player.FindAction("Research", throwIfNotFound: true);
     }
 
     ~@StarterAsstesInputs2()
@@ -725,7 +745,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Inventory;
     private readonly InputAction m_Player_RightClick;
     private readonly InputAction m_Player_Fire;
-
     private readonly InputAction m_Player_Rotate;
     private readonly InputAction m_Player_QuickbarScroll;
     private readonly InputAction m_Player_QuickbarAlpha1;
@@ -736,6 +755,7 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_QuickbarAlpha6;
     private readonly InputAction m_Player_QuickbarAlpha7;
     private readonly InputAction m_Player_QuickbarAlpha8;
+    private readonly InputAction m_Player_Research;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -776,7 +796,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Fire => m_Wrapper.m_Player_Fire;
         /// <summary>
-
         /// Provides access to the underlying input action "Player/Rotate".
         /// </summary>
         public InputAction @Rotate => m_Wrapper.m_Player_Rotate;
@@ -816,6 +835,10 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/QuickbarAlpha8".
         /// </summary>
         public InputAction @QuickbarAlpha8 => m_Wrapper.m_Player_QuickbarAlpha8;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Research".
+        /// </summary>
+        public InputAction @Research => m_Wrapper.m_Player_Research;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -863,7 +886,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @Fire.started += instance.OnFire;
             @Fire.performed += instance.OnFire;
             @Fire.canceled += instance.OnFire;
-
             @Rotate.started += instance.OnRotate;
             @Rotate.performed += instance.OnRotate;
             @Rotate.canceled += instance.OnRotate;
@@ -894,6 +916,9 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @QuickbarAlpha8.started += instance.OnQuickbarAlpha8;
             @QuickbarAlpha8.performed += instance.OnQuickbarAlpha8;
             @QuickbarAlpha8.canceled += instance.OnQuickbarAlpha8;
+            @Research.started += instance.OnResearch;
+            @Research.performed += instance.OnResearch;
+            @Research.canceled += instance.OnResearch;
         }
 
         /// <summary>
@@ -926,7 +951,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @Fire.started -= instance.OnFire;
             @Fire.performed -= instance.OnFire;
             @Fire.canceled -= instance.OnFire;
-
             @Rotate.started -= instance.OnRotate;
             @Rotate.performed -= instance.OnRotate;
             @Rotate.canceled -= instance.OnRotate;
@@ -957,6 +981,9 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
             @QuickbarAlpha8.started -= instance.OnQuickbarAlpha8;
             @QuickbarAlpha8.performed -= instance.OnQuickbarAlpha8;
             @QuickbarAlpha8.canceled -= instance.OnQuickbarAlpha8;
+            @Research.started -= instance.OnResearch;
+            @Research.performed -= instance.OnResearch;
+            @Research.canceled -= instance.OnResearch;
         }
 
         /// <summary>
@@ -1098,7 +1125,6 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnFire(InputAction.CallbackContext context);
-
         /// <summary>
         /// Method invoked when associated input action "Rotate" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
@@ -1169,5 +1195,12 @@ public partial class @StarterAsstesInputs2: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnQuickbarAlpha8(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Research" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnResearch(InputAction.CallbackContext context);
     }
 }

@@ -157,6 +157,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Research",
+                    "type": "Button",
+                    "id": "da5b150a-3a99-4185-b54c-2ea2cc7c3e5c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -476,6 +485,17 @@
                     "processors": "",
                     "groups": ";KeyboardMouse",
                     "action": "QuickbarAlpha8",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "451c49d6-3b4e-4e6a-ba37-1f40bc6dfb2c",
+                    "path": "<Keyboard>/capsLock",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";KeyboardMouse",
+                    "action": "Research",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
