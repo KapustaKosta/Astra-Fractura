@@ -12,5 +12,6 @@ public enum UIType
     Battery,
     Production,
     Workshop,
-    ConveyorRoutes
+    ConveyorRoutes,
+    Research
 }

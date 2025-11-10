@@ -3,80 +3,12 @@
   "WorkspaceRootPath": "E:\\Important documents\\Astra-Fractura\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\npc\\npcmovementsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\npcmovementsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\ecs\\research\\systems\\researchrequestsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\ecs\\research\\systems\\researchrequestsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\npc\\npcmovementauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\npcmovementauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\npc\\npcui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\npcui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\npc\\npcauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\npcauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\npc\\npcclickhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\npc\\npcclickhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\player\\settlementui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\player\\settlementui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\thirdparty\\starterassets\\inputsystem\\starterassetsinputs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\thirdparty\\starterassets\\inputsystem\\starterassetsinputs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\player\\settlementclickhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\player\\settlementclickhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\player\\playertoolcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\player\\playertoolcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\core\\inventory\\inventoryui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\inventory\\inventoryui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\core\\building\\buildingmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\building\\buildingmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\core\\building\\buildingauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\building\\buildingauthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\core\\building\\itemtoentityresolver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\building\\itemtoentityresolver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{27D13540-F8C2-E5C8-CB60-B15CF0A0AD90}|Unity.Collections.csproj|E:\\Important documents\\Astra-Fractura\\library\\packagecache\\com.unity.collections@d49facba0036\\unity.collections\\nativelist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{27D13540-F8C2-E5C8-CB60-B15CF0A0AD90}|Unity.Collections.csproj|solutionrelative:library\\packagecache\\com.unity.collections@d49facba0036\\unity.collections\\nativelist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\data\\scriptableobjects\\item.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\data\\scriptableobjects\\item.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\core\\inventory\\inventoryslot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\inventory\\inventoryslot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\game\\gamemodemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\game\\gamemodemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\assets\\scripts\\resources\\resourceitemmapping.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\resources\\resourceitemmapping.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|e:\\important documents\\astra-fractura\\assets\\scripts\\core\\research\\researchui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{78E877F9-5189-98CA-473D-E333DC4EA484}|Assembly-CSharp.Player.csproj|solutionrelative:assets\\scripts\\core\\research\\researchui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -91,232 +23,28 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "NPCMovementSystem.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCMovementSystem.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCMovementSystem.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCMovementSystem.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\NPCMovementSystem.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAIwBoAAABlAAAAAAAAAA==",
+              "Title": "ResearchRequestSystem.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\ECS\\Research\\Systems\\ResearchRequestSystem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\ECS\\Research\\Systems\\ResearchRequestSystem.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\ECS\\Research\\Systems\\ResearchRequestSystem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\ECS\\Research\\Systems\\ResearchRequestSystem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T15:31:00.011Z",
+              "WhenOpened": "2025-11-09T23:47:00.47Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "NPCMovementAuthoring.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCMovementAuthoring.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCMovementAuthoring.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCMovementAuthoring.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\NPCMovementAuthoring.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAABAAAAAAAAAA==",
+              "Title": "ResearchUI.cs",
+              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Research\\ResearchUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Research\\ResearchUI.cs",
+              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Research\\ResearchUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Core\\Research\\ResearchUI.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T15:29:05.734Z",
+              "WhenOpened": "2025-11-09T23:45:39.906Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "NPCUI.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCUI.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCUI.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCUI.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\NPCUI.cs",
-              "ViewState": "AgIAAHsAAAAAAAAAAADwv5oAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T14:16:14.138Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "NPCClickHandler.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCClickHandler.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCClickHandler.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCClickHandler.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\NPCClickHandler.cs",
-              "ViewState": "AgIAADcAAAAAAAAAAAAcwFMAAAAjAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T14:15:37.243Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "SettlementUI.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\SettlementUI.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\SettlementUI.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\SettlementUI.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Player\\SettlementUI.cs",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAgwDEAAAAeAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T13:22:31.458Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "PlayerToolController.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\PlayerToolController.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\PlayerToolController.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\PlayerToolController.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Player\\PlayerToolController.cs",
-              "ViewState": "AgIAAHEAAAAAAAAAAAAIwFUAAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T13:37:05.789Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "SettlementClickHandler.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\SettlementClickHandler.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\SettlementClickHandler.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Player\\SettlementClickHandler.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Player\\SettlementClickHandler.cs",
-              "ViewState": "AgIAAFsAAAAAAAAAAAAcwGIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T13:21:15.282Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "StarterAssetsInputs.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\ThirdParty\\StarterAssets\\InputSystem\\StarterAssetsInputs.cs",
-              "RelativeDocumentMoniker": "Assets\\ThirdParty\\StarterAssets\\InputSystem\\StarterAssetsInputs.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\ThirdParty\\StarterAssets\\InputSystem\\StarterAssetsInputs.cs",
-              "RelativeToolTip": "Assets\\ThirdParty\\StarterAssets\\InputSystem\\StarterAssetsInputs.cs",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAYwD8AAAA5AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-17T13:13:48.203Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "InventoryUI.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Core\\Inventory\\InventoryUI.cs",
-              "ViewState": "AgIAAEQAAAAAAAAAAAAUwFwAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T23:36:28.172Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "NPCAuthoring.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCAuthoring.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\NPCAuthoring.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\NPCAuthoring.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\NPCAuthoring.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAwAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-28T23:42:18.49Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "BuildingManager.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Core\\Building\\BuildingManager.cs",
-              "ViewState": "AgIAABgAAAAAAAAAAAAswDUAAAAFAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T23:27:23.757Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "ItemToEntityResolver.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\ItemToEntityResolver.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Building\\ItemToEntityResolver.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\ItemToEntityResolver.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Core\\Building\\ItemToEntityResolver.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-07T14:09:39.48Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 16,
-              "Title": "GameModeManager.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Game\\GameModeManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Game\\GameModeManager.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Game\\GameModeManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Game\\GameModeManager.cs",
-              "ViewState": "AgIAABEAAAAAAAAAAAA9wCwAAAAyAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T23:21:54.137Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 15,
-              "Title": "InventorySlot.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Core\\Inventory\\InventorySlot.cs",
-              "ViewState": "AgIAACoAAAAAAAAAAAAowDYAAAA2AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T23:13:23.414Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 13,
-              "Title": "NativeList.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Library\\PackageCache\\com.unity.collections@d49facba0036\\Unity.Collections\\NativeList.cs",
-              "RelativeDocumentMoniker": "Library\\PackageCache\\com.unity.collections@d49facba0036\\Unity.Collections\\NativeList.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Library\\PackageCache\\com.unity.collections@d49facba0036\\Unity.Collections\\NativeList.cs",
-              "RelativeToolTip": "Library\\PackageCache\\com.unity.collections@d49facba0036\\Unity.Collections\\NativeList.cs",
-              "ViewState": "AgIAAFACAAAAAAAAAAAQwGMCAACLAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-07T14:34:31.862Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "BuildingAuthoring.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingAuthoring.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Core\\Building\\BuildingAuthoring.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Core\\Building\\BuildingAuthoring.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Core\\Building\\BuildingAuthoring.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAABEAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-08T10:52:18.083Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
-              "Title": "Item.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Data\\ScriptableObjects\\Item.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Data\\ScriptableObjects\\Item.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Data\\ScriptableObjects\\Item.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Data\\ScriptableObjects\\Item.cs",
-              "ViewState": "AgIAABAAAAAAAAAAAAAgwDEAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-07T14:17:01.326Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
-              "Title": "ResourceItemMapping.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Resources\\ResourceItemMapping.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-29T20:49:05.009Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 18,
-              "Title": "RotationPositionFixingFixingAuthoring.cs",
-              "DocumentMoniker": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",
-              "ToolTip": "E:\\Important documents\\Astra-Fractura\\Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",
-              "RelativeToolTip": "Assets\\Scripts\\NPC\\RotationPositionFixingFixingAuthoring.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-28T23:16:01.218Z"
             }
           ]
         }

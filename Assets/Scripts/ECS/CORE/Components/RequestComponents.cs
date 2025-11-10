@@ -5,6 +5,7 @@ using Game.Workshop;
 using Wiring;
 using Conveyor;
 using Energy.Core;
+using Game.Research;
 
 /// <summary>
 /// Интерфейс-маркер для всех компонентов-запросов,
@@ -214,3 +215,13 @@ public struct ConfirmConveyorPlacementRequest : IRequestCleanup { public int Ite
 /// Запрос на удаление конвейера под курсором.
 /// </summary>
 public struct RemoveConveyorUnderCursorRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на открытие или закрытие исследования.
+/// </summary>
+public struct ToggleResearchUIRequest : IRequestCleanup { }
+
+/// <summary>
+/// Запрос на мгновенное изучение технологии.
+/// </summary>
+public struct StartResearchRequest : IRequestCleanup { public int TechnologyId; }

@@ -26,7 +26,9 @@ public partial class AttackPlayerGoalExecutionSystem : SystemBase
         Entities
             .WithAll<HostileNPCTag, NPCBrain>()
             .ForEach((Entity e,
+                      // ref NPCMovementComponent movement,
                       ref NPCMovementComponent movement,
+                      ref NPCAnimationState animationState, 
                       // ref AttackState, т.к. мы будем менять LastAttackTime
                       ref AttackState attackState, 
                       in NPCBaseMovementStats baseMove,
@@ -72,6 +74,9 @@ public partial class AttackPlayerGoalExecutionSystem : SystemBase
                     // Атака по кулдауну
                     if (time >= attackState.LastAttackTime + stats.AttackCooldown)
                     {
+                        // Устанавливаем триггер анимации
+                        animationState.AttackTrigger = true;
+                        
                         // Создаем одноразовый запрос на нанесение урона
                         var req = ecb.CreateEntity();
                         ecb.AddComponent(req, new PerformNpcAttackRequest

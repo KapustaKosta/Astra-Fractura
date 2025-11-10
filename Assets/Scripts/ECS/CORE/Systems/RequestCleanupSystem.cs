@@ -4,6 +4,7 @@ using Game.Workshop;
 using Wiring;
 using Conveyor;
 using Energy.Core;
+using Game.Research;
 
 /// <summary>
 /// Универсальная система, которая выполняется в конце кадра и удаляет все сущности,
@@ -53,7 +54,9 @@ public partial class RequestCleanupSystem : SystemBase
                 ComponentType.ReadWrite<ToggleRouteRequest>(),
                 ComponentType.ReadWrite<OpenConveyorRoutesUIRequest>(),
                 ComponentType.ReadWrite<ConfirmConveyorPlacementRequest>(),
-                ComponentType.ReadWrite<RemoveConveyorUnderCursorRequest>()
+                ComponentType.ReadWrite<RemoveConveyorUnderCursorRequest>(),
+                ComponentType.ReadWrite<ToggleResearchUIRequest>(),
+                ComponentType.ReadWrite<StartResearchRequest>()
             }
         };
         m_RequestQuery = GetEntityQuery(queryDesc);

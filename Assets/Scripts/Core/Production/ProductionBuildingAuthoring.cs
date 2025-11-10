@@ -3,6 +3,7 @@ using Game.Workshop;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
+using Game.Research;
 
 namespace Game.Production
 {
@@ -20,6 +21,10 @@ namespace Game.Production
         [Header("Storage Settings")]
         public int inputCapacity = 10;
         public int outputCapacity = 10;
+
+    [Header("Research")]
+    [Tooltip("Amount of research points this building generates per second.")]
+    public float researchPointsPerSecond = 0f;
 
         class Baker : Baker<ProductionBuildingAuthoring>
         {
@@ -68,6 +73,11 @@ namespace Game.Production
                 }
 
                 AddBuffer<ProductionQueueItem>(e);
+
+                if (a.researchPointsPerSecond > 0f)
+                {
+                    AddComponent(e, new ResearchPointSource { PointsPerSecond = a.researchPointsPerSecond });
+                }
             }
         }
     }

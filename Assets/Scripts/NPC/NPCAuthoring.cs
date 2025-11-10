@@ -73,9 +73,6 @@ public class NPCAuthoring : MonoBehaviour
                 CurrentHealth = a.maxHealth
             });
 
-            // Ссылка на исходный GameObject (если требуется для мостов/визуала)
-            AddComponentObject(e, new GameObjectLink { Value = a.gameObject });
-
             // Избежание
             AddComponent(e, new AvoidanceData
             {
@@ -110,7 +107,8 @@ public class NPCAuthoring : MonoBehaviour
             AddComponent<NPCPathfindingComponent>(e);
             AddBuffer<NPCPathBufferElement>(e);
 
-
+            // Анимация
+            AddComponent<NPCAnimationState>(e);
         }
     }
 }

@@ -23,6 +23,7 @@ public partial class InputsSystem : SystemBase
     private double lastJumpTime;
     private bool primaryActionInput;
     private bool rotateHeld;
+    private bool researchToggleRequested;
 
     // Поля для хранения состояния ввода для квикбара.
     private int quickbarDigitPressed;
@@ -40,12 +41,14 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onQuickbarDigit += OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll += OnQuickbarScroll;
         StarterAssetsInputs.onRotate += OnRotate;
+    StarterAssetsInputs.onResearch += OnResearch;
 
         inventoryRequested = false;
         rightClickRequested = false;
         jumpRequested = false;
         primaryActionInput = false;
         lastJumpTime = double.NegativeInfinity;
+    researchToggleRequested = false;
 
         // Инициализируем поля для квикбара.
         quickbarDigitPressed = 0;
@@ -67,6 +70,7 @@ public partial class InputsSystem : SystemBase
         StarterAssetsInputs.onQuickbarDigit -= OnQuickbarDigit;
         StarterAssetsInputs.onQuickbarScroll -= OnQuickbarScroll;
         StarterAssetsInputs.onRotate -= OnRotate;
+    StarterAssetsInputs.onResearch -= OnResearch;
     }
 
     /// <summary>
@@ -75,6 +79,11 @@ public partial class InputsSystem : SystemBase
     private void OnMove(Vector2 input) => moveInput = input;
 
     /// <summary>
+
+    /// <summary>
+    /// Обработчик открытия исследования.
+    /// </summary>
+    private void OnResearch() => researchToggleRequested = true;
     /// Обработчик события обзора.
     /// </summary>
     private void OnLook(Vector2 input) => lookInput = input;
@@ -122,6 +131,13 @@ public partial class InputsSystem : SystemBase
             var invE = ecb.CreateEntity();
             ecb.AddComponent(invE, new ToggleInventoryRequest());
             inventoryRequested = false;
+        }
+
+        if (researchToggleRequested)
+        {
+            var researchEntity = ecb.CreateEntity();
+            ecb.AddComponent(researchEntity, new ToggleResearchUIRequest());
+            researchToggleRequested = false;
         }
 
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();

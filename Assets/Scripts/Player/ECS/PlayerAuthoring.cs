@@ -4,6 +4,7 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Authoring;
 using Unity.Physics.Systems;
+using Game.Research;
 using SphereCollider = Unity.Physics.SphereCollider;
 
 /// <summary>
@@ -138,6 +139,10 @@ public class PlayerAuthoring : MonoBehaviour
     [Tooltip("Пороговое значение для 'прилипания' к целевой скорости.")]
     public float SpeedSnapThreshold = 0.1f;
 
+    [Header("Research")]
+    [Tooltip("Начальное количество очков исследований у игрока.")]
+    public int startingResearchPoints = 0;
+
 
     /// <summary>
     /// Отображает Gizmo в редакторе Unity для визуализации сферы проверки заземления.
@@ -236,6 +241,19 @@ public partial class PlayerBaker : Baker<PlayerAuthoring>
         AddComponent<InputsData>(entity);
         AddComponent<InventoryInputData>(entity);
         AddComponentObject(entity, new CameraTargetData { ProxyTarget = null });
+
+        AddComponent(entity, new ResearchState
+        {
+            ResearchPoints = math.max(0, authoring.startingResearchPoints)
+        });
+        AddComponent(entity, new ResearchPointAccumulator
+        {
+            LastTickTime = 0d,
+            FractionalRemainder = 0f
+        });
+        AddBuffer<UnlockedResearchTechnology>(entity);
+        AddBuffer<UnlockedResearchItem>(entity);
+        AddBuffer<ActiveResearchModifier>(entity);
     }
 }
 

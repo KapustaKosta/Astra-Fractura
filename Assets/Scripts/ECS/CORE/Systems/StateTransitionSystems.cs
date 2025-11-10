@@ -7,6 +7,7 @@ using Wiring;
 using Unity.Collections;
 using Conveyor;
 using Game.Workshop;
+using Game.Research;
 
 #region Gameplay Mode Transitions
 
@@ -66,6 +67,23 @@ public partial class EnterBuildingModeSystem : SystemBase
         }
 
         var req = SystemAPI.GetSingleton<EnterBuildingModeRequest>();
+
+        if (SystemAPI.TryGetSingletonEntity<ResearchState>(out var researchEntity) &&
+            EntityManager.HasBuffer<UnlockedResearchItem>(researchEntity))
+        {
+            var unlockedItems = EntityManager.GetBuffer<UnlockedResearchItem>(researchEntity);
+            if (unlockedItems.Length > 0 && !IsItemUnlocked(unlockedItems, req.ItemID))
+            {
+                var notification = ecb.CreateEntity();
+                ecb.AddComponent(notification, new UINotificationRequest
+                {
+                    Message = new FixedString128Bytes("Technology is locked")
+                });
+
+                ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+                return;
+            }
+        }
         StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
         ecb.AddComponent<InBuildingMode>(gameState);
 
@@ -80,6 +98,19 @@ public partial class EnterBuildingModeSystem : SystemBase
         }
 
         ecb.DestroyEntity(reqQuery, EntityQueryCaptureMode.AtPlayback);
+    }
+
+    private static bool IsItemUnlocked(DynamicBuffer<UnlockedResearchItem> buffer, int itemId)
+    {
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            if (buffer[i].ItemId == itemId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
@@ -248,38 +279,6 @@ public partial class ToggleInventorySystem : SystemBase
 
     protected override void OnUpdate()
     {
-        bool hasAnyOpenRequest =
-            !SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenProductionUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenWorkshopUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenNPCUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenSettlementUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenTradeUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build().IsEmpty ||
-            !SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build().IsEmpty;
-
-        if (!hasAnyOpenRequest) return;
-
-        var ecb = SystemAPI
-            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
-            .CreateCommandBuffer(World.Unmanaged);
-
-        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState)) return;
-
-        if (SystemAPI.HasComponent<InUIMode>(gameState) && !SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build().IsEmpty)
-        {
-            var closeRequest = ecb.CreateEntity();
-            ecb.AddComponent<CloseAllUIRequest>(closeRequest);
-
-            var invRequestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
-            ecb.DestroyEntity(invRequestQuery, EntityQueryCaptureMode.AtPlayback);
-            return;
-        }
-
-        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
-        ecb.AddComponent<InUIMode>(gameState);
-
         var inventoryRequestQuery = SystemAPI.QueryBuilder().WithAll<ToggleInventoryRequest>().Build();
         var productionRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenProductionUIRequest>().Build();
         var workshopRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenWorkshopUIRequest>().Build();
@@ -289,6 +288,56 @@ public partial class ToggleInventorySystem : SystemBase
         var generatorRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenGeneratorUIRequest>().Build();
         var batteryRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenBatteryUIRequest>().Build();
         var conveyorRoutesRequestQuery = SystemAPI.QueryBuilder().WithAll<OpenConveyorRoutesUIRequest>().Build();
+        var researchRequestQuery = SystemAPI.QueryBuilder().WithAll<ToggleResearchUIRequest>().Build();
+
+        bool hasAnyOpenRequest =
+            !inventoryRequestQuery.IsEmpty ||
+            !productionRequestQuery.IsEmpty ||
+            !workshopRequestQuery.IsEmpty ||
+            !npcRequestQuery.IsEmpty ||
+            !settlementRequestQuery.IsEmpty ||
+            !tradeRequestQuery.IsEmpty ||
+            !generatorRequestQuery.IsEmpty ||
+            !batteryRequestQuery.IsEmpty ||
+            !conveyorRoutesRequestQuery.IsEmpty ||
+            !researchRequestQuery.IsEmpty;
+
+        if (!hasAnyOpenRequest)
+        {
+            return;
+        }
+
+        var ecb = SystemAPI
+            .GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(World.Unmanaged);
+
+        if (!SystemAPI.TryGetSingletonEntity<GameState>(out var gameState))
+        {
+            return;
+        }
+
+        bool isInUIMode = SystemAPI.HasComponent<InUIMode>(gameState);
+        bool hasUIState = SystemAPI.HasComponent<UIState>(gameState);
+        UIType currentUIType = hasUIState ? SystemAPI.GetComponent<UIState>(gameState).ActiveUIType : UIType.None;
+
+        if (!inventoryRequestQuery.IsEmpty && isInUIMode)
+        {
+            var closeRequest = ecb.CreateEntity();
+            ecb.AddComponent<CloseAllUIRequest>(closeRequest);
+            ecb.DestroyEntity(inventoryRequestQuery, EntityQueryCaptureMode.AtPlayback);
+            return;
+        }
+
+        if (!researchRequestQuery.IsEmpty && isInUIMode && currentUIType == UIType.Research)
+        {
+            var closeRequest = ecb.CreateEntity();
+            ecb.AddComponent<CloseAllUIRequest>(closeRequest);
+            ecb.DestroyEntity(researchRequestQuery, EntityQueryCaptureMode.AtPlayback);
+            return;
+        }
+
+        StateTransitionHelpers.CleanupModes(EntityManager, ecb, gameState);
+        ecb.AddComponent<InUIMode>(gameState);
 
         if (!inventoryRequestQuery.IsEmpty)
         {
@@ -342,6 +391,11 @@ public partial class ToggleInventorySystem : SystemBase
             var req = SystemAPI.GetSingleton<OpenBatteryUIRequest>();
             ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Battery, ActiveUITarget = req.Target });
             ecb.DestroyEntity(batteryRequestQuery, EntityQueryCaptureMode.AtPlayback);
+        }
+        else if (!researchRequestQuery.IsEmpty)
+        {
+            ecb.AddComponent(gameState, new UIState { ActiveUIType = UIType.Research, ActiveUITarget = Entity.Null });
+            ecb.DestroyEntity(researchRequestQuery, EntityQueryCaptureMode.AtPlayback);
         }
     }
 }

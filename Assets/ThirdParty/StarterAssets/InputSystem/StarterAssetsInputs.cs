@@ -36,6 +36,11 @@ namespace StarterAssets
         /// </summary>
         public static event Action onInventory;
 
+    /// <summary>
+    /// Событие, вызываемое при нажатии клавиши исследования (например, TAB).
+    /// </summary>
+    public static event Action onResearch;
+
         /// <summary>
         /// Событие, вызываемое при однократном нажатии правой кнопки мыши (или эквивалентного вторичного действия).
         /// </summary>
@@ -121,6 +126,18 @@ namespace StarterAssets
             if (value.isPressed)
             {
                 onInventory?.Invoke();
+            }
+        }
+
+        /// <summary>
+        /// Метод, вызываемый компонентом Player Input для обработки запроса исследования.
+        /// </summary>
+        /// <param name="value">Значение ввода.</param>
+        public void OnResearch(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                onResearch?.Invoke();
             }
         }
 

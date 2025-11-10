@@ -44,19 +44,16 @@ public partial struct FoundationSnapVisualSystem : ISystem
 
             // Определяем точки в локальном пространстве фундамента (относительно его центра).
             // Y-координата пока 0, мы подставим мировую высоту DeckWorldY позже.
-            float3[] localPoints =
-            {
-                // Углы
-                new float3(deckHalfSize.x, 0, deckHalfSize.y),
-                new float3(deckHalfSize.x, 0, -deckHalfSize.y),
-                new float3(-deckHalfSize.x, 0, -deckHalfSize.y),
-                new float3(-deckHalfSize.x, 0, deckHalfSize.y),
-                // Ребра
-                new float3(deckHalfSize.x, 0, 0),
-                new float3(-deckHalfSize.x, 0, 0),
-                new float3(0, 0, deckHalfSize.y),
-                new float3(0, 0, -deckHalfSize.y)
-            };
+            // Используем NativeArray вместо управляемого массива для совместимости с Burst
+            var localPoints = new NativeArray<float3>(8, Allocator.Temp);
+            localPoints[0] = new float3(deckHalfSize.x, 0, deckHalfSize.y);
+            localPoints[1] = new float3(deckHalfSize.x, 0, -deckHalfSize.y);
+            localPoints[2] = new float3(-deckHalfSize.x, 0, -deckHalfSize.y);
+            localPoints[3] = new float3(-deckHalfSize.x, 0, deckHalfSize.y);
+            localPoints[4] = new float3(deckHalfSize.x, 0, 0);
+            localPoints[5] = new float3(-deckHalfSize.x, 0, 0);
+            localPoints[6] = new float3(0, 0, deckHalfSize.y);
+            localPoints[7] = new float3(0, 0, -deckHalfSize.y);
 
             for (int i = 0; i < localPoints.Length; i++)
             {
@@ -76,9 +73,15 @@ public partial struct FoundationSnapVisualSystem : ISystem
                     });
                 }
             }
+            
+            localPoints.Dispose(); // Не забываем освобождать память
         }
 
-        if (snapPoints.Length == 0) return;
+        if (snapPoints.Length == 0)
+        {
+            snapPoints.Dispose();
+            return; // Выходим, если нет точек
+        }
 
         SnapPointData bestSnapPoint = snapPoints[0];
         for (int i = 1; i < snapPoints.Length; i++)
